@@ -1,0 +1,80 @@
+<%- include('../partials/header') %>
+
+<main class="contenido">
+  <div class="page-header flex-between">
+    <div>
+      <h1 class="page-title">Detalle de Venta</h1>
+      <p class="page-subtitle">Folio #<%= id %></p>
+    </div>
+    <div class="flex gap-sm">
+      <button class="btn btn-secondary">Imprimir Ticket</button>
+      <button class="btn btn-danger">Cancelar Venta</button>
+      <a href="/historial" class="btn btn-ghost">Volver</a>
+    </div>
+  </div>
+
+  <div class="stat-grid">
+    <div class="stat-card">
+      <div class="stat-icon burgundy">
+        <svg viewBox="0 0 24 24"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6"/></svg>
+      </div>
+      <div class="stat-info">
+        <div class="stat-value">$0.00</div>
+        <div class="stat-label">Total</div>
+      </div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-icon raspberry">
+        <svg viewBox="0 0 24 24"><rect x="1" y="4" width="22" height="16" rx="2" ry="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg>
+      </div>
+      <div class="stat-info">
+        <div class="stat-value">EFECTIVO</div>
+        <div class="stat-label">Método de Pago</div>
+      </div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-icon navy">
+        <svg viewBox="0 0 24 24"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+      </div>
+      <div class="stat-info">
+        <div class="stat-value">—</div>
+        <div class="stat-label">Cajero</div>
+      </div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-icon cherry">
+        <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+      </div>
+      <div class="stat-info">
+        <div class="stat-value">—</div>
+        <div class="stat-label">Fecha</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-titulo">Productos</div>
+    <div class="tabla-wrap">
+      <table class="tabla">
+        <thead>
+          <tr>
+            <th>Producto</th>
+            <th>Cantidad</th>
+            <th>Precio Unitario</th>
+            <th>Descuento</th>
+            <th>Subtotal</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td colspan="5" class="text-center text-muted" style="padding:2rem;">
+              Sin productos
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</main>
+
+<%- include('../partials/footer') %>

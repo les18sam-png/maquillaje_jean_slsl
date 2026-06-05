@@ -1,0 +1,206 @@
+<%- include('../partials/header', { title }) %>
+
+<div class="page-wrapper">
+
+  <!-- Encabezado de página -->
+  <div class="page-header">
+    <div class="page-header__left">
+      <h1 class="page-title">Clientes</h1>
+      <span class="page-subtitle"><%= totalClientes %> registrado<%= totalClientes !== 1 ? 's' : '' %></span>
+    </div>
+    <div class="page-header__right">
+      <a href="/clientes/nuevo" class="btn btn-primary">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+        Nuevo cliente
+      </a>
+    </div>
+  </div>
+
+  <!-- Filtros -->
+  <form method="GET" action="/clientes" class="filtros-bar">
+    <div class="filtros-bar__search">
+      <svg class="search-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+      <input
+        type="text"
+        name="q"
+        value="<%= busqueda %>"
+        placeholder="Buscar por nombre, correo, teléfono o RFC…"
+        class="filtros-bar__input"
+        autocomplete="off"
+      >
+    </div>
+
+    <select name="tipo" class="filtros-bar__select" onchange="this.form.submit()">
+      <option value=""          <%= tipo === ''          ? 'selected' : '' %>>Todos los tipos</option>
+      <option value="normal"    <%= tipo === 'normal'    ? 'selected' : '' %>>Cliente normal</option>
+      <option value="mayorista" <%= tipo === 'mayorista' ? 'selected' : '' %>>Mayorista</option>
+    </select>
+
+    <select name="orden" class="filtros-bar__select" onchange="this.form.submit()">
+      <option value="nombre_asc"  <%= orden === 'nombre_asc'  ? 'selected' : '' %>>A → Z</option>
+      <option value="nombre_desc" <%= orden === 'nombre_desc' ? 'selected' : '' %>>Z → A</option>
+      <option value="reciente"    <%= orden === 'reciente'    ? 'selected' : '' %>>Más recientes</option>
+      <option value="antiguo"     <%= orden === 'antiguo'     ? 'selected' : '' %>>Más antiguos</option>
+    </select>
+
+    <button type="submit" class="btn btn-secondary">Buscar</button>
+
+    <% if (busqueda || tipo || orden !== 'nombre_asc') { %>
+      <a href="/clientes" class="btn btn-ghost">Limpiar</a>
+    <% } %>
+  </form>
+
+  <!-- Tabla -->
+  <% if (clientes.length === 0) { %>
+    <div class="empty-state">
+      <div class="empty-state__icon">
+        <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+      </div>
+      <p class="empty-state__title">
+        <% if (busqueda || tipo) { %>
+          Sin resultados para tu búsqueda
+        <% } else { %>
+          Aún no hay clientes registrados
+        <% } %>
+      </p>
+      <% if (!busqueda && !tipo) { %>
+        <a href="/clientes/nuevo" class="btn btn-primary">Agregar primer cliente</a>
+      <% } %>
+    </div>
+
+  <% } else { %>
+    <div class="table-wrapper">
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th>Cliente</th>
+            <th>Contacto</th>
+            <th>RFC</th>
+            <th>Tipo</th>
+            <th>Registro</th>
+            <th class="th-actions">Acciones</th>
+          </tr>
+        </thead>
+        <tbody>
+          <% clientes.forEach(c => { %>
+          <tr class="data-table__row" data-href="/clientes/<%= c.id %>">
+            <td>
+              <div class="cliente-nombre-cell">
+                <div class="avatar avatar--<%= c.es_mayorista ? 'mayorista' : 'normal' %>">
+                  <%= c.nombre ? c.nombre.charAt(0).toUpperCase() : '?' %>
+                </div>
+                <div>
+                  <span class="fw-medium"><%= c.nombre %></span>
+                  <% if (c.notas) { %>
+                    <span class="text-muted text-sm"><%= c.notas.substring(0, 40) %><%= c.notas.length > 40 ? '…' : '' %></span>
+                  <% } %>
+                </div>
+              </div>
+            </td>
+            <td>
+              <div class="contact-stack">
+                <% if (c.correo) { %>
+                  <span class="contact-item">
+                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
+                    <%= c.correo %>
+                  </span>
+                <% } %>
+                <% if (c.telefono) { %>
+                  <span class="contact-item">
+                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07A19.5 19.5 0 0 1 4.69 12 19.79 19.79 0 0 1 1.61 3.41 2 2 0 0 1 3.6 1.21h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L7.91 8.69a16 16 0 0 0 6.08 6.08l.95-.95a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 22 16.92z"/></svg>
+                    <%= c.telefono %>
+                  </span>
+                <% } %>
+                <% if (!c.correo && !c.telefono) { %>
+                  <span class="text-muted text-sm">Sin contacto</span>
+                <% } %>
+              </div>
+            </td>
+            <td>
+              <% if (c.rfc) { %>
+                <code class="rfc-badge"><%= c.rfc %></code>
+              <% } else { %>
+                <span class="text-muted">—</span>
+              <% } %>
+            </td>
+            <td>
+              <% if (c.es_mayorista) { %>
+                <span class="badge badge--mayorista">Mayorista</span>
+              <% } else { %>
+                <span class="badge badge--normal">Normal</span>
+              <% } %>
+            </td>
+            <td class="text-sm text-muted">
+              <%= new Date(c.creado_en).toLocaleDateString('es-MX', { day:'2-digit', month:'short', year:'numeric' }) %>
+            </td>
+            <td class="td-actions" onclick="event.stopPropagation()">
+              <a href="/clientes/<%= c.id %>" class="icon-btn" title="Ver detalle">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+              </a>
+              <a href="/clientes/<%= c.id %>/editar" class="icon-btn" title="Editar">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+              </a>
+              <form method="POST" action="/clientes/<%= c.id %>/eliminar" class="form-inline" onsubmit="return confirmarEliminacion(event, '<%= c.nombre %>')">
+                <button type="submit" class="icon-btn icon-btn--danger" title="Eliminar">
+                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4h6v2"/></svg>
+                </button>
+              </form>
+            </td>
+          </tr>
+          <% }) %>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Paginación -->
+    <% if (totalPaginas > 1) { %>
+    <div class="pagination">
+      <% if (pagina > 1) { %>
+        <a href="/clientes?q=<%= busqueda %>&tipo=<%= tipo %>&orden=<%= orden %>&pagina=<%= pagina - 1 %>" class="pagination__btn">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="15 18 9 12 15 6"/></svg>
+          Anterior
+        </a>
+      <% } %>
+      <span class="pagination__info">Página <strong><%= pagina %></strong> de <strong><%= totalPaginas %></strong></span>
+      <% if (pagina < totalPaginas) { %>
+        <a href="/clientes?q=<%= busqueda %>&tipo=<%= tipo %>&orden=<%= orden %>&pagina=<%= pagina + 1 %>" class="pagination__btn">
+          Siguiente
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="9 18 15 12 9 6"/></svg>
+        </a>
+      <% } %>
+    </div>
+    <% } %>
+
+  <% } %>
+
+</div>
+
+<!-- Toast -->
+<% const toast = (typeof query !== 'undefined' ? query.toast : null) || ''; %>
+<% if (toast) { %>
+<div class="toast toast--<%= toast === 'creado' || toast === 'actualizado' ? 'success' : 'error' %>" id="toast">
+  <% if (toast === 'creado')      { %>Cliente creado correctamente.<% } %>
+  <% if (toast === 'actualizado') { %>Cliente actualizado.<% } %>
+  <% if (toast === 'eliminado')   { %>Cliente eliminado.<% } %>
+</div>
+<% } %>
+
+<script>
+  document.querySelectorAll('.data-table__row[data-href]').forEach(row => {
+    row.addEventListener('click', () => { window.location.href = row.dataset.href; });
+    row.style.cursor = 'pointer';
+  });
+
+  function confirmarEliminacion(e, nombre) {
+    if (!confirm(`¿Eliminar al cliente "${nombre}"?\nEsta acción no se puede deshacer.`)) {
+      e.preventDefault();
+      return false;
+    }
+    return true;
+  }
+
+  const toastEl = document.getElementById('toast');
+  if (toastEl) setTimeout(() => toastEl.classList.add('toast--hidden'), 3500);
+</script>
+
+<%- include('../partials/footer') %>

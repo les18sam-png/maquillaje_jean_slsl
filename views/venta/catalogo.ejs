@@ -1,0 +1,251 @@
+<%- include('../partials/header', { title }) %>
+
+<div class="page-wrapper pdv-wrapper">
+
+  <!-- Topbar -->
+  <div class="pdv-topbar">
+    <div class="pdv-topbar__left">
+      <h1 class="page-title">Punto de Venta</h1>
+    </div>
+    <div class="pdv-topbar__right">
+      <a href="/venta/carrito" class="carrito-btn" id="btn-carrito">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"/></svg>
+        <span class="carrito-btn__label">Ver carrito</span>
+        <span class="carrito-badge" id="carrito-badge">0</span>
+      </a>
+    </div>
+  </div>
+
+  <!-- Buscador + filtros -->
+  <form method="GET" action="/venta" class="pdv-filtros" id="form-busqueda">
+
+    <div class="tipo-busq-toggle">
+      <label class="tipo-busq-opt">
+        <input type="radio" name="tipo_busq" value="nombre"
+          <%= tipoBusq === 'nombre' ? 'checked' : '' %>
+          onchange="this.form.submit()"
+        >
+        <span>Nombre</span>
+      </label>
+      <label class="tipo-busq-opt">
+        <input type="radio" name="tipo_busq" value="codigo"
+          <%= tipoBusq === 'codigo' ? 'checked' : '' %>
+          onchange="this.form.submit()"
+        >
+        <span>Código de barras</span>
+      </label>
+    </div>
+
+    <div class="pdv-search-wrap">
+      <svg class="search-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+      <input
+        type="text"
+        name="q"
+        id="input-busqueda"
+        value="<%= busqueda %>"
+        placeholder="<%= tipoBusq === 'codigo' ? 'Escanea o escribe el código…' : 'Buscar producto…' %>"
+        class="pdv-search-input"
+        autocomplete="off"
+        autofocus
+      >
+      <% if (busqueda) { %>
+        <a href="/venta?tipo_busq=<%= tipoBusq %>" class="search-clear">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+        </a>
+      <% } %>
+    </div>
+
+    <select name="categoria" class="filtros-bar__select" onchange="this.form.submit()">
+      <option value="">Todas las categorías</option>
+      <% categorias.forEach(cat => { %>
+        <option value="<%= cat.id %>" <%= categoria === cat.id ? 'selected' : '' %>><%= cat.nombre %></option>
+      <% }) %>
+    </select>
+
+    <button type="submit" class="btn btn-secondary">Buscar</button>
+    <% if (busqueda || categoria) { %>
+      <a href="/venta" class="btn btn-ghost">Limpiar</a>
+    <% } %>
+
+  </form>
+
+  <!-- Contador resultados -->
+  <div class="pdv-resultados-info">
+    <% if (busqueda) { %>
+      <span><strong><%= productos.length %></strong> resultado<%= productos.length !== 1 ? 's' : '' %> para "<%= busqueda %>"</span>
+    <% } else { %>
+      <span><strong><%= productos.length %></strong> producto<%= productos.length !== 1 ? 's' : '' %></span>
+    <% } %>
+  </div>
+
+  <!-- Grid -->
+  <% if (productos.length === 0) { %>
+    <div class="empty-state">
+      <div class="empty-state__icon">
+        <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/></svg>
+      </div>
+      <p class="empty-state__title">
+        <% if (busqueda) { %>Sin resultados para "<%= busqueda %>"
+        <% } else { %>No hay productos disponibles<% } %>
+      </p>
+    </div>
+
+  <% } else { %>
+  <div class="pdv-grid" id="pdv-grid">
+
+    <% productos.forEach(p => {
+      const stock = p.inventario?.[0]?.cantidad_actual ?? 0;
+      const sinStock = stock <= 0;
+    %>
+    <div class="pdv-card <%= sinStock ? 'pdv-card--agotado' : '' %>"
+      data-id="<%= p.id %>"
+      data-nombre="<%= p.nombre %>"
+      data-precio="<%= p.precio_venta %>"
+      data-mayoreo="<%= p.precio_mayoreo || '' %>"
+      data-imagen="<%= p.ruta_imagen || '' %>"
+      data-stock="<%= stock %>"
+    >
+
+      <!-- Imagen -->
+      <div class="pdv-card__img-wrap">
+        <% if (p.ruta_imagen) { %>
+          <img src="/uploads/productos/<%= p.ruta_imagen %>" alt="<%= p.nombre %>" class="pdv-card__img" loading="lazy">
+        <% } else { %>
+          <div class="pdv-card__img-placeholder">
+            <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
+          </div>
+        <% } %>
+        <% if (sinStock) { %>
+          <div class="pdv-card__agotado-overlay">Agotado</div>
+        <% } %>
+        <% if (p.precio_mayoreo) { %>
+          <span class="pdv-card__mayoreo-tag">Mayoreo</span>
+        <% } %>
+      </div>
+
+      <!-- Info -->
+      <div class="pdv-card__body">
+        <p class="pdv-card__nombre"><%= p.nombre %></p>
+        <% if (p.codigo_barras) { %>
+          <p class="pdv-card__codigo"><%= p.codigo_barras %></p>
+        <% } %>
+        <div class="pdv-card__precios">
+          <span class="pdv-card__precio">$<%= p.precio_venta.toLocaleString('es-MX', {minimumFractionDigits:2}) %></span>
+          <% if (p.precio_mayoreo) { %>
+            <span class="pdv-card__precio-may">May: $<%= p.precio_mayoreo.toLocaleString('es-MX', {minimumFractionDigits:2}) %></span>
+          <% } %>
+        </div>
+        <p class="pdv-card__stock <%= stock <= (p.inventario_minimo || 5) && stock > 0 ? 'pdv-card__stock--bajo' : '' %>">
+          Stock: <%= stock %>
+        </p>
+      </div>
+
+      <!-- Footer -->
+      <div class="pdv-card__footer">
+        <div class="pdv-cantidad-wrap">
+          <button type="button" class="pdv-qty-btn pdv-qty-btn--minus" onclick="cambiarCantidad(this, -1)" <%= sinStock ? 'disabled' : '' %>>
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><line x1="5" y1="12" x2="19" y2="12"/></svg>
+          </button>
+          <input type="number" class="pdv-qty-input" value="1" min="1" max="<%= stock %>" <%= sinStock ? 'disabled' : '' %>>
+          <button type="button" class="pdv-qty-btn pdv-qty-btn--plus" onclick="cambiarCantidad(this, 1)" <%= sinStock ? 'disabled' : '' %>>
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+          </button>
+        </div>
+        <button
+          type="button"
+          class="btn-agregar"
+          onclick="agregarAlCarrito(this)"
+          <%= sinStock ? 'disabled' : '' %>
+        >
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+          Agregar
+        </button>
+      </div>
+
+    </div>
+    <% }) %>
+
+  </div>
+  <% } %>
+
+</div>
+
+<!-- Toast -->
+<div class="toast toast--success" id="toast-agregar" style="display:none">
+  Producto agregado al carrito
+</div>
+
+<script>
+const CARRITO_KEY = 'sv_carrito';
+
+function getCarrito() {
+  try { return JSON.parse(localStorage.getItem(CARRITO_KEY)) || []; }
+  catch { return []; }
+}
+
+function saveCarrito(carrito) {
+  localStorage.setItem(CARRITO_KEY, JSON.stringify(carrito));
+}
+
+function actualizarBadge() {
+  const carrito = getCarrito();
+  const total   = carrito.reduce((s, i) => s + i.cantidad, 0);
+  const badge   = document.getElementById('carrito-badge');
+  if (badge) {
+    badge.textContent = total;
+    badge.classList.toggle('carrito-badge--visible', total > 0);
+  }
+}
+
+function cambiarCantidad(btn, delta) {
+  const footer = btn.closest('.pdv-card__footer');
+  const input  = footer.querySelector('.pdv-qty-input');
+  const card   = btn.closest('.pdv-card');
+  const stock  = parseInt(card.dataset.stock) || 99;
+  let val = parseInt(input.value) || 1;
+  val = Math.max(1, Math.min(stock, val + delta));
+  input.value = val;
+}
+
+function agregarAlCarrito(btn) {
+  const card     = btn.closest('.pdv-card');
+  const footer   = btn.closest('.pdv-card__footer');
+  const input    = footer.querySelector('.pdv-qty-input');
+  const cantidad = parseInt(input.value) || 1;
+
+  const item = {
+    id:       card.dataset.id,
+    nombre:   card.dataset.nombre,
+    precio:   parseFloat(card.dataset.precio),
+    mayoreo:  card.dataset.mayoreo ? parseFloat(card.dataset.mayoreo) : null,
+    imagen:   card.dataset.imagen,
+    cantidad,
+  };
+
+  const carrito = getCarrito();
+  const existe  = carrito.findIndex(i => i.id === item.id);
+
+  if (existe >= 0) {
+    carrito[existe].cantidad += cantidad;
+  } else {
+    carrito.push(item);
+  }
+
+  saveCarrito(carrito);
+  actualizarBadge();
+
+  btn.classList.add('btn-agregar--ok');
+  setTimeout(() => btn.classList.remove('btn-agregar--ok'), 800);
+
+  const toast = document.getElementById('toast-agregar');
+  toast.style.display = 'flex';
+  clearTimeout(toast._t);
+  toast._t = setTimeout(() => { toast.style.display = 'none'; }, 2000);
+
+  input.value = 1;
+}
+
+actualizarBadge();
+</script>
+
+<%- include('../partials/footer') %>

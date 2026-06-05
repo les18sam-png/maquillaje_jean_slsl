@@ -1,0 +1,297 @@
+<%- include('../partials/header') %>
+
+<main class="contenido">
+
+  <div class="page-header flex-between">
+    <div>
+      <h1 class="page-title">Catálogo de Productos</h1>
+      <p class="page-subtitle">Gestiona el catálogo de productos de la tienda</p>
+    </div>
+    <div class="flex gap-sm">
+      <a href="/productos/importar" class="btn btn-secondary">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+        Importar Excel
+      </a>
+      <a href="/productos/exportar" class="btn btn-secondary">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+        Exportar Excel
+      </a>
+      <a href="/productos/nuevo" class="btn btn-primary">+ Nuevo Producto</a>
+      <a href="/productos/departamentos" class="btn btn-secondary">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 6h16M4 10h16M4 14h16M4 18h16"/></svg>
+        Departamentos
+      </a>
+      <a href="/productos/promociones" class="btn btn-secondary">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+        Promociones
+      </a>
+      <a href="/productos/ventas-periodo" class="btn btn-secondary">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
+        Ventas por Periodo
+      </a>
+    </div>
+  </div>
+
+  <div class="productos-layout">
+
+    <div class="productos-col-tabla">
+
+      <div class="card">
+        <div class="card-titulo">Filtros</div>
+        <form method="GET" action="/productos" class="form-grid">
+          <div class="form-group">
+            <label>Buscar</label>
+            <input type="text" name="q" placeholder="Código o descripción..." value="<%= q %>">
+          </div>
+          <div class="form-group">
+            <label>Categoría</label>
+            <select name="categoria_id">
+              <option value="">Todas</option>
+              <% categorias.forEach(cat => { %>
+                <option value="<%= cat.id %>" <%= categoria_id == cat.id ? 'selected' : '' %>>
+                  <%= cat.nombre %>
+                </option>
+              <% }) %>
+            </select>
+          </div>
+          <div class="form-group" style="display:flex; align-items:flex-end; gap:.5rem;">
+            <button type="submit" class="btn btn-primary">Buscar</button>
+            <% if (q || categoria_id) { %>
+              <a href="/productos" class="btn btn-ghost">Limpiar</a>
+            <% } %>
+          </div>
+        </form>
+      </div>
+
+      <div class="card">
+        <div class="tabla-wrap">
+          <table class="tabla">
+            <thead>
+              <tr>
+                <th>Imagen</th>
+                <th>Código</th>
+                <th>Descripción</th>
+                <th>Categoría</th>
+                <th>Precio Venta</th>
+                <th>Precio Mayoreo</th>
+                <th>Stock actual</th>
+<th>Stock mín.</th>
+                <th>Estado</th>
+                <th></th>
+              </tr>
+            </thead>
+            <tbody>
+              <% if (productos.length === 0) { %>
+                <tr>
+                  <td colspan="9" class="text-center text-muted" style="padding:2rem;">
+                    Sin productos registrados
+                  </td>
+                </tr>
+              <% } else { %>
+                <% productos.forEach(p => { %>
+                  <tr class="<%= !p.activo ? 'fila-inactiva' : '' %>">
+                    <td>
+                      <% if (p.ruta_imagen) { %>
+                        <img src="/uploads/productos/<%= p.ruta_imagen %>" alt="<%= p.descripcion %>"
+                          class="tabla-img" loading="lazy">
+                      <% } else { %>
+                        <div class="tabla-img-placeholder">
+                          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" opacity="0.3">
+                            <rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/>
+                          </svg>
+                        </div>
+                      <% } %>
+                    </td>
+                    <td><span class="codigo-badge"><%= p.codigo_barras || '—' %></span></td>
+                    <td><strong><%= p.descripcion %></strong></td>
+                    <td><%= p.categoria_nombre || '—' %></td>
+                    <td>$<%= parseFloat(p.precio_venta).toFixed(2) %></td>
+                    <td>$<%= parseFloat(p.precio_mayoreo).toFixed(2) %></td>
+                    <td>
+  <span class="<%= p.stock_actual <= p.inventario_minimo ? 'stock-bajo' : 'stock-ok' %>">
+    <%= p.stock_actual %>
+  </span>
+</td>
+<td><span class="text-muted"><%= p.inventario_minimo %></span></td>
+                    <td>
+                      <span class="badge badge-<%= p.activo ? 'activo' : 'inactivo' %>">
+                        <%= p.activo ? 'Activo' : 'Inactivo' %>
+                      </span>
+                    </td>
+                    <td>
+                      <div class="acciones">
+                        <a href="/productos/editar/<%= p.id %>" class="btn btn-ghost btn-xs" title="Editar">
+                          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+                        </a>
+                        <form method="POST" action="/productos/toggle/<%= p.id %>" style="display:inline;" class="form-toggle">
+                          <button type="submit" class="btn btn-ghost btn-xs" title="<%= p.activo ? 'Desactivar' : 'Activar' %>">
+                            <% if (p.activo) { %>
+                              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17.94 17.94A10.07 10.07 0 0112 20c-7 0-11-8-11-8a18.45 18.45 0 015.06-5.94"/><path d="M9.9 4.24A9.12 9.12 0 0112 4c7 0 11 8 11 8a18.5 18.5 0 01-2.16 3.19"/><line x1="1" y1="1" x2="23" y2="23"/></svg>
+                            <% } else { %>
+                              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+                            <% } %>
+                          </button>
+                        </form>
+                        <form method="POST" action="/productos/eliminar/<%= p.id %>" style="display:inline;" class="form-eliminar"
+                          data-nombre="<%= p.descripcion %>">
+                          <button type="submit" class="btn btn-ghost btn-xs btn-danger-ghost" title="Eliminar">
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6"/><path d="M10 11v6M14 11v6"/><path d="M9 6V4h6v2"/></svg>
+                          </button>
+                        </form>
+                      </div>
+                    </td>
+                  </tr>
+                <% }) %>
+              <% } %>
+            </tbody>
+          </table>
+        </div>
+        <% if (productos.length > 0) { %>
+          <div class="tabla-footer">
+            <%= productos.length %> producto<%= productos.length !== 1 ? 's' : '' %> encontrado<%= productos.length !== 1 ? 's' : '' %>
+          </div>
+        <% } %>
+      </div>
+
+    </div>
+
+    <div class="productos-col-catalogo">
+      <div class="card catalogo-card">
+        <div class="catalogo-header">
+          <div class="card-titulo">Catálogo Visual</div>
+          <input type="text" id="catalogoBuscar" placeholder="Filtrar..." class="catalogo-search">
+        </div>
+
+        <div class="catalogo-filtros">
+          <button class="catalogo-tag activo" data-cat="">Todos</button>
+          <% categorias.forEach(cat => { %>
+            <button class="catalogo-tag" data-cat="<%= cat.id %>"><%= cat.nombre %></button>
+          <% }) %>
+        </div>
+
+        <div class="catalogo-grid" id="catalogoGrid">
+          <% if (productos.length === 0) { %>
+            <p class="catalogo-empty">Sin productos</p>
+          <% } else { %>
+            <% productos.forEach(p => { %>
+              <% if (p.activo) { %>
+                <div class="catalogo-item"
+                  data-cat="<%= p.categoria_id || '' %>"
+                  data-nombre="<%= p.descripcion.toLowerCase() %>"
+                  title="<%= p.descripcion %> — $<%= parseFloat(p.precio_venta).toFixed(2) %>">
+                  <div class="catalogo-img-wrap">
+                    <% if (p.ruta_imagen) { %>
+                      <img src="/uploads/productos/<%= p.ruta_imagen %>" alt="<%= p.descripcion %>" loading="lazy">
+                    <% } else { %>
+                      <div class="catalogo-sin-img">
+                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" opacity="0.3">
+                          <rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/>
+                        </svg>
+                      </div>
+                    <% } %>
+                  </div>
+                  <p class="catalogo-nombre"><%= p.descripcion %></p>
+                  <p class="catalogo-precio">$<%= parseFloat(p.precio_venta).toFixed(2) %></p>
+                </div>
+              <% } %>
+            <% }) %>
+          <% } %>
+        </div>
+
+      </div>
+    </div>
+
+  </div>
+
+</main>
+
+<style>
+  .productos-layout { display: grid; grid-template-columns: 1fr 280px; gap: 1.5rem; align-items: start; }
+  .productos-col-tabla { display: flex; flex-direction: column; gap: 1.5rem; }
+  .productos-col-catalogo { position: sticky; top: 1.5rem; }
+  .tabla-img { width: 48px; height: 48px; object-fit: cover; border-radius: 8px; border: 1px solid #eee; }
+  .tabla-img-placeholder { width: 48px; height: 48px; background: #f5f5f5; border-radius: 8px; display: flex; align-items: center; justify-content: center; }
+  .codigo-badge { font-family: monospace; font-size: .8rem; background: var(--champagne); padding: 2px 6px; border-radius: 4px; }
+  .stock-ok { color: #2d7a2d; font-weight: 600; }
+  .fila-inactiva { opacity: .5; }
+  .badge { font-size: .72rem; padding: 2px 8px; border-radius: 20px; font-weight: 600; text-transform: capitalize; }
+  .badge-activo { background: #e6f9e6; color: #2d7a2d; }
+  .badge-inactivo { background: #f5f5f5; color: #999; }
+  .acciones { display: flex; gap: .25rem; }
+  .btn-xs { padding: .25rem .4rem !important; font-size: .75rem; }
+  .btn-danger-ghost { background: transparent; color: #c0392b; border: 1px solid #c0392b; }
+  .btn-danger-ghost:hover { background: #ffeaea; }
+  .tabla-footer { padding: .75rem 1rem; font-size: .82rem; color: #999; border-top: 1px solid #f0f0f0; }
+  .catalogo-card { padding: 1rem; }
+  .catalogo-header { display: flex; align-items: center; justify-content: space-between; gap: .5rem; margin-bottom: .75rem; }
+  .catalogo-search { flex: 1; padding: .35rem .6rem; font-size: .8rem; border: 1px solid #ddd; border-radius: 6px; outline: none; }
+  .catalogo-search:focus { border-color: var(--raspberry); }
+  .catalogo-filtros { display: flex; flex-wrap: wrap; gap: .35rem; margin-bottom: .75rem; }
+  .catalogo-tag { font-size: .72rem; padding: 3px 10px; border-radius: 20px; border: 1px solid #ddd; background: white; cursor: pointer; color: #666; transition: all .15s; }
+  .catalogo-tag:hover, .catalogo-tag.activo { background: var(--burgundy); color: white; border-color: var(--burgundy); }
+  .catalogo-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: .5rem; max-height: 65vh; overflow-y: auto; }
+  .catalogo-item { cursor: pointer; border-radius: 8px; overflow: hidden; border: 1px solid #eee; transition: transform .15s, box-shadow .15s; background: white; }
+  .catalogo-item:hover { transform: translateY(-2px); box-shadow: 0 4px 12px rgba(0,0,0,.1); }
+  .catalogo-item.oculto { display: none; }
+  .catalogo-img-wrap { position: relative; aspect-ratio: 1; background: #f9f9f9; }
+  .catalogo-img-wrap img { width: 100%; height: 100%; object-fit: cover; }
+  .catalogo-sin-img { width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; }
+  .catalogo-nombre { font-size: .7rem; font-weight: 600; padding: .25rem .3rem 0; margin: 0; line-height: 1.2; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .catalogo-precio { font-size: .7rem; color: var(--burgundy); padding: 0 .3rem .3rem; margin: 0; font-weight: 700; }
+  .catalogo-empty { text-align: center; color: #aaa; font-size: .85rem; padding: 2rem 0; grid-column: 1/-1; }
+  @media (max-width: 900px) { .productos-layout { grid-template-columns: 1fr; } .productos-col-catalogo { position: static; } }
+</style>
+
+<script>
+(function() {
+  const params = new URLSearchParams(window.location.search);
+  const toast  = params.get('toast');
+  if (toast === 'creado')    window.showToast && showToast('Producto registrado correctamente', 'success');
+  if (toast === 'editado')   window.showToast && showToast('Producto actualizado correctamente', 'success');
+  if (toast === 'eliminado') window.showToast && showToast('Producto eliminado', 'info');
+
+  document.querySelectorAll('.form-toggle').forEach(form => {
+    form.addEventListener('submit', async function(e) {
+      e.preventDefault();
+      const res  = await fetch(this.action, { method: 'POST' });
+      const data = await res.json();
+      if (data.ok) location.reload();
+    });
+  });
+
+  document.querySelectorAll('.form-eliminar').forEach(form => {
+    form.addEventListener('submit', function(e) {
+      if (!confirm(`¿Eliminar "${this.dataset.nombre}"? Esta acción no se puede deshacer.`)) e.preventDefault();
+    });
+  });
+
+  const tags  = document.querySelectorAll('.catalogo-tag');
+  const items = document.querySelectorAll('.catalogo-item');
+
+  tags.forEach(tag => {
+    tag.addEventListener('click', function() {
+      tags.forEach(t => t.classList.remove('activo'));
+      this.classList.add('activo');
+      const cat = this.dataset.cat;
+      items.forEach(item => {
+        item.classList.toggle('oculto', !(!cat || item.dataset.cat === cat));
+      });
+      filtrarBusqueda();
+    });
+  });
+
+  function filtrarBusqueda() {
+    const q      = document.getElementById('catalogoBuscar').value.toLowerCase().trim();
+    const catAct = document.querySelector('.catalogo-tag.activo')?.dataset.cat || '';
+    items.forEach(item => {
+      const nombreMatch = !q || item.dataset.nombre.includes(q);
+      const catMatch    = !catAct || item.dataset.cat === catAct;
+      item.classList.toggle('oculto', !(nombreMatch && catMatch));
+    });
+  }
+
+  document.getElementById('catalogoBuscar').addEventListener('input', filtrarBusqueda);
+})();
+</script>
+
+<%- include('../partials/footer') %>

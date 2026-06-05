@@ -1,0 +1,157 @@
+<%- include('../partials/header', { title }) %>
+
+<div class="page-wrapper">
+
+  <!-- Encabezado -->
+  <div class="page-header">
+    <div class="page-header__left">
+      <h1 class="page-title">Historial de Ventas</h1>
+      <span class="page-subtitle"><%= totalVentas %> venta<%= totalVentas !== 1 ? 's' : '' %> encontrada<%= totalVentas !== 1 ? 's' : '' %></span>
+    </div>
+  </div>
+
+  <!-- Filtros -->
+  <form method="GET" action="/historial" class="historial-filtros card">
+    <div class="filtros-grid">
+
+      <div class="form-group">
+        <label class="form-label">Fecha inicio</label>
+        <input type="date" name="fecha_inicio" class="form-control" value="<%= fechaInicio %>">
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">Fecha fin</label>
+        <input type="date" name="fecha_fin" class="form-control" value="<%= fechaFin %>">
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">Estado</label>
+        <select name="estado" class="form-control">
+          <option value=""     <%= estado === ''          ? 'selected' : '' %>>Todos</option>
+          <option value="activa"    <%= estado === 'activa'    ? 'selected' : '' %>>Activa</option>
+          <option value="cancelada" <%= estado === 'cancelada' ? 'selected' : '' %>>Cancelada</option>
+          <option value="devuelta"  <%= estado === 'devuelta'  ? 'selected' : '' %>>Devuelta</option>
+        </select>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">Método de pago</label>
+        <select name="metodo" class="form-control">
+          <option value=""              <%= metodo === ''              ? 'selected' : '' %>>Todos</option>
+          <option value="efectivo"      <%= metodo === 'efectivo'      ? 'selected' : '' %>>Efectivo</option>
+          <option value="tarjeta"       <%= metodo === 'tarjeta'       ? 'selected' : '' %>>Tarjeta</option>
+          <option value="transferencia" <%= metodo === 'transferencia' ? 'selected' : '' %>>Transferencia</option>
+          <option value="cheque"        <%= metodo === 'cheque'        ? 'selected' : '' %>>Cheque</option>
+          <option value="mixto"         <%= metodo === 'mixto'         ? 'selected' : '' %>>Mixto</option>
+        </select>
+      </div>
+
+    </div>
+
+    <div class="filtros-acciones">
+      <button type="submit" class="btn btn-primary">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+        Buscar
+      </button>
+      <% if (fechaInicio || fechaFin || estado || metodo) { %>
+        <a href="/historial" class="btn btn-ghost">Limpiar</a>
+      <% } %>
+    </div>
+  </form>
+
+  <!-- Tabla -->
+  <% if (ventas.length === 0) { %>
+    <div class="empty-state">
+      <div class="empty-state__icon">
+        <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+      </div>
+      <p class="empty-state__title">Sin resultados</p>
+    </div>
+
+  <% } else { %>
+    <div class="table-wrapper">
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th>Folio</th>
+            <th>Fecha</th>
+            <th>Cajero</th>
+            <th>Cliente</th>
+            <th>Método</th>
+            <th>Estado</th>
+            <th class="text-right">Total</th>
+            <th class="th-actions">Acciones</th>
+          </tr>
+        </thead>
+        <tbody>
+          <% ventas.forEach(v => { %>
+          <tr class="data-table__row" data-href="/historial/<%= v.id %>">
+            <td>
+              <code class="folio-badge">#<%= v.folio %></code>
+            </td>
+            <td class="text-sm">
+              <%= new Date(v.creado_en).toLocaleDateString('es-MX', { day:'2-digit', month:'short', year:'numeric' }) %>
+              <span class="text-muted text-xs">
+                <%= new Date(v.creado_en).toLocaleTimeString('es-MX', { hour:'2-digit', minute:'2-digit' }) %>
+              </span>
+            </td>
+            <td class="text-sm"><%= v.usuarios?.nombre_completo || '—' %></td>
+            <td class="text-sm"><%= v.clientes?.nombre || 'Público general' %></td>
+            <td>
+              <span class="metodo-badge metodo-badge--<%= v.metodo_pago_principal %>">
+                <% if (v.metodo_pago_principal === 'efectivo')      { %>Efectivo<% } %>
+                <% if (v.metodo_pago_principal === 'tarjeta')       { %>Tarjeta<% } %>
+                <% if (v.metodo_pago_principal === 'transferencia') { %>Transferencia<% } %>
+                <% if (v.metodo_pago_principal === 'cheque')        { %>Cheque<% } %>
+                <% if (v.metodo_pago_principal === 'mixto')         { %>Mixto<% } %>
+              </span>
+            </td>
+            <td>
+              <span class="badge badge--<%= v.estado === 'activa' ? 'success' : v.estado === 'cancelada' ? 'danger' : 'warning' %>">
+                <%= v.estado.charAt(0).toUpperCase() + v.estado.slice(1) %>
+              </span>
+            </td>
+            <td class="text-right fw-medium">
+              $<%= Number(v.total).toLocaleString('es-MX', {minimumFractionDigits:2}) %>
+            </td>
+            <td class="td-actions" onclick="event.stopPropagation()">
+              <a href="/historial/<%= v.id %>" class="icon-btn" title="Ver detalle">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+              </a>
+            </td>
+          </tr>
+          <% }) %>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Paginación -->
+    <% if (totalPaginas > 1) { %>
+    <div class="pagination">
+      <% if (pagina > 1) { %>
+        <a href="/historial?fecha_inicio=<%= fechaInicio %>&fecha_fin=<%= fechaFin %>&estado=<%= estado %>&metodo=<%= metodo %>&pagina=<%= pagina - 1 %>" class="pagination__btn">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="15 18 9 12 15 6"/></svg>
+          Anterior
+        </a>
+      <% } %>
+      <span class="pagination__info">Página <strong><%= pagina %></strong> de <strong><%= totalPaginas %></strong></span>
+      <% if (pagina < totalPaginas) { %>
+        <a href="/historial?fecha_inicio=<%= fechaInicio %>&fecha_fin=<%= fechaFin %>&estado=<%= estado %>&metodo=<%= metodo %>&pagina=<%= pagina + 1 %>" class="pagination__btn">
+          Siguiente
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="9 18 15 12 9 6"/></svg>
+        </a>
+      <% } %>
+    </div>
+    <% } %>
+  <% } %>
+
+</div>
+
+<script>
+  document.querySelectorAll('.data-table__row[data-href]').forEach(row => {
+    row.addEventListener('click', () => { window.location.href = row.dataset.href; });
+    row.style.cursor = 'pointer';
+  });
+</script>
+
+<%- include('../partials/footer') %>

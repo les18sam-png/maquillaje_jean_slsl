@@ -1,0 +1,340 @@
+<%- include('../partials/header') %>
+
+<main class="contenido">
+
+  <div class="page-header flex-between">
+    <div>
+      <h1 class="page-title"><%= producto ? 'Editar Producto' : 'Nuevo Producto' %></h1>
+      <p class="page-subtitle"><%= producto ? 'Modifica los datos del producto' : 'Registra un nuevo producto al catálogo' %></p>
+    </div>
+    <a href="/productos" class="btn btn-ghost">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
+      Volver
+    </a>
+  </div>
+
+  <form id="formProducto" action="<%= producto ? '/productos/editar/' + producto.id : '/productos/nuevo' %>" method="POST" enctype="multipart/form-data" novalidate>
+
+    <div class="form-layout">
+
+      <div class="form-col-main">
+
+        <div class="card">
+          <div class="card-titulo">Datos Generales</div>
+          <div class="form-grid">
+
+            <div class="form-group">
+              <label for="codigo_barras">Código de Barras</label>
+              <div class="input-icon-wrap">
+                <svg class="input-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <rect x="2" y="4" width="3" height="16"/><rect x="7" y="4" width="1" height="16"/><rect x="10" y="4" width="2" height="16"/><rect x="14" y="4" width="1" height="16"/><rect x="17" y="4" width="3" height="16"/>
+                </svg>
+                <input type="text" id="codigo_barras" name="codigo_barras"
+                  placeholder="Escanea o escribe el código..."
+                  value="<%= producto ? producto.codigo_barras : '' %>" class="input-with-icon" autofocus>
+              </div>
+            </div>
+
+            <div class="form-group">
+              <label for="descripcion">Descripción <span class="req">*</span></label>
+              <input type="text" id="descripcion" name="descripcion" placeholder="Nombre del producto..."
+                value="<%= producto ? producto.descripcion : '' %>">
+              <span class="field-error" id="err-descripcion"></span>
+            </div>
+
+            <div class="form-group">
+              <label for="categoria">Departamento / Categoría <span class="req">*</span></label>
+              <select id="categoria" name="categoria_id">
+                <option value="">— Selecciona una categoría —</option>
+                <% if (typeof categorias !== 'undefined') { %>
+                  <% categorias.forEach(cat => { %>
+                    <option value="<%= cat.id %>" <%= (producto && producto.categoria_id == cat.id) ? 'selected' : '' %>>
+                      <%= cat.nombre %>
+                    </option>
+                  <% }) %>
+                <% } %>
+              </select>
+              <span class="field-error" id="err-categoria"></span>
+            </div>
+
+            <div class="form-group">
+              <label for="estado">Estado</label>
+              <select id="estado" name="estado">
+                <option value="activo"   <%= (!producto || producto.activo !== false) ? 'selected' : '' %>>Activo</option>
+                <option value="inactivo" <%= (producto && producto.activo === false)  ? 'selected' : '' %>>Inactivo</option>
+              </select>
+            </div>
+
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-titulo">Precios</div>
+          <div class="form-grid">
+
+            <div class="form-group">
+              <label for="costo">Costo Unitario <span class="req">*</span></label>
+              <div class="input-prefix-wrap">
+                <span class="input-prefix">$</span>
+                <input type="number" id="costo" name="costo_unitario" placeholder="0.00" min="0" step="0.01"
+                  value="<%= producto ? producto.costo_unitario : '' %>" class="input-with-prefix">
+              </div>
+              <span class="field-error" id="err-costo"></span>
+            </div>
+
+            <div class="form-group">
+              <label for="precio_venta">Precio Venta <span class="req">*</span></label>
+              <div class="input-prefix-wrap">
+                <span class="input-prefix">$</span>
+                <input type="number" id="precio_venta" name="precio_venta" placeholder="0.00" min="0.01" step="0.01"
+                  value="<%= producto ? producto.precio_venta : '' %>" class="input-with-prefix">
+              </div>
+              <span class="field-error" id="err-precio_venta"></span>
+            </div>
+
+            <div class="form-group">
+              <label for="precio_mayoreo">Precio Mayoreo <span class="req">*</span></label>
+              <div class="input-prefix-wrap">
+                <span class="input-prefix">$</span>
+                <input type="number" id="precio_mayoreo" name="precio_mayoreo" placeholder="0.00" min="0.01" step="0.01"
+                  value="<%= producto ? producto.precio_mayoreo : '' %>" class="input-with-prefix">
+              </div>
+              <span class="field-error" id="err-precio_mayoreo"></span>
+              <span class="field-hint">Se aplica cuando el ticket supera $300 o el cliente es mayorista</span>
+            </div>
+
+            <div class="form-group">
+              <label>Ganancia estimada</label>
+              <div class="ganancia-display">
+                <span class="ganancia-valor" id="gananciaPct">—</span>
+                <span class="ganancia-label" id="gananciaMonto"></span>
+              </div>
+            </div>
+
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-titulo">Inventario</div>
+          <div class="form-grid">
+
+            <div class="form-group">
+              <label for="inventario_minimo">Stock mínimo <span class="req">*</span></label>
+              <input type="number" id="inventario_minimo" name="inventario_minimo" placeholder="0" min="0" step="1"
+                value="<%= producto ? producto.inventario_minimo : 0 %>">
+              <span class="field-hint">Alerta cuando el stock baje de este número</span>
+              <span class="field-error" id="err-inventario_minimo"></span>
+            </div>
+
+          </div>
+        </div>
+
+      </div>
+
+      <div class="form-col-side">
+        <div class="card card-imagen">
+          <div class="card-titulo">Imagen <span class="req">*</span></div>
+
+          <div class="imagen-dropzone" id="dropzone">
+            <div class="imagen-placeholder" id="imagenPlaceholder"
+              style="display:<%= producto && producto.ruta_imagen ? 'none' : 'flex' %>;">
+              <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" opacity="0.4">
+                <rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/>
+                <polyline points="21 15 16 10 5 21"/>
+              </svg>
+              <p>Arrastra una imagen aquí</p>
+              <span>o haz clic para seleccionar</span>
+              <small>JPG, PNG o WebP · Máx. 2 MB</small>
+            </div>
+            <img id="imagenPreviewImg"
+              src="<%= producto && producto.ruta_imagen ? '/uploads/productos/' + producto.ruta_imagen : '' %>"
+              alt="Preview" class="imagen-preview-img"
+              style="display:<%= producto && producto.ruta_imagen ? 'block' : 'none' %>;">
+          </div>
+
+          <input type="file" id="imagenInput" name="imagen" accept="image/jpeg,image/png,image/webp" style="display:none;">
+
+          <div class="imagen-actions" id="imagenActions"
+            style="display:<%= producto && producto.ruta_imagen ? 'flex' : 'none' %>;">
+            <button type="button" class="btn btn-ghost btn-sm" id="btnCambiarImg">Cambiar</button>
+            <button type="button" class="btn btn-danger-ghost btn-sm" id="btnQuitarImg">Quitar</button>
+          </div>
+
+          <span class="field-error" id="err-imagen"></span>
+        </div>
+      </div>
+
+    </div>
+
+    <div class="form-actions">
+      <button type="submit" class="btn btn-primary btn-lg">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M19 21H5a2 2 0 01-2-2V5a2 2 0 012-2h11l5 5v11a2 2 0 01-2 2z"/>
+          <polyline points="17 21 17 13 7 13 7 21"/>
+          <polyline points="7 3 7 8 15 8"/>
+        </svg>
+        <%= producto ? 'Guardar Cambios' : 'Registrar Producto' %>
+      </button>
+      <a href="/productos" class="btn btn-ghost btn-lg">Cancelar</a>
+    </div>
+
+  </form>
+</main>
+
+<style>
+  .form-layout { display: grid; grid-template-columns: 1fr 280px; gap: 1.5rem; align-items: start; }
+  .form-col-main { display: flex; flex-direction: column; gap: 1.5rem; }
+  .form-col-side { position: sticky; top: 1.5rem; }
+  .req { color: var(--raspberry); }
+  .input-icon-wrap { position: relative; }
+  .input-icon { position: absolute; left: 10px; top: 50%; transform: translateY(-50%); color: var(--burgundy); opacity: .5; pointer-events: none; }
+  .input-with-icon { padding-left: 2.2rem !important; }
+  .input-prefix-wrap { display: flex; align-items: stretch; }
+  .input-prefix { display: flex; align-items: center; padding: 0 .75rem; background: var(--champagne); border: 1px solid #ddd; border-right: none; border-radius: 8px 0 0 8px; color: var(--burgundy); font-weight: 600; font-size: .9rem; }
+  .input-with-prefix { border-radius: 0 8px 8px 0 !important; }
+  .ganancia-display { display: flex; align-items: center; gap: .75rem; padding: .75rem 1rem; background: var(--champagne); border-radius: 8px; border: 1px solid #e8d5c4; min-height: 42px; }
+  .ganancia-valor { font-size: 1.1rem; font-weight: 700; color: var(--burgundy); }
+  .ganancia-label { font-size: .85rem; color: #777; }
+  .field-hint { display: block; font-size: .78rem; color: #999; margin-top: .3rem; }
+  .field-error { display: block; font-size: .78rem; color: #c0392b; margin-top: .3rem; min-height: 1rem; }
+  .card-imagen { text-align: center; }
+  .imagen-dropzone { border: 2px dashed var(--cherry); border-radius: 12px; padding: 2rem 1rem; cursor: pointer; transition: background .2s, border-color .2s; min-height: 200px; display: flex; align-items: center; justify-content: center; }
+  .imagen-dropzone:hover, .imagen-dropzone.drag-over { background: #fff0f3; border-color: var(--burgundy); }
+  .imagen-placeholder { display: flex; flex-direction: column; align-items: center; gap: .4rem; color: #aaa; }
+  .imagen-placeholder p { margin: 0; font-weight: 600; color: #888; }
+  .imagen-placeholder span { font-size: .85rem; color: var(--raspberry); }
+  .imagen-placeholder small { font-size: .75rem; }
+  .imagen-preview-img { width: 100%; max-height: 220px; object-fit: contain; border-radius: 8px; display: block; }
+  .imagen-actions { display: flex; gap: .5rem; justify-content: center; margin-top: 1rem; }
+  .btn-danger-ghost { background: transparent; color: #c0392b; border: 1px solid #c0392b; }
+  .btn-danger-ghost:hover { background: #ffeaea; }
+  .form-actions { display: flex; gap: 1rem; align-items: center; margin-top: 1.5rem; padding-top: 1.5rem; border-top: 1px solid #eee; }
+  @media (max-width: 768px) { .form-layout { grid-template-columns: 1fr; } .form-col-side { position: static; } }
+</style>
+
+<script>
+(function() {
+
+  const dropzone    = document.getElementById('dropzone');
+  const fileInput   = document.getElementById('imagenInput');
+  const previewImg  = document.getElementById('imagenPreviewImg');
+  const placeholder = document.getElementById('imagenPlaceholder');
+  const actions     = document.getElementById('imagenActions');
+
+  function mostrarImagen(src) {
+    previewImg.src = src;
+    previewImg.style.display = 'block';
+    placeholder.style.display = 'none';
+    actions.style.display = 'flex';
+  }
+
+  function quitarImagen() {
+    previewImg.src = '';
+    previewImg.style.display = 'none';
+    placeholder.style.display = 'flex';
+    actions.style.display = 'none';
+    fileInput.value = '';
+  }
+
+  dropzone.addEventListener('click', () => fileInput.click());
+  dropzone.addEventListener('dragover', e => { e.preventDefault(); dropzone.classList.add('drag-over'); });
+  dropzone.addEventListener('dragleave', () => dropzone.classList.remove('drag-over'));
+  dropzone.addEventListener('drop', e => {
+    e.preventDefault();
+    dropzone.classList.remove('drag-over');
+    const file = e.dataTransfer.files[0];
+    if (file) procesarArchivo(file);
+  });
+
+  fileInput.addEventListener('change', function() {
+    if (this.files[0]) procesarArchivo(this.files[0]);
+  });
+
+  document.getElementById('btnCambiarImg').addEventListener('click', () => fileInput.click());
+  document.getElementById('btnQuitarImg').addEventListener('click', quitarImagen);
+
+  function procesarArchivo(file) {
+    const errEl = document.getElementById('err-imagen');
+    const tipos = ['image/jpeg', 'image/png', 'image/webp'];
+    if (!tipos.includes(file.type)) { errEl.textContent = 'Solo JPG, PNG o WebP.'; return; }
+    if (file.size > 2 * 1024 * 1024) { errEl.textContent = 'Máximo 2 MB.'; return; }
+    errEl.textContent = '';
+    const dt = new DataTransfer();
+    dt.items.add(file);
+    fileInput.files = dt.files;
+    const reader = new FileReader();
+    reader.onload = e => mostrarImagen(e.target.result);
+    reader.readAsDataURL(file);
+  }
+
+  const costoEl = document.getElementById('costo');
+  const ventaEl = document.getElementById('precio_venta');
+  const pctEl   = document.getElementById('gananciaPct');
+  const montoEl = document.getElementById('gananciaMonto');
+
+  function calcGanancia() {
+    const costo = parseFloat(costoEl.value) || 0;
+    const venta = parseFloat(ventaEl.value) || 0;
+    if (costo > 0 && venta > 0) {
+      const pct   = ((venta - costo) / costo * 100).toFixed(1);
+      const monto = (venta - costo).toFixed(2);
+      pctEl.textContent   = pct + '%';
+      montoEl.textContent = '(+$' + monto + ' por pieza)';
+      pctEl.style.color   = venta >= costo ? 'var(--burgundy)' : '#c0392b';
+    } else {
+      pctEl.textContent = '—';
+      montoEl.textContent = '';
+    }
+  }
+
+  costoEl.addEventListener('input', calcGanancia);
+  ventaEl.addEventListener('input', calcGanancia);
+  calcGanancia();
+
+  const reglas = {
+    descripcion:       { req: true, msg: 'La descripción es obligatoria.' },
+    categoria:         { req: true, msg: 'Selecciona un departamento.' },
+    costo:             { req: true, num: true, min: 0,    msg: 'Ingresa un costo válido.' },
+    precio_venta:      { req: true, num: true, min: 0.01, msg: 'El precio de venta debe ser mayor a $0.' },
+    precio_mayoreo:    { req: true, num: true, min: 0.01, msg: 'El precio mayoreo debe ser mayor a $0.' },
+    inventario_minimo: { req: true, num: true, min: 0,    msg: 'Ingresa el stock mínimo.' },
+  };
+
+  function validarCampo(id) {
+    const el    = document.getElementById(id);
+    const errEl = document.getElementById('err-' + id);
+    if (!el || !errEl) return true;
+    const r = reglas[id];
+    const v = el.value.trim();
+    if (r.req && v === '') { errEl.textContent = r.msg; return false; }
+    if (r.num && (isNaN(parseFloat(v)) || parseFloat(v) < r.min)) { errEl.textContent = r.msg; return false; }
+    errEl.textContent = '';
+    return true;
+  }
+
+  Object.keys(reglas).forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.addEventListener('blur', () => validarCampo(id));
+  });
+
+  document.getElementById('formProducto').addEventListener('submit', function(e) {
+    let ok = true;
+    Object.keys(reglas).forEach(id => { if (!validarCampo(id)) ok = false; });
+
+    const esNuevo = !<%= producto ? 'true' : 'false' %>;
+    if (esNuevo && !fileInput.files.length) {
+      document.getElementById('err-imagen').textContent = 'La imagen es obligatoria.';
+      ok = false;
+    }
+
+    if (!ok) {
+      e.preventDefault();
+      const primerError = document.querySelector('.field-error:not(:empty)');
+      if (primerError) primerError.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }
+  });
+
+})();
+</script>
+
+<%- include('../partials/footer') %>

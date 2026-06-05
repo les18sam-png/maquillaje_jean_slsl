@@ -1,0 +1,174 @@
+<%- include('../partials/header') %>
+
+<main class="contenido">
+
+  <div class="page-header flex-between">
+    <div>
+      <h1 class="page-title">Departamentos</h1>
+      <p class="page-subtitle">Categorías para organizar el catálogo de productos</p>
+    </div>
+    <a href="/productos" class="btn btn-ghost">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
+      Volver a Productos
+    </a>
+  </div>
+
+  <div class="deptos-layout">
+
+    <!-- COLUMNA IZQUIERDA — FORMULARIO -->
+    <div class="deptos-col-form">
+      <div class="card">
+        <div class="card-titulo" id="formTitulo">Nuevo Departamento</div>
+
+        <% if (typeof error !== 'undefined' && error) { %>
+          <div class="alert alert-error"><%= error %></div>
+        <% } %>
+
+        <form method="POST" action="<%= editando ? '/productos/departamentos/editar/' + editando.id : '/productos/departamentos/nuevo' %>" id="formDepto">
+          <div class="form-group">
+            <label for="nombre">Nombre <span class="req">*</span></label>
+            <input type="text" id="nombre" name="nombre"
+              placeholder="Ej. Labiales, Bases, Sombras..."
+              value="<%= editando ? editando.nombre : '' %>" autofocus>
+            <span class="field-error" id="err-nombre"></span>
+          </div>
+
+          <div class="form-actions-inline">
+            <button type="submit" class="btn btn-primary">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M19 21H5a2 2 0 01-2-2V5a2 2 0 012-2h11l5 5v11a2 2 0 01-2 2z"/>
+                <polyline points="17 21 17 13 7 13 7 21"/>
+                <polyline points="7 3 7 8 15 8"/>
+              </svg>
+              <%= editando ? 'Guardar Cambios' : 'Agregar Departamento' %>
+            </button>
+            <% if (editando) { %>
+              <a href="/productos/departamentos" class="btn btn-ghost">Cancelar</a>
+            <% } %>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <!-- COLUMNA DERECHA — LISTADO -->
+    <div class="deptos-col-lista">
+      <div class="card">
+        <div class="card-titulo">
+          Departamentos registrados
+          <span class="badge-count"><%= categorias.length %></span>
+        </div>
+
+        <% if (categorias.length === 0) { %>
+          <p class="text-muted text-center" style="padding:2rem;">Sin departamentos registrados</p>
+        <% } else { %>
+          <ul class="deptos-lista">
+            <% categorias.forEach(cat => { %>
+              <li class="deptos-item <%= editando && editando.id === cat.id ? 'editando' : '' %>">
+                <div class="deptos-info">
+                  <span class="deptos-nombre"><%= cat.nombre %></span>
+                  <span class="deptos-productos">
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                      <path d="M21 16V8a2 2 0 00-1-1.73l-7-4a2 2 0 00-2 0l-7 4A2 2 0 003 8v8a2 2 0 001 1.73l7 4a2 2 0 002 0l7-4A2 2 0 0021 16z"/>
+                    </svg>
+                    <%= cat.total_productos %> producto<%= cat.total_productos !== 1 ? 's' : '' %>
+                  </span>
+                </div>
+                <div class="deptos-acciones">
+                  <a href="/productos/departamentos/editar/<%= cat.id %>" class="btn btn-ghost btn-xs" title="Editar">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                      <path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/>
+                      <path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/>
+                    </svg>
+                  </a>
+                  <% if (cat.total_productos === 0) { %>
+                    <form method="POST" action="/productos/departamentos/eliminar/<%= cat.id %>"
+                      class="form-eliminar-depto" data-nombre="<%= cat.nombre %>" style="display:inline;">
+                      <button type="submit" class="btn btn-ghost btn-xs btn-danger-ghost" title="Eliminar">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                          <polyline points="3 6 5 6 21 6"/>
+                          <path d="M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6"/>
+                          <path d="M10 11v6M14 11v6M9 6V4h6v2"/>
+                        </svg>
+                      </button>
+                    </form>
+                  <% } else { %>
+                    <button class="btn btn-ghost btn-xs" disabled title="Tiene productos asignados" style="opacity:.3;cursor:not-allowed;">
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <polyline points="3 6 5 6 21 6"/>
+                        <path d="M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6"/>
+                      </svg>
+                    </button>
+                  <% } %>
+                </div>
+              </li>
+            <% }) %>
+          </ul>
+        <% } %>
+      </div>
+    </div>
+
+  </div>
+
+</main>
+
+<style>
+  .deptos-layout { display: grid; grid-template-columns: 340px 1fr; gap: 1.5rem; align-items: start; }
+  .deptos-col-form { position: sticky; top: 1.5rem; }
+
+  .form-actions-inline { display: flex; gap: .75rem; align-items: center; margin-top: 1rem; }
+
+  .badge-count { display: inline-flex; align-items: center; justify-content: center; background: var(--burgundy); color: white; font-size: .72rem; font-weight: 700; width: 22px; height: 22px; border-radius: 50%; margin-left: .5rem; }
+
+  .deptos-lista { list-style: none; padding: 0; margin: 0; display: flex; flex-direction: column; gap: .5rem; }
+  .deptos-item { display: flex; align-items: center; justify-content: space-between; padding: .75rem 1rem; border-radius: 8px; border: 1px solid #f0f0f0; transition: background .15s; }
+  .deptos-item:hover { background: #fafafa; }
+  .deptos-item.editando { background: #fff8f9; border-color: var(--cherry); }
+  .deptos-info { display: flex; flex-direction: column; gap: .2rem; }
+  .deptos-nombre { font-weight: 600; color: var(--burgundy); font-size: .95rem; }
+  .deptos-productos { font-size: .75rem; color: #999; display: flex; align-items: center; gap: .3rem; }
+  .deptos-acciones { display: flex; gap: .25rem; }
+
+  .alert { padding: .75rem 1rem; border-radius: 8px; margin-bottom: 1rem; font-size: .875rem; }
+  .alert-error { background: #ffeaea; color: #c0392b; border: 1px solid #f5c6cb; }
+
+  .req { color: var(--raspberry); }
+  .field-error { display: block; font-size: .78rem; color: #c0392b; margin-top: .3rem; min-height: 1rem; }
+  .btn-danger-ghost { background: transparent; color: #c0392b; border: 1px solid #c0392b; }
+  .btn-danger-ghost:hover { background: #ffeaea; }
+  .btn-xs { padding: .25rem .4rem !important; font-size: .75rem; }
+
+  @media (max-width: 768px) {
+    .deptos-layout { grid-template-columns: 1fr; }
+    .deptos-col-form { position: static; }
+  }
+</style>
+
+<script>
+(function() {
+  // Confirmar eliminar
+  document.querySelectorAll('.form-eliminar-depto').forEach(form => {
+    form.addEventListener('submit', function(e) {
+      if (!confirm(`¿Eliminar el departamento "${this.dataset.nombre}"?`)) {
+        e.preventDefault();
+      }
+    });
+  });
+
+  // Validación nombre
+  const input  = document.getElementById('nombre');
+  const errEl  = document.getElementById('err-nombre');
+  input.addEventListener('blur', () => {
+    if (!input.value.trim()) errEl.textContent = 'El nombre es obligatorio.';
+    else errEl.textContent = '';
+  });
+
+  // Toast
+  const params = new URLSearchParams(window.location.search);
+  const toast  = params.get('toast');
+  if (toast === 'creado')   window.showToast && showToast('Departamento agregado', 'success');
+  if (toast === 'editado')  window.showToast && showToast('Departamento actualizado', 'success');
+  if (toast === 'eliminado') window.showToast && showToast('Departamento eliminado', 'info');
+})();
+</script>
+
+<%- include('../partials/footer') %>

@@ -1,0 +1,310 @@
+<%- include('../partials/header') %>
+
+<main class="contenido">
+
+  <div class="page-header flex-between">
+    <div>
+      <h1 class="page-title">Promociones</h1>
+      <p class="page-subtitle">Precios especiales por volumen de compra</p>
+    </div>
+    <a href="/productos" class="btn btn-ghost">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
+      Volver a Productos
+    </a>
+  </div>
+
+  <div class="promos-layout">
+
+    <!-- FORMULARIO -->
+    <div class="promos-col-form">
+      <div class="card">
+        <div class="card-titulo"><%= editando ? 'Editar Promoción' : 'Nueva Promoción' %></div>
+
+        <% if (typeof error !== 'undefined' && error) { %>
+          <div class="alert alert-error"><%= error %></div>
+        <% } %>
+
+        <form method="POST" action="<%= editando ? '/productos/promociones/editar/' + editando.id : '/productos/promociones/nuevo' %>">
+
+          <div class="form-group">
+            <label for="nombre">Nombre de la Promoción <span class="req">*</span></label>
+            <input type="text" id="nombre" name="nombre"
+              placeholder="Ej. 3x2 Labiales, Docena de sombras..."
+              value="<%= editando ? editando.nombre : '' %>">
+            <span class="field-error" id="err-nombre"></span>
+          </div>
+
+          <div class="form-group">
+            <label for="buscarProducto">Producto <span class="req">*</span></label>
+            <input type="text" id="buscarProducto" placeholder="Busca por código o descripción..."
+              value="<%= editando ? editando.producto_descripcion : '' %>" autocomplete="off">
+            <input type="hidden" id="producto_id" name="producto_id"
+              value="<%= editando ? editando.producto_id : '' %>">
+            <div id="sugerencias" class="sugerencias-wrap"></div>
+            <span class="field-error" id="err-producto"></span>
+            <% if (editando) { %>
+              <span class="field-hint">Producto actual: <strong><%= editando.producto_descripcion %></strong></span>
+            <% } %>
+          </div>
+
+          <div class="form-group">
+            <label>Cuando la cantidad va de <span class="req">*</span></label>
+            <div class="rango-wrap">
+              <input type="number" name="cantidad_desde" id="cantidad_desde" min="1" step="1"
+                placeholder="Desde" value="<%= editando ? editando.cantidad_desde : 1 %>">
+              <span class="rango-sep">hasta</span>
+              <input type="number" name="cantidad_hasta" id="cantidad_hasta" min="1" step="1"
+                placeholder="Hasta" value="<%= editando ? editando.cantidad_hasta : '' %>">
+              <span class="rango-sep">piezas</span>
+            </div>
+            <span class="field-hint">Deja "hasta" vacío para que aplique sin límite</span>
+            <span class="field-error" id="err-rango"></span>
+          </div>
+
+          <div class="form-group">
+            <label for="precio_promo">Precio unitario promocional <span class="req">*</span></label>
+            <div class="input-prefix-wrap">
+              <span class="input-prefix">$</span>
+              <input type="number" id="precio_promo" name="precio_promo"
+                placeholder="0.00" min="0.01" step="0.01" class="input-with-prefix"
+                value="<%= editando ? editando.precio_promo : '' %>">
+            </div>
+            <div class="precios-ref" id="preciosRef" style="display:none;">
+              <span>Precio normal: <strong id="refNormal">—</strong></span>
+              <span>Precio costo: <strong id="refCosto">—</strong></span>
+            </div>
+            <span class="field-error" id="err-precio_promo"></span>
+          </div>
+
+          <div class="form-group">
+            <label for="activo">Estado</label>
+            <select name="activo" id="activo">
+              <option value="1" <%= !editando || editando.activo ? 'selected' : '' %>>Activa</option>
+              <option value="0" <%= editando && !editando.activo ? 'selected' : '' %>>Inactiva</option>
+            </select>
+          </div>
+
+          <div class="form-actions-inline">
+            <button type="submit" class="btn btn-primary">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M19 21H5a2 2 0 01-2-2V5a2 2 0 012-2h11l5 5v11a2 2 0 01-2 2z"/>
+                <polyline points="17 21 17 13 7 13 7 21"/>
+                <polyline points="7 3 7 8 15 8"/>
+              </svg>
+              <%= editando ? 'Guardar Cambios' : 'Guardar Promoción' %>
+            </button>
+            <% if (editando) { %>
+              <a href="/productos/promociones" class="btn btn-ghost">Cancelar</a>
+            <% } %>
+          </div>
+
+        </form>
+      </div>
+    </div>
+
+    <!-- LISTADO -->
+    <div class="promos-col-lista">
+      <div class="card">
+        <div class="card-titulo">
+          Promociones registradas
+          <span class="badge-count"><%= promociones.length %></span>
+        </div>
+
+        <% if (promociones.length === 0) { %>
+          <p class="text-muted text-center" style="padding:2rem;">Sin promociones registradas</p>
+        <% } else { %>
+          <div class="promos-lista">
+            <% promociones.forEach(p => { %>
+              <div class="promo-item <%= !p.activo ? 'promo-inactiva' : '' %> <%= editando && editando.id === p.id ? 'editando' : '' %>">
+                <div class="promo-header">
+                  <span class="promo-nombre"><%= p.nombre %></span>
+                  <span class="badge badge-<%= p.activo ? 'activo' : 'inactivo' %>"><%= p.activo ? 'Activa' : 'Inactiva' %></span>
+                </div>
+                <div class="promo-detalle">
+                  <span class="promo-producto">
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                      <path d="M21 16V8a2 2 0 00-1-1.73l-7-4a2 2 0 00-2 0l-7 4A2 2 0 003 8v8a2 2 0 001 1.73l7 4a2 2 0 002 0l7-4A2 2 0 0021 16z"/>
+                    </svg>
+                    <%= p.producto_descripcion %>
+                  </span>
+                  <span class="promo-rango">
+                    De <%= p.cantidad_desde %> a <%= p.cantidad_hasta >= 999 ? '∞' : p.cantidad_hasta %> pzas
+                    → <strong>$<%= parseFloat(p.precio_promo).toFixed(2) %></strong> c/u
+                  </span>
+                </div>
+                <div class="promo-acciones">
+                  <a href="/productos/promociones/editar/<%= p.id %>" class="btn btn-ghost btn-xs">
+                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                      <path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/>
+                      <path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/>
+                    </svg>
+                    Editar
+                  </a>
+                  <form method="POST" action="/productos/promociones/eliminar/<%= p.id %>"
+                    class="form-eliminar-promo" data-nombre="<%= p.nombre %>" style="display:inline;">
+                    <button type="submit" class="btn btn-ghost btn-xs btn-danger-ghost">
+                      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <polyline points="3 6 5 6 21 6"/>
+                        <path d="M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6"/>
+                      </svg>
+                      Eliminar
+                    </button>
+                  </form>
+                </div>
+              </div>
+            <% }) %>
+          </div>
+        <% } %>
+      </div>
+    </div>
+
+  </div>
+
+</main>
+
+<style>
+  .promos-layout { display: grid; grid-template-columns: 380px 1fr; gap: 1.5rem; align-items: start; }
+  .promos-col-form { position: sticky; top: 1.5rem; }
+  .form-actions-inline { display: flex; gap: .75rem; align-items: center; margin-top: 1rem; }
+  .req { color: var(--raspberry); }
+  .field-error { display: block; font-size: .78rem; color: #c0392b; margin-top: .3rem; min-height: 1rem; }
+  .field-hint { display: block; font-size: .78rem; color: #999; margin-top: .3rem; }
+  .alert { padding: .75rem 1rem; border-radius: 8px; margin-bottom: 1rem; font-size: .875rem; }
+  .alert-error { background: #ffeaea; color: #c0392b; border: 1px solid #f5c6cb; }
+  .badge-count { display: inline-flex; align-items: center; justify-content: center; background: var(--burgundy); color: white; font-size: .72rem; font-weight: 700; width: 22px; height: 22px; border-radius: 50%; margin-left: .5rem; }
+  .badge { font-size: .72rem; padding: 2px 8px; border-radius: 20px; font-weight: 600; }
+  .badge-activo { background: #e6f9e6; color: #2d7a2d; }
+  .badge-inactivo { background: #f5f5f5; color: #999; }
+
+  /* Rango */
+  .rango-wrap { display: flex; align-items: center; gap: .5rem; }
+  .rango-wrap input { width: 90px; }
+  .rango-sep { font-size: .85rem; color: #888; white-space: nowrap; }
+
+  /* Prefijo $ */
+  .input-prefix-wrap { display: flex; align-items: stretch; }
+  .input-prefix { display: flex; align-items: center; padding: 0 .75rem; background: var(--champagne); border: 1px solid #ddd; border-right: none; border-radius: 8px 0 0 8px; color: var(--burgundy); font-weight: 600; font-size: .9rem; }
+  .input-with-prefix { border-radius: 0 8px 8px 0 !important; }
+
+  /* Precios referencia */
+  .precios-ref { display: flex; gap: 1rem; margin-top: .4rem; font-size: .78rem; color: #888; }
+
+  /* Sugerencias búsqueda */
+  .sugerencias-wrap { position: relative; }
+  .sugerencias-lista { position: absolute; top: 0; left: 0; right: 0; background: white; border: 1px solid #ddd; border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,.1); z-index: 100; max-height: 200px; overflow-y: auto; }
+  .sugerencia-item { padding: .6rem 1rem; cursor: pointer; font-size: .875rem; border-bottom: 1px solid #f5f5f5; }
+  .sugerencia-item:hover { background: #fff8f9; }
+  .sugerencia-item:last-child { border-bottom: none; }
+  .sugerencia-codigo { font-size: .75rem; color: #999; font-family: monospace; }
+
+  /* Lista promociones */
+  .promos-lista { display: flex; flex-direction: column; gap: .75rem; }
+  .promo-item { border: 1px solid #f0f0f0; border-radius: 10px; padding: .9rem 1rem; transition: background .15s; }
+  .promo-item:hover { background: #fafafa; }
+  .promo-item.promo-inactiva { opacity: .5; }
+  .promo-item.editando { background: #fff8f9; border-color: var(--cherry); }
+  .promo-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: .4rem; }
+  .promo-nombre { font-weight: 700; color: var(--burgundy); font-size: .95rem; }
+  .promo-detalle { display: flex; flex-direction: column; gap: .2rem; margin-bottom: .6rem; }
+  .promo-producto { font-size: .8rem; color: #666; display: flex; align-items: center; gap: .3rem; }
+  .promo-rango { font-size: .82rem; color: #555; }
+  .promo-acciones { display: flex; gap: .5rem; }
+  .btn-xs { padding: .25rem .5rem !important; font-size: .75rem; }
+  .btn-danger-ghost { background: transparent; color: #c0392b; border: 1px solid #c0392b; }
+  .btn-danger-ghost:hover { background: #ffeaea; }
+
+  @media (max-width: 768px) {
+    .promos-layout { grid-template-columns: 1fr; }
+    .promos-col-form { position: static; }
+  }
+</style>
+
+<script>
+(function() {
+
+  // ── BÚSQUEDA DE PRODUCTO ──
+  const inputBuscar  = document.getElementById('buscarProducto');
+  const inputId      = document.getElementById('producto_id');
+  const contenedor   = document.getElementById('sugerencias');
+  const preciosRef   = document.getElementById('preciosRef');
+  const refNormal    = document.getElementById('refNormal');
+  const refCosto     = document.getElementById('refCosto');
+  let timer;
+
+  inputBuscar.addEventListener('input', function() {
+    clearTimeout(timer);
+    const q = this.value.trim();
+    if (q.length < 2) { contenedor.innerHTML = ''; return; }
+    timer = setTimeout(async () => {
+      const res  = await fetch('/productos/api/buscar?q=' + encodeURIComponent(q));
+      const data = await res.json();
+      if (!data.length) { contenedor.innerHTML = ''; return; }
+      const lista = document.createElement('div');
+      lista.className = 'sugerencias-lista';
+      data.forEach(p => {
+        const item = document.createElement('div');
+        item.className = 'sugerencia-item';
+        item.innerHTML = `<div>${p.descripcion}</div><div class="sugerencia-codigo">${p.codigo || 'Sin código'} · $${parseFloat(p.precio_venta).toFixed(2)}</div>`;
+        item.addEventListener('click', () => {
+          inputBuscar.value  = p.descripcion;
+          inputId.value      = p.id;
+          contenedor.innerHTML = '';
+          refNormal.textContent = '$' + parseFloat(p.precio_venta).toFixed(2);
+          refCosto.textContent  = '—';
+          preciosRef.style.display = 'flex';
+          document.getElementById('err-producto').textContent = '';
+        });
+        lista.appendChild(item);
+      });
+      contenedor.innerHTML = '';
+      contenedor.appendChild(lista);
+    }, 300);
+  });
+
+  document.addEventListener('click', e => {
+    if (!contenedor.contains(e.target) && e.target !== inputBuscar) {
+      contenedor.innerHTML = '';
+    }
+  });
+
+  // ── CONFIRMAR ELIMINAR ──
+  document.querySelectorAll('.form-eliminar-promo').forEach(form => {
+    form.addEventListener('submit', function(e) {
+      if (!confirm(`¿Eliminar la promoción "${this.dataset.nombre}"?`)) e.preventDefault();
+    });
+  });
+
+  // ── VALIDACIÓN ──
+  document.querySelector('form').addEventListener('submit', function(e) {
+    let ok = true;
+    const nombre = document.getElementById('nombre').value.trim();
+    const prodId = document.getElementById('producto_id').value;
+    const desde  = document.getElementById('cantidad_desde').value;
+    const precio = document.getElementById('precio_promo').value;
+
+    if (!nombre) { document.getElementById('err-nombre').textContent = 'El nombre es obligatorio.'; ok = false; }
+    else document.getElementById('err-nombre').textContent = '';
+
+    if (!prodId) { document.getElementById('err-producto').textContent = 'Selecciona un producto de la lista.'; ok = false; }
+    else document.getElementById('err-producto').textContent = '';
+
+    if (!desde || parseInt(desde) < 1) { document.getElementById('err-rango').textContent = 'La cantidad mínima debe ser al menos 1.'; ok = false; }
+    else document.getElementById('err-rango').textContent = '';
+
+    if (!precio || parseFloat(precio) <= 0) { document.getElementById('err-precio_promo').textContent = 'El precio debe ser mayor a $0.'; ok = false; }
+    else document.getElementById('err-precio_promo').textContent = '';
+
+    if (!ok) e.preventDefault();
+  });
+
+  // ── TOASTS ──
+  const params = new URLSearchParams(window.location.search);
+  const toast  = params.get('toast');
+  if (toast === 'creado')    window.showToast && showToast('Promoción guardada', 'success');
+  if (toast === 'editado')   window.showToast && showToast('Promoción actualizada', 'success');
+  if (toast === 'eliminado') window.showToast && showToast('Promoción eliminada', 'info');
+
+})();
+</script>
+
+<%- include('../partials/footer') %>

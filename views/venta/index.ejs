@@ -1,0 +1,55 @@
+<%- include('../partials/header') %>
+
+<main class="contenido">
+  <div class="page-header">
+    <h1 class="page-title">Punto de Venta</h1>
+    <p class="page-subtitle">Registra ventas y gestiona el carrito</p>
+  </div>
+
+  <div class="card">
+    <div class="card-titulo">Buscar Producto</div>
+    <div class="form-grid">
+      <div class="form-group">
+        <label>Código de barras o descripción</label>
+        <input type="text" id="busqueda" placeholder="Escanea o escribe aquí..." autofocus>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-titulo">Carrito</div>
+    <div class="tabla-wrap">
+      <table class="tabla">
+        <thead>
+          <tr>
+            <th>Producto</th>
+            <th>Cantidad</th>
+            <th>Precio</th>
+            <th>Subtotal</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody id="carrito-body">
+          <tr>
+            <td colspan="5" class="text-center text-muted" style="padding:2rem;">
+              Sin productos agregados
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="flex-between">
+      <span class="card-titulo" style="margin:0;border:none;padding:0;">Total</span>
+      <span style="font-size:1.5rem;font-weight:700;color:var(--burgundy);" id="total">$0.00</span>
+    </div>
+    <div class="flex gap-sm mt-2">
+      <button class="btn btn-primary btn-lg w-full">Cobrar</button>
+      <button class="btn btn-ghost">Cancelar</button>
+    </div>
+  </div>
+</main>
+
+<%- include('../partials/footer') %>

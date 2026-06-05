@@ -1,0 +1,194 @@
+<%- include('../partials/header', { title }) %>
+
+<div class="page-wrapper">
+
+  <!-- Breadcrumb -->
+  <nav class="breadcrumb">
+    <span class="breadcrumb__current">Turnos</span>
+    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg>
+    <span class="breadcrumb__current">Cierre</span>
+  </nav>
+
+  <!-- Encabezado -->
+  <div class="page-header">
+    <div class="page-header__left">
+      <h1 class="page-title">Cierre de Turno</h1>
+      <span class="page-subtitle">Resumen y cierre de tu turno actual</span>
+    </div>
+    <div class="page-header__right">
+      <div class="turno-info-badge">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+        Turno abierto desde <%= inicio %>
+        <span class="turno-duracion">(<%= duracion %>)</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Error -->
+  <% const errorParam = (typeof query !== 'undefined' ? query?.error : null) || ''; %>
+  <% if (errorParam === 'fallo') { %>
+    <div class="alert alert--error">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+      No se pudo cerrar el turno. Intenta de nuevo.
+    </div>
+  <% } %>
+
+  <!-- Info del turno -->
+  <div class="turno-meta-grid">
+    <div class="turno-meta-item">
+      <span class="turno-meta-label">Caja</span>
+      <span class="turno-meta-value"><%= turno.cajas?.nombre || '—' %></span>
+    </div>
+    <div class="turno-meta-item">
+      <span class="turno-meta-label">Cajero</span>
+      <span class="turno-meta-value"><%= turno.usuarios?.nombre_completo || 'Usuario temporal' %></span>
+    </div>
+    <div class="turno-meta-item">
+      <span class="turno-meta-label">Inicio</span>
+      <span class="turno-meta-value"><%= inicio %></span>
+    </div>
+    <div class="turno-meta-item">
+      <span class="turno-meta-label">Duración</span>
+      <span class="turno-meta-value"><%= duracion %></span>
+    </div>
+  </div>
+
+  <!-- Stats -->
+  <div class="stat-grid" style="margin-bottom: 20px;">
+    <div class="stat-card">
+      <div class="stat-icon burgundy">
+        <svg viewBox="0 0 24 24"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6"/></svg>
+      </div>
+      <div class="stat-info">
+        <div class="stat-value">$<%= resumen.totalVentas.toLocaleString('es-MX', {minimumFractionDigits:2}) %></div>
+        <div class="stat-label">Total Ventas</div>
+      </div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-icon raspberry">
+        <svg viewBox="0 0 24 24"><path d="M6 2L3 6v14a2 2 0 002 2h14a2 2 0 002-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/></svg>
+      </div>
+      <div class="stat-info">
+        <div class="stat-value"><%= resumen.totalTickets %></div>
+        <div class="stat-label">Tickets</div>
+      </div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-icon navy">
+        <svg viewBox="0 0 24 24"><rect x="2" y="6" width="20" height="12" rx="2"/><path d="M22 10H2"/></svg>
+      </div>
+      <div class="stat-info">
+        <div class="stat-value">$<%= resumen.totalEfectivo.toLocaleString('es-MX', {minimumFractionDigits:2}) %></div>
+        <div class="stat-label">Efectivo</div>
+      </div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-icon cherry">
+        <svg viewBox="0 0 24 24"><rect x="1" y="4" width="22" height="16" rx="2" ry="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg>
+      </div>
+      <div class="stat-info">
+        <div class="stat-value">$<%= resumen.totalTarjeta.toLocaleString('es-MX', {minimumFractionDigits:2}) %></div>
+        <div class="stat-label">Tarjeta</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Desglose por método -->
+  <% if (resumen.totalTransferencia > 0 || resumen.totalCheque > 0 || resumen.totalMixto > 0) { %>
+  <div class="card" style="margin-bottom: 20px;">
+    <div class="card__header">
+      <h3 class="card__title">Desglose por método de pago</h3>
+    </div>
+    <div style="padding: 16px 20px;">
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th>Método</th>
+            <th class="text-right">Monto</th>
+          </tr>
+        </thead>
+        <tbody>
+          <% if (resumen.totalEfectivo > 0) { %>
+          <tr>
+            <td><span class="metodo-badge metodo-badge--efectivo">Efectivo</span></td>
+            <td class="text-right fw-medium">$<%= resumen.totalEfectivo.toLocaleString('es-MX', {minimumFractionDigits:2}) %></td>
+          </tr>
+          <% } %>
+          <% if (resumen.totalTarjeta > 0) { %>
+          <tr>
+            <td><span class="metodo-badge metodo-badge--tarjeta">Tarjeta</span></td>
+            <td class="text-right fw-medium">$<%= resumen.totalTarjeta.toLocaleString('es-MX', {minimumFractionDigits:2}) %></td>
+          </tr>
+          <% } %>
+          <% if (resumen.totalTransferencia > 0) { %>
+          <tr>
+            <td><span class="metodo-badge metodo-badge--transferencia">Transferencia</span></td>
+            <td class="text-right fw-medium">$<%= resumen.totalTransferencia.toLocaleString('es-MX', {minimumFractionDigits:2}) %></td>
+          </tr>
+          <% } %>
+          <% if (resumen.totalCheque > 0) { %>
+          <tr>
+            <td><span class="metodo-badge metodo-badge--cheque">Cheque</span></td>
+            <td class="text-right fw-medium">$<%= resumen.totalCheque.toLocaleString('es-MX', {minimumFractionDigits:2}) %></td>
+          </tr>
+          <% } %>
+          <% if (resumen.totalMixto > 0) { %>
+          <tr>
+            <td><span class="metodo-badge metodo-badge--mixto">Mixto</span></td>
+            <td class="text-right fw-medium">$<%= resumen.totalMixto.toLocaleString('es-MX', {minimumFractionDigits:2}) %></td>
+          </tr>
+          <% } %>
+        </tbody>
+      </table>
+    </div>
+  </div>
+  <% } %>
+
+  <!-- Confirmar cierre -->
+  <div class="turno-form-wrap">
+    <form method="POST" action="/turnos/cierre" class="form-card" onsubmit="return confirmarCierre()">
+      <input type="hidden" name="turno_id" value="<%= turno.id %>">
+
+      <div class="form-section">
+        <h2 class="form-section__title">Confirmar cierre</h2>
+
+        <div class="cierre-resumen-total">
+          <span>Total del turno</span>
+          <strong>$<%= resumen.totalVentas.toLocaleString('es-MX', {minimumFractionDigits:2}) %></strong>
+        </div>
+
+        <div class="form-group form-group--full" style="margin-top: 16px;">
+          <label class="form-label" for="notas">
+            Notas del turno <span class="form-section__optional">(opcional)</span>
+          </label>
+          <textarea
+            id="notas"
+            name="notas"
+            class="form-control"
+            rows="3"
+            placeholder="Observaciones, incidencias, notas para el siguiente turno…"
+            maxlength="500"
+          ></textarea>
+        </div>
+      </div>
+
+      <div class="form-footer">
+        <a href="/venta" class="btn btn-ghost">Seguir vendiendo</a>
+        <button type="submit" class="btn btn-danger btn-lg">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="8" y1="12" x2="16" y2="12"/></svg>
+          Cerrar Turno
+        </button>
+      </div>
+
+    </form>
+  </div>
+
+</div>
+
+<script>
+  function confirmarCierre() {
+    return confirm('¿Cerrar el turno?\nNo podrás registrar más ventas hasta abrir uno nuevo.');
+  }
+</script>
+
+<%- include('../partials/footer') %>

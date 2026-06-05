@@ -1,0 +1,272 @@
+<%- include('../partials/header') %>
+
+<main class="contenido">
+
+  <div class="page-header flex-between">
+    <div>
+      <h1 class="page-title">Inventario</h1>
+      <p class="page-subtitle">Existencias, entradas y ajustes de productos</p>
+    </div>
+    <div class="flex gap-sm">
+      <a href="/inventario/kardex" class="btn btn-secondary">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
+        Kardex
+      </a>
+    </div>
+  </div>
+
+  <!-- RESUMEN -->
+  <div class="inv-resumen">
+    <div class="inv-stat">
+      <span class="inv-stat-valor"><%= totalProductos %></span>
+      <span class="inv-stat-label">Productos activos</span>
+    </div>
+    <div class="inv-stat alerta">
+      <span class="inv-stat-valor"><%= totalBajoStock %></span>
+      <span class="inv-stat-label">Bajo stock mínimo</span>
+      <% if (totalBajoStock > 0) { %>
+        <a href="/inventario?alerta=1" class="inv-stat-link">Ver</a>
+      <% } %>
+    </div>
+  </div>
+
+  <!-- FILTROS -->
+  <div class="card">
+    <div class="card-titulo">Filtros</div>
+    <form method="GET" action="/inventario" class="form-grid">
+      <div class="form-group">
+        <label>Buscar</label>
+        <input type="text" name="q" placeholder="Código o descripción..." value="<%= q %>">
+      </div>
+      <div class="form-group">
+        <label>Categoría</label>
+        <select name="categoria_id">
+          <option value="">Todas</option>
+          <% categorias.forEach(cat => { %>
+            <option value="<%= cat.id %>" <%= categoria_id == cat.id ? 'selected' : '' %>><%= cat.nombre %></option>
+          <% }) %>
+        </select>
+      </div>
+      <div class="form-group" style="display:flex; align-items:flex-end; gap:.5rem;">
+        <button type="submit" class="btn btn-primary">Buscar</button>
+        <% if (q || categoria_id || alerta) { %>
+          <a href="/inventario" class="btn btn-ghost">Limpiar</a>
+        <% } %>
+      </div>
+    </form>
+  </div>
+
+  <!-- TABLA -->
+  <div class="card">
+    <div class="tabla-wrap">
+      <table class="tabla">
+        <thead>
+          <tr>
+            <th>Imagen</th>
+            <th>Código</th>
+            <th>Descripción</th>
+            <th>Categoría</th>
+            <th>Stock actual</th>
+            <th>Stock mín.</th>
+            <th>Estado</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody>
+          <% if (productos.length === 0) { %>
+            <tr>
+              <td colspan="8" class="text-center text-muted" style="padding:2rem;">
+                Sin productos registrados
+              </td>
+            </tr>
+          <% } else { %>
+            <% productos.forEach(p => { %>
+              <tr>
+                <td>
+                  <% if (p.ruta_imagen) { %>
+                    <img src="/uploads/productos/<%= p.ruta_imagen %>" class="tabla-img" loading="lazy">
+                  <% } else { %>
+                    <div class="tabla-img-placeholder">
+                      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" opacity="0.3"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
+                    </div>
+                  <% } %>
+                </td>
+                <td><span class="codigo-badge"><%= p.codigo_barras || '—' %></span></td>
+                <td><strong><%= p.descripcion %></strong></td>
+                <td><%= p.categoria_nombre %></td>
+                <td>
+                  <span class="<%= p.stock_actual <= p.inventario_minimo ? 'stock-bajo' : 'stock-ok' %>">
+                    <%= p.stock_actual %>
+                  </span>
+                </td>
+                <td><span class="text-muted"><%= p.inventario_minimo %></span></td>
+                <td>
+                  <% if (p.stock_actual <= p.inventario_minimo) { %>
+                    <span class="badge-alerta">Stock bajo</span>
+                  <% } else { %>
+                    <span class="badge badge-activo">OK</span>
+                  <% } %>
+                </td>
+                <td>
+                  <div class="acciones">
+                    <button class="btn btn-primary btn-xs" onclick="abrirEntrada('<%= p.id %>', '<%= p.descripcion %>', <%= p.stock_actual %>)">
+                      + Entrada
+                    </button>
+                    <button class="btn btn-ghost btn-xs" onclick="abrirAjuste('<%= p.id %>', '<%= p.descripcion %>', <%= p.stock_actual %>)">
+                      Ajuste
+                    </button>
+                    <a href="/inventario/kardex?producto_id=<%= p.id %>" class="btn btn-ghost btn-xs">
+                      Kardex
+                    </a>
+                  </div>
+                </td>
+              </tr>
+            <% }) %>
+          <% } %>
+        </tbody>
+      </table>
+    </div>
+    <% if (productos.length > 0) { %>
+      <div class="tabla-footer"><%= productos.length %> producto<%= productos.length !== 1 ? 's' : '' %></div>
+    <% } %>
+  </div>
+
+</main>
+
+<!-- MODAL ENTRADA -->
+<div class="modal-overlay" id="modalEntrada" style="display:none;">
+  <div class="modal">
+    <div class="modal-header">
+      <h3 class="modal-titulo">Entrada de Inventario</h3>
+      <button class="modal-cerrar" onclick="cerrarModales()">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+      </button>
+    </div>
+    <form method="POST" action="/inventario/entrada">
+      <input type="hidden" name="producto_id" id="entradaProductoId">
+      <div class="modal-body">
+        <div class="modal-producto-info" id="entradaProductoInfo"></div>
+        <div class="form-group">
+          <label>Cantidad a ingresar <span class="req">*</span></label>
+          <input type="number" name="cantidad" id="entradaCantidad" min="1" step="1" placeholder="0" autofocus>
+        </div>
+        <div class="form-group">
+          <label>Notas (opcional)</label>
+          <input type="text" name="notas" placeholder="Ej. Compra proveedor, fecha factura...">
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="submit" class="btn btn-primary">Registrar entrada</button>
+        <button type="button" class="btn btn-ghost" onclick="cerrarModales()">Cancelar</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- MODAL AJUSTE -->
+<div class="modal-overlay" id="modalAjuste" style="display:none;">
+  <div class="modal">
+    <div class="modal-header">
+      <h3 class="modal-titulo">Ajuste de Inventario</h3>
+      <button class="modal-cerrar" onclick="cerrarModales()">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+      </button>
+    </div>
+    <form method="POST" action="/inventario/ajuste">
+      <input type="hidden" name="producto_id" id="ajusteProductoId">
+      <div class="modal-body">
+        <div class="modal-producto-info" id="ajusteProductoInfo"></div>
+        <div class="form-group">
+          <label>Nueva cantidad real <span class="req">*</span></label>
+          <input type="number" name="nueva_cantidad" id="ajusteCantidad" min="0" step="1" placeholder="0">
+          <span class="field-hint">Ingresa el conteo físico real del producto</span>
+        </div>
+        <div class="form-group">
+          <label>Motivo <span class="req">*</span></label>
+          <input type="text" name="notas" placeholder="Ej. Conteo físico, merma, daño...">
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="submit" class="btn btn-primary">Aplicar ajuste</button>
+        <button type="button" class="btn btn-ghost" onclick="cerrarModales()">Cancelar</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<style>
+  .inv-resumen { display: flex; gap: 1rem; margin-bottom: 1.5rem; }
+  .inv-stat { background: white; border-radius: 12px; padding: 1rem 1.5rem; border: 1px solid #f0f0f0; display: flex; flex-direction: column; gap: .2rem; min-width: 140px; }
+  .inv-stat.alerta { border-color: #f5c6cb; background: #fff5f5; }
+  .inv-stat-valor { font-size: 1.8rem; font-weight: 700; color: var(--burgundy); font-family: 'Playfair Display', serif; }
+  .inv-stat.alerta .inv-stat-valor { color: #c0392b; }
+  .inv-stat-label { font-size: .8rem; color: #999; }
+  .inv-stat-link { font-size: .75rem; color: var(--raspberry); font-weight: 600; text-decoration: none; }
+  .tabla-img { width: 40px; height: 40px; object-fit: cover; border-radius: 6px; border: 1px solid #eee; }
+  .tabla-img-placeholder { width: 40px; height: 40px; background: #f5f5f5; border-radius: 6px; display: flex; align-items: center; justify-content: center; }
+  .codigo-badge { font-family: monospace; font-size: .8rem; background: var(--champagne); padding: 2px 6px; border-radius: 4px; }
+  .stock-ok  { color: #2d7a2d; font-weight: 700; }
+  .stock-bajo { color: #c0392b; font-weight: 700; }
+  .badge-alerta { font-size: .72rem; padding: 2px 8px; border-radius: 20px; font-weight: 600; background: #ffeaea; color: #c0392b; }
+  .badge { font-size: .72rem; padding: 2px 8px; border-radius: 20px; font-weight: 600; }
+  .badge-activo { background: #e6f9e6; color: #2d7a2d; }
+  .acciones { display: flex; gap: .25rem; }
+  .btn-xs { padding: .25rem .5rem !important; font-size: .75rem; }
+  .tabla-footer { padding: .75rem 1rem; font-size: .82rem; color: #999; border-top: 1px solid #f0f0f0; }
+  .req { color: var(--raspberry); }
+  .field-hint { display: block; font-size: .78rem; color: #999; margin-top: .3rem; }
+
+  /* Modal */
+  .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,.45); display: flex; align-items: center; justify-content: center; z-index: 1000; }
+  .modal { background: white; border-radius: 16px; width: 100%; max-width: 440px; box-shadow: 0 20px 60px rgba(0,0,0,.2); }
+  .modal-header { display: flex; align-items: center; justify-content: space-between; padding: 1.25rem 1.5rem; border-bottom: 1px solid #f0f0f0; }
+  .modal-titulo { font-family: 'Playfair Display', serif; color: var(--burgundy); font-size: 1.1rem; margin: 0; }
+  .modal-cerrar { background: none; border: none; cursor: pointer; color: #999; padding: .25rem; border-radius: 6px; }
+  .modal-cerrar:hover { background: #f5f5f5; color: #333; }
+  .modal-body { padding: 1.5rem; display: flex; flex-direction: column; gap: 1rem; }
+  .modal-footer { padding: 1rem 1.5rem; border-top: 1px solid #f0f0f0; display: flex; gap: .75rem; }
+  .modal-producto-info { background: var(--champagne); border-radius: 8px; padding: .75rem 1rem; font-size: .875rem; }
+  .modal-producto-info strong { color: var(--burgundy); display: block; font-size: 1rem; margin-bottom: .2rem; }
+</style>
+
+<script>
+(function() {
+  const params = new URLSearchParams(window.location.search);
+  const toast  = params.get('toast');
+  if (toast === 'entrada_ok') window.showToast && showToast('Entrada registrada correctamente', 'success');
+  if (toast === 'ajuste_ok')  window.showToast && showToast('Ajuste aplicado correctamente', 'success');
+  if (toast === 'error_entrada') window.showToast && showToast('Error al registrar entrada', 'error');
+  if (toast === 'error_ajuste')  window.showToast && showToast('Error al aplicar ajuste', 'error');
+
+  window.abrirEntrada = function(id, nombre, stock) {
+    document.getElementById('entradaProductoId').value = id;
+    document.getElementById('entradaProductoInfo').innerHTML =
+      `<strong>${nombre}</strong>Stock actual: <b>${stock}</b> unidades`;
+    document.getElementById('entradaCantidad').value = '';
+    document.getElementById('modalEntrada').style.display = 'flex';
+    setTimeout(() => document.getElementById('entradaCantidad').focus(), 100);
+  };
+
+  window.abrirAjuste = function(id, nombre, stock) {
+    document.getElementById('ajusteProductoId').value = id;
+    document.getElementById('ajusteProductoInfo').innerHTML =
+      `<strong>${nombre}</strong>Stock actual: <b>${stock}</b> unidades`;
+    document.getElementById('ajusteCantidad').value = stock;
+    document.getElementById('modalAjuste').style.display = 'flex';
+    setTimeout(() => document.getElementById('ajusteCantidad').focus(), 100);
+  };
+
+  window.cerrarModales = function() {
+    document.getElementById('modalEntrada').style.display = 'none';
+    document.getElementById('modalAjuste').style.display  = 'none';
+  };
+
+  document.querySelectorAll('.modal-overlay').forEach(overlay => {
+    overlay.addEventListener('click', function(e) {
+      if (e.target === this) cerrarModales();
+    });
+  });
+})();
+</script>
+
+<%- include('../partials/footer') %>

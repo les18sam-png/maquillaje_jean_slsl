@@ -1,0 +1,368 @@
+<%- include('../partials/header', { title }) %>
+
+<div class="page-wrapper pdv-wrapper">
+
+  <!-- Topbar -->
+  <div class="pdv-topbar">
+    <div class="pdv-topbar__left">
+      <a href="/venta" class="btn btn-ghost btn-sm">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="15 18 9 12 15 6"/></svg>
+        Seguir comprando
+      </a>
+      <h1 class="page-title">Carrito</h1>
+    </div>
+    <div class="pdv-topbar__right">
+      <button class="btn btn-ghost btn-sm" onclick="vaciarCarrito()">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/></svg>
+        Vaciar
+      </button>
+    </div>
+  </div>
+
+  <!-- Layout -->
+  <div class="carrito-layout">
+
+    <!-- Columna izquierda — Items -->
+    <div class="carrito-items-col">
+
+      <div class="empty-state" id="carrito-vacio" style="display:none">
+        <div class="empty-state__icon">
+          <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"/></svg>
+        </div>
+        <p class="empty-state__title">El carrito está vacío</p>
+        <a href="/venta" class="btn btn-primary">Ir al catálogo</a>
+      </div>
+
+      <div class="carrito-lista" id="carrito-lista"></div>
+
+    </div>
+
+    <!-- Columna derecha — Resumen -->
+    <div class="carrito-resumen-col">
+      <div class="carrito-resumen card">
+
+        <!-- Cliente -->
+        <div class="resumen-section">
+          <h3 class="resumen-section__title">Cliente</h3>
+          <select class="form-control" id="select-cliente" onchange="onClienteChange()">
+            <option value="">Sin cliente (público general)</option>
+            <% clientes.forEach(c => { %>
+              <option value="<%= c.id %>" data-mayorista="<%= c.es_mayorista %>">
+                <%= c.nombre %><%= c.es_mayorista ? ' ★' : '' %>
+              </option>
+            <% }) %>
+          </select>
+          <span class="form-hint" id="hint-mayorista" style="display:none">
+            Cliente mayorista — se aplicará precio especial si el total supera $300
+          </span>
+        </div>
+
+        <!-- Totales -->
+        <div class="resumen-section">
+          <h3 class="resumen-section__title">Resumen</h3>
+          <div class="resumen-totales">
+            <div class="resumen-fila">
+              <span>Subtotal</span>
+              <span id="resumen-subtotal">$0.00</span>
+            </div>
+            <div class="resumen-fila resumen-fila--descuento" id="fila-descuento" style="display:none">
+              <span>Descuento mayoreo</span>
+              <span id="resumen-descuento" class="text-success">-$0.00</span>
+            </div>
+            <div class="resumen-fila resumen-fila--total">
+              <span>Total</span>
+              <span id="resumen-total">$0.00</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Método de pago -->
+        <div class="resumen-section">
+          <h3 class="resumen-section__title">Método de pago</h3>
+          <div class="metodos-grid">
+            <label class="metodo-opt">
+              <input type="radio" name="metodo_pago" value="efectivo" checked onchange="onMetodoChange()">
+              <span class="metodo-opt__label">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="6" width="20" height="12" rx="2"/><path d="M22 10H2"/></svg>
+                Efectivo
+              </span>
+            </label>
+            <label class="metodo-opt">
+              <input type="radio" name="metodo_pago" value="tarjeta" onchange="onMetodoChange()">
+              <span class="metodo-opt__label">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="1" y="4" width="22" height="16" rx="2" ry="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg>
+                Tarjeta
+              </span>
+            </label>
+            <label class="metodo-opt">
+              <input type="radio" name="metodo_pago" value="transferencia" onchange="onMetodoChange()">
+              <span class="metodo-opt__label">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="17 1 21 5 17 9"/><path d="M3 11V9a4 4 0 0 1 4-4h14"/><polyline points="7 23 3 19 7 15"/><path d="M21 13v2a4 4 0 0 1-4 4H3"/></svg>
+                Transferencia
+              </span>
+            </label>
+            <label class="metodo-opt">
+              <input type="radio" name="metodo_pago" value="cheque" onchange="onMetodoChange()">
+              <span class="metodo-opt__label">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
+                Cheque
+              </span>
+            </label>
+            <label class="metodo-opt metodo-opt--full">
+              <input type="radio" name="metodo_pago" value="mixto" onchange="onMetodoChange()">
+              <span class="metodo-opt__label">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/></svg>
+                Pago mixto
+              </span>
+            </label>
+          </div>
+
+          <!-- Referencia -->
+          <div id="wrap-referencia" style="display:none" class="extra-campo">
+            <label class="form-label" for="referencia">Referencia</label>
+            <input type="text" id="referencia" class="form-control" placeholder="Últimos 4 dígitos, folio, etc.">
+          </div>
+
+          <!-- Mixto -->
+          <div id="wrap-mixto" style="display:none" class="extra-campo">
+            <div class="mixto-grid">
+              <div class="form-group">
+                <label class="form-label">Efectivo</label>
+                <input type="number" id="mixto-efectivo" class="form-control" placeholder="0.00" min="0" step="0.01" oninput="calcularMixto()">
+              </div>
+              <div class="form-group">
+                <label class="form-label">Tarjeta</label>
+                <input type="number" id="mixto-tarjeta" class="form-control" placeholder="0.00" min="0" step="0.01" oninput="calcularMixto()">
+              </div>
+            </div>
+            <p class="form-hint" id="mixto-pendiente"></p>
+          </div>
+
+          <!-- Efectivo recibido -->
+          <div id="wrap-efectivo" class="extra-campo">
+            <label class="form-label" for="efectivo-recibido">Efectivo recibido</label>
+            <input type="number" id="efectivo-recibido" class="form-control" placeholder="0.00" min="0" step="0.01" oninput="calcularCambio()">
+            <div class="cambio-display" id="cambio-display" style="display:none">
+              <span>Cambio:</span>
+              <strong id="cambio-monto">$0.00</strong>
+            </div>
+          </div>
+
+        </div>
+
+        <!-- Botón cobrar -->
+        <button class="btn btn-primary btn-cobrar" id="btn-cobrar" onclick="cobrar()" disabled>
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+          Cobrar
+          <span id="btn-cobrar-monto"></span>
+        </button>
+
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<script>
+const CARRITO_KEY    = 'sv_carrito';
+const UMBRAL_MAYOREO = 300;
+
+let esMayorista = false;
+let metodo      = 'efectivo';
+
+function getCarrito() {
+  try { return JSON.parse(localStorage.getItem(CARRITO_KEY)) || []; }
+  catch { return []; }
+}
+function saveCarrito(c) { localStorage.setItem(CARRITO_KEY, JSON.stringify(c)); }
+
+function vaciarCarrito() {
+  if (!confirm('¿Vaciar el carrito?')) return;
+  saveCarrito([]);
+  renderCarrito();
+}
+
+function precioAplicado(item) {
+  const subtotalNormal = getCarrito().reduce((s, i) => s + i.precio * i.cantidad, 0);
+  const aplicaMayoreo  = esMayorista
+    && item.mayoreo
+    && subtotalNormal >= UMBRAL_MAYOREO
+    && metodo !== 'tarjeta';
+  return aplicaMayoreo ? item.mayoreo : item.precio;
+}
+
+function renderCarrito() {
+  const carrito = getCarrito();
+  const lista   = document.getElementById('carrito-lista');
+  const vacio   = document.getElementById('carrito-vacio');
+
+  if (carrito.length === 0) {
+    lista.innerHTML = '';
+    vacio.style.display = 'flex';
+    document.getElementById('btn-cobrar').disabled = true;
+    actualizarTotales();
+    return;
+  }
+
+  vacio.style.display = 'none';
+
+  lista.innerHTML = carrito.map((item, idx) => `
+    <div class="carrito-item" data-idx="${idx}">
+      <div class="carrito-item__img">
+        ${item.imagen
+          ? `<img src="/uploads/productos/${item.imagen}" alt="${item.nombre}">`
+          : `<div class="carrito-item__img-placeholder"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg></div>`
+        }
+      </div>
+      <div class="carrito-item__info">
+        <p class="carrito-item__nombre">${item.nombre}</p>
+        <p class="carrito-item__precio">$${precioAplicado(item).toLocaleString('es-MX', {minimumFractionDigits:2})}</p>
+      </div>
+      <div class="carrito-item__qty">
+        <button class="pdv-qty-btn" onclick="cambiarItemQty(${idx}, -1)">
+          <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><line x1="5" y1="12" x2="19" y2="12"/></svg>
+        </button>
+        <span class="carrito-item__qty-num">${item.cantidad}</span>
+        <button class="pdv-qty-btn" onclick="cambiarItemQty(${idx}, 1)">
+          <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+        </button>
+      </div>
+      <div class="carrito-item__subtotal">
+        $${(precioAplicado(item) * item.cantidad).toLocaleString('es-MX', {minimumFractionDigits:2})}
+      </div>
+      <button class="carrito-item__remove" onclick="eliminarItem(${idx})" title="Quitar">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+      </button>
+    </div>
+  `).join('');
+
+  actualizarTotales();
+  document.getElementById('btn-cobrar').disabled = false;
+}
+
+function actualizarTotales() {
+  const carrito    = getCarrito();
+  const subtotal   = carrito.reduce((s, i) => s + i.precio * i.cantidad, 0);
+  const totalFinal = carrito.reduce((s, i) => s + precioAplicado(i) * i.cantidad, 0);
+  const descuento  = subtotal - totalFinal;
+
+  document.getElementById('resumen-subtotal').textContent = `$${subtotal.toLocaleString('es-MX', {minimumFractionDigits:2})}`;
+  document.getElementById('resumen-total').textContent    = `$${totalFinal.toLocaleString('es-MX', {minimumFractionDigits:2})}`;
+
+  const filaDesc = document.getElementById('fila-descuento');
+  if (descuento > 0) {
+    filaDesc.style.display = 'flex';
+    document.getElementById('resumen-descuento').textContent = `-$${descuento.toLocaleString('es-MX', {minimumFractionDigits:2})}`;
+  } else {
+    filaDesc.style.display = 'none';
+  }
+
+  document.getElementById('btn-cobrar-monto').textContent = ` — $${totalFinal.toLocaleString('es-MX', {minimumFractionDigits:2})}`;
+  calcularCambio();
+  calcularMixto();
+}
+
+function cambiarItemQty(idx, delta) {
+  const carrito = getCarrito();
+  carrito[idx].cantidad = Math.max(1, carrito[idx].cantidad + delta);
+  saveCarrito(carrito);
+  renderCarrito();
+}
+
+function eliminarItem(idx) {
+  const carrito = getCarrito();
+  carrito.splice(idx, 1);
+  saveCarrito(carrito);
+  renderCarrito();
+}
+
+function onClienteChange() {
+  const sel   = document.getElementById('select-cliente');
+  const opt   = sel.options[sel.selectedIndex];
+  esMayorista = opt.dataset.mayorista === 'true';
+  const hint  = document.getElementById('hint-mayorista');
+  hint.style.display = esMayorista ? 'block' : 'none';
+  renderCarrito();
+}
+
+function onMetodoChange() {
+  metodo = document.querySelector('input[name="metodo_pago"]:checked')?.value || 'efectivo';
+
+  document.getElementById('wrap-referencia').style.display =
+    ['tarjeta','transferencia','cheque'].includes(metodo) ? 'block' : 'none';
+  document.getElementById('wrap-mixto').style.display =
+    metodo === 'mixto' ? 'block' : 'none';
+  document.getElementById('wrap-efectivo').style.display =
+    metodo === 'efectivo' ? 'block' : 'none';
+
+  renderCarrito();
+}
+
+function calcularCambio() {
+  const total    = parseFloat(document.getElementById('resumen-total').textContent.replace(/[^0-9.]/g, '')) || 0;
+  const recibido = parseFloat(document.getElementById('efectivo-recibido')?.value) || 0;
+  const cambio   = recibido - total;
+  const display  = document.getElementById('cambio-display');
+  if (!display) return;
+  if (recibido > 0) {
+    display.style.display = 'flex';
+    document.getElementById('cambio-monto').textContent = `$${Math.max(0, cambio).toLocaleString('es-MX', {minimumFractionDigits:2})}`;
+    display.classList.toggle('cambio-display--negativo', cambio < 0);
+  } else {
+    display.style.display = 'none';
+  }
+}
+
+function calcularMixto() {
+  const total    = parseFloat(document.getElementById('resumen-total').textContent.replace(/[^0-9.]/g, '')) || 0;
+  const efectivo = parseFloat(document.getElementById('mixto-efectivo')?.value) || 0;
+  const tarjeta  = parseFloat(document.getElementById('mixto-tarjeta')?.value) || 0;
+  const pendiente = total - efectivo - tarjeta;
+  const hint     = document.getElementById('mixto-pendiente');
+  if (!hint) return;
+  if (pendiente > 0) {
+    hint.textContent = `Falta cubrir: $${pendiente.toLocaleString('es-MX', {minimumFractionDigits:2})}`;
+    hint.style.color = '#ef4444';
+  } else if (pendiente < 0) {
+    hint.textContent = `Cambio: $${Math.abs(pendiente).toLocaleString('es-MX', {minimumFractionDigits:2})}`;
+    hint.style.color = '#065f46';
+  } else {
+    hint.textContent = 'Monto exacto';
+    hint.style.color = '#065f46';
+  }
+}
+
+function cobrar() {
+  const carrito = getCarrito();
+  if (carrito.length === 0) return;
+
+  const metodoPago = document.querySelector('input[name="metodo_pago"]:checked')?.value;
+  const total      = parseFloat(document.getElementById('resumen-total').textContent.replace(/[^0-9.]/g, '')) || 0;
+
+  if (metodoPago === 'mixto') {
+    const efectivo = parseFloat(document.getElementById('mixto-efectivo')?.value) || 0;
+    const tarjeta  = parseFloat(document.getElementById('mixto-tarjeta')?.value) || 0;
+    if (efectivo + tarjeta < total) {
+      alert('El monto ingresado no cubre el total de la venta.');
+      return;
+    }
+  }
+
+  const payload = {
+    carrito,
+    cliente_id:   document.getElementById('select-cliente').value || null,
+    metodo_pago:  metodoPago,
+    referencia:   document.getElementById('referencia')?.value || '',
+    total,
+    es_mayorista: esMayorista,
+  };
+
+  console.log('Payload venta:', payload);
+  alert('Venta lista para procesar (conectar con backend).');
+}
+
+renderCarrito();
+onMetodoChange();
+</script>
+
+<%- include('../partials/footer') %>

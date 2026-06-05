@@ -1,0 +1,25 @@
+<%- include('partials/header') %>
+
+<main class="contenido">
+  <div class="page-header">
+    <h1 class="page-title">Verificador de Precios</h1>
+    <p class="page-subtitle">Escanea o busca un producto para consultar su precio</p>
+  </div>
+
+  <div class="card">
+    <div class="card-titulo">Buscar Producto</div>
+    <div class="form-grid">
+      <div class="form-group">
+        <label>Código de barras o descripción</label>
+        <input type="text" id="busqueda" placeholder="Escanea o escribe aquí..." autofocus>
+      </div>
+    </div>
+  </div>
+
+  <div class="card" id="resultado" style="display:none;">
+    <div class="card-titulo">Resultado</div>
+    <div id="producto-info"></div>
+  </div>
+</main>
+
+<%- include('partials/footer') %>

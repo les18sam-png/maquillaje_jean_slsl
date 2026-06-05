@@ -1,0 +1,155 @@
+<%- include('../partials/header') %>
+
+<main class="contenido">
+
+  <div class="page-header flex-between">
+    <div>
+      <h1 class="page-title">Ventas por Periodo</h1>
+      <p class="page-subtitle">Consulta los productos más vendidos en un rango de fechas</p>
+    </div>
+    <a href="/productos" class="btn btn-ghost">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
+      Volver a Productos
+    </a>
+  </div>
+
+  <!-- FILTROS -->
+  <div class="card">
+    <div class="card-titulo">Filtros</div>
+    <form method="GET" action="/productos/ventas-periodo" class="form-grid">
+
+      <div class="form-group">
+        <label>Periodo</label>
+        <select name="periodo" id="selectPeriodo" onchange="toggleFechas(this.value)">
+          <option value="hoy"       <%= periodo === 'hoy'       ? 'selected' : '' %>>Hoy</option>
+          <option value="semana"    <%= periodo === 'semana'    ? 'selected' : '' %>>Esta semana</option>
+          <option value="mes"       <%= periodo === 'mes'       ? 'selected' : '' %>>Este mes</option>
+          <option value="personalizado" <%= periodo === 'personalizado' ? 'selected' : '' %>>Rango personalizado</option>
+        </select>
+      </div>
+
+      <div class="form-group" id="grupoFechaDesde" style="display:<%= periodo === 'personalizado' ? 'block' : 'none' %>;">
+        <label>Desde</label>
+        <input type="date" name="desde" value="<%= desde %>">
+      </div>
+
+      <div class="form-group" id="grupoFechaHasta" style="display:<%= periodo === 'personalizado' ? 'block' : 'none' %>;">
+        <label>Hasta</label>
+        <input type="date" name="hasta" value="<%= hasta %>">
+      </div>
+
+      <div class="form-group" id="grupoDepartamento">
+        <label>Departamento</label>
+        <select name="categoria_id">
+          <option value="">Todos</option>
+          <% categorias.forEach(cat => { %>
+            <option value="<%= cat.id %>" <%= categoria_id == cat.id ? 'selected' : '' %>><%= cat.nombre %></option>
+          <% }) %>
+        </select>
+      </div>
+
+      <div class="form-group" style="display:flex; align-items:flex-end;">
+        <button type="submit" class="btn btn-primary">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+          Consultar
+        </button>
+      </div>
+
+    </form>
+  </div>
+
+  <!-- RESUMEN -->
+  <% if (ventas.length > 0) { %>
+  <div class="resumen-grid">
+    <div class="resumen-card">
+      <span class="resumen-valor"><%= ventas.length %></span>
+      <span class="resumen-label">Productos vendidos</span>
+    </div>
+    <div class="resumen-card">
+      <span class="resumen-valor"><%= ventas.reduce((s, v) => s + v.total_cantidad, 0) %></span>
+      <span class="resumen-label">Unidades totales</span>
+    </div>
+    <div class="resumen-card">
+      <span class="resumen-valor">$<%= ventas.reduce((s, v) => s + v.total_importe, 0).toFixed(2) %></span>
+      <span class="resumen-label">Importe total</span>
+    </div>
+  </div>
+  <% } %>
+
+  <!-- TABLA -->
+  <div class="card">
+    <div class="tabla-wrap">
+      <table class="tabla">
+        <thead>
+          <tr>
+            <th>#</th>
+            <th>Imagen</th>
+            <th>Código</th>
+            <th>Descripción</th>
+            <th>Departamento</th>
+            <th>Cantidad vendida</th>
+            <th>Precio Venta</th>
+            <th>Importe total</th>
+          </tr>
+        </thead>
+        <tbody>
+          <% if (ventas.length === 0) { %>
+            <tr>
+              <td colspan="8" class="text-center text-muted" style="padding:2rem;">
+                Sin ventas en el periodo seleccionado
+              </td>
+            </tr>
+          <% } else { %>
+            <% ventas.forEach((v, i) => { %>
+              <tr>
+                <td class="text-muted"><%= i + 1 %></td>
+                <td>
+                  <% if (v.imagen) { %>
+                    <img src="/uploads/productos/<%= v.imagen %>" alt="<%= v.descripcion %>" class="tabla-img">
+                  <% } else { %>
+                    <div class="tabla-img-placeholder">
+                      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" opacity="0.3">
+                        <rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/>
+                      </svg>
+                    </div>
+                  <% } %>
+                </td>
+                <td><span class="codigo-badge"><%= v.codigo || '—' %></span></td>
+                <td><strong><%= v.descripcion %></strong></td>
+                <td><%= v.categoria_nombre || '—' %></td>
+                <td>
+                  <span class="cantidad-badge"><%= v.total_cantidad %> uds</span>
+                </td>
+                <td>$<%= parseFloat(v.precio_venta).toFixed(2) %></td>
+                <td><strong>$<%= parseFloat(v.total_importe).toFixed(2) %></strong></td>
+              </tr>
+            <% }) %>
+          <% } %>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+</main>
+
+<style>
+  .resumen-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1rem; margin-bottom: 1.5rem; }
+  .resumen-card { background: white; border-radius: 12px; padding: 1.25rem 1.5rem; border: 1px solid #f0f0f0; box-shadow: 0 1px 4px rgba(0,0,0,.05); text-align: center; }
+  .resumen-valor { display: block; font-size: 1.6rem; font-weight: 700; color: var(--burgundy); font-family: 'Playfair Display', serif; }
+  .resumen-label { display: block; font-size: .8rem; color: #999; margin-top: .25rem; }
+  .cantidad-badge { background: var(--champagne); color: var(--burgundy); font-weight: 700; padding: 3px 10px; border-radius: 20px; font-size: .82rem; }
+  .tabla-img { width: 40px; height: 40px; object-fit: cover; border-radius: 6px; border: 1px solid #eee; }
+  .tabla-img-placeholder { width: 40px; height: 40px; background: #f5f5f5; border-radius: 6px; display: flex; align-items: center; justify-content: center; }
+  .codigo-badge { font-family: monospace; font-size: .8rem; background: var(--champagne); padding: 2px 6px; border-radius: 4px; }
+  @media (max-width: 600px) { .resumen-grid { grid-template-columns: 1fr; } }
+</style>
+
+<script>
+function toggleFechas(val) {
+  const mostrar = val === 'personalizado';
+  document.getElementById('grupoFechaDesde').style.display = mostrar ? 'block' : 'none';
+  document.getElementById('grupoFechaHasta').style.display = mostrar ? 'block' : 'none';
+}
+</script>
+
+<%- include('../partials/footer') %>

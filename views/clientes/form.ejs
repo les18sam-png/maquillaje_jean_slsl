@@ -1,0 +1,241 @@
+<%- include('../partials/header', { title }) %>
+
+<div class="page-wrapper page-wrapper--narrow">
+
+  <!-- Breadcrumb -->
+  <nav class="breadcrumb">
+    <a href="/clientes" class="breadcrumb__link">Clientes</a>
+    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg>
+    <span class="breadcrumb__current"><%= modoEdicion ? 'Editar cliente' : 'Nuevo cliente' %></span>
+  </nav>
+
+  <!-- Encabezado -->
+  <div class="page-header">
+    <div class="page-header__left">
+      <h1 class="page-title"><%= modoEdicion ? 'Editar cliente' : 'Nuevo cliente' %></h1>
+    </div>
+    <% if (modoEdicion && cliente) { %>
+    <div class="page-header__right">
+      <a href="/clientes/<%= cliente.id %>" class="btn btn-ghost">Cancelar</a>
+    </div>
+    <% } else { %>
+    <div class="page-header__right">
+      <a href="/clientes" class="btn btn-ghost">Cancelar</a>
+    </div>
+    <% } %>
+  </div>
+
+  <!-- Error global -->
+  <% if (typeof error !== 'undefined' && error) { %>
+    <div class="alert alert--error">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+      <%= error %>
+    </div>
+  <% } %>
+
+  <!-- Formulario -->
+  <form
+    method="POST"
+    action="<%= modoEdicion ? `/clientes/${cliente.id}/editar` : '/clientes/nuevo' %>"
+    class="form-card"
+    id="form-cliente"
+    novalidate
+  >
+
+    <!-- Sección: Datos principales -->
+    <div class="form-section">
+      <h2 class="form-section__title">Datos del cliente</h2>
+
+      <!-- Nombre -->
+      <div class="form-group form-group--full">
+        <label class="form-label" for="nombre">
+          Nombre completo <span class="required">*</span>
+        </label>
+        <input
+          type="text"
+          id="nombre"
+          name="nombre"
+          class="form-control"
+          value="<%= cliente?.nombre || '' %>"
+          placeholder="Ej. María García López"
+          required
+          maxlength="120"
+          autofocus
+        >
+        <span class="form-error" id="err-nombre"></span>
+      </div>
+
+      <!-- Correo + Teléfono -->
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label" for="correo">Correo electrónico</label>
+          <input
+            type="email"
+            id="correo"
+            name="correo"
+            class="form-control"
+            value="<%= cliente?.correo || '' %>"
+            placeholder="cliente@correo.com"
+            maxlength="120"
+          >
+          <span class="form-error" id="err-correo"></span>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label" for="telefono">Teléfono</label>
+          <input
+            type="tel"
+            id="telefono"
+            name="telefono"
+            class="form-control"
+            value="<%= cliente?.telefono || '' %>"
+            placeholder="442 123 4567"
+            maxlength="20"
+          >
+        </div>
+      </div>
+
+      <!-- RFC + Tipo -->
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label" for="rfc">RFC</label>
+          <input
+            type="text"
+            id="rfc"
+            name="rfc"
+            class="form-control form-control--uppercase"
+            value="<%= cliente?.rfc || '' %>"
+            placeholder="XAXX010101000"
+            maxlength="13"
+          >
+          <span class="form-hint">Opcional — para facturación</span>
+        </div>
+
+        <div class="form-group form-group--center">
+          <label class="form-label">Tipo de cliente</label>
+          <label class="toggle-switch">
+            <input
+              type="checkbox"
+              name="es_mayorista"
+              id="es_mayorista"
+              value="on"
+              <%= (cliente?.es_mayorista) ? 'checked' : '' %>
+            >
+            <span class="toggle-switch__track"></span>
+            <span class="toggle-switch__label" id="label-mayorista">
+              <%= (cliente?.es_mayorista) ? 'Mayorista' : 'Normal' %>
+            </span>
+          </label>
+          <span class="form-hint">Los mayoristas pueden recibir precios especiales</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Sección: Dirección -->
+    <div class="form-section">
+      <h2 class="form-section__title">Dirección <span class="form-section__optional">(opcional)</span></h2>
+
+      <div class="form-group form-group--full">
+        <label class="form-label" for="direccion">Dirección</label>
+        <textarea
+          id="direccion"
+          name="direccion"
+          class="form-control"
+          rows="2"
+          placeholder="Calle, número, colonia, ciudad…"
+          maxlength="300"
+        ><%= cliente?.direccion || '' %></textarea>
+      </div>
+    </div>
+
+    <!-- Sección: Notas -->
+    <div class="form-section">
+      <h2 class="form-section__title">Notas <span class="form-section__optional">(opcional)</span></h2>
+
+      <div class="form-group form-group--full">
+        <label class="form-label" for="notas">Notas internas</label>
+        <textarea
+          id="notas"
+          name="notas"
+          class="form-control"
+          rows="3"
+          placeholder="Preferencias, observaciones, referencias…"
+          maxlength="500"
+        ><%= cliente?.notas || '' %></textarea>
+        <span class="form-hint char-counter" data-target="notas" data-max="500">0 / 500</span>
+      </div>
+    </div>
+
+    <!-- Botones -->
+    <div class="form-footer">
+      <button type="submit" class="btn btn-primary btn-lg" id="btn-guardar">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
+        <%= modoEdicion ? 'Guardar cambios' : 'Crear cliente' %>
+      </button>
+    </div>
+
+  </form>
+</div>
+
+<script>
+  // Toggle mayorista
+  const toggle   = document.getElementById('es_mayorista');
+  const labelMay = document.getElementById('label-mayorista');
+  if (toggle) {
+    toggle.addEventListener('change', () => {
+      labelMay.textContent = toggle.checked ? 'Mayorista' : 'Normal';
+    });
+  }
+
+  // RFC a mayúsculas
+  const rfcInput = document.getElementById('rfc');
+  if (rfcInput) {
+    rfcInput.addEventListener('input', () => {
+      rfcInput.value = rfcInput.value.toUpperCase();
+    });
+  }
+
+  // Contador de caracteres
+  document.querySelectorAll('.char-counter').forEach(el => {
+    const target = document.getElementById(el.dataset.target);
+    const max    = parseInt(el.dataset.max);
+    if (!target) return;
+    const update = () => { el.textContent = `${target.value.length} / ${max}`; };
+    target.addEventListener('input', update);
+    update();
+  });
+
+  // Validación client-side
+  const form = document.getElementById('form-cliente');
+  if (form) {
+    form.addEventListener('submit', (e) => {
+      let valid = true;
+
+      const nombre    = document.getElementById('nombre');
+      const errNombre = document.getElementById('err-nombre');
+      if (!nombre.value.trim()) {
+        errNombre.textContent = 'El nombre es obligatorio';
+        nombre.classList.add('form-control--error');
+        valid = false;
+      } else {
+        errNombre.textContent = '';
+        nombre.classList.remove('form-control--error');
+      }
+
+      const correo    = document.getElementById('correo');
+      const errCorreo = document.getElementById('err-correo');
+      if (correo.value.trim() && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(correo.value.trim())) {
+        errCorreo.textContent = 'Correo no válido';
+        correo.classList.add('form-control--error');
+        valid = false;
+      } else {
+        errCorreo.textContent = '';
+        correo.classList.remove('form-control--error');
+      }
+
+      if (!valid) e.preventDefault();
+    });
+  }
+</script>
+
+<%- include('../partials/footer') %>
