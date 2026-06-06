@@ -1,0 +1,260 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SmartVenta — Iniciar Sesión</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600;700&family=Playfair+Display:wght@600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/css/main.css">
+</head>
+<body class="login-body">
+
+  <div class="login-wrapper">
+
+    <!-- Logo -->
+    <div class="login-logo">
+      <div class="login-logo__icon">
+        <svg viewBox="0 0 24 24" fill="white" width="28" height="28">
+          <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 14H9V8h2v8zm4 0h-2V8h2v8z"/>
+        </svg>
+      </div>
+      <div class="login-logo__text">
+        <span class="login-logo__name">SmartVenta</span>
+        <span class="login-logo__sub">Maquillaje Jean</span>
+      </div>
+    </div>
+
+    <!-- Card -->
+    <div class="login-card">
+      <h1 class="login-title">Bienvenido</h1>
+      <p class="login-subtitle">Inicia sesión para continuar</p>
+
+      <!-- Error -->
+      <% if (error === 'credenciales') { %>
+        <div class="alert alert--error">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+          Usuario o contraseña incorrectos.
+        </div>
+      <% } %>
+      <% if (error === 'sesion') { %>
+        <div class="alert alert--warning">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+          Tu sesión expiró. Vuelve a iniciar sesión.
+        </div>
+      <% } %>
+
+      <!-- Formulario -->
+      <form method="POST" action="/auth/login" class="login-form" id="form-login" novalidate>
+
+        <div class="form-group">
+          <label class="form-label" for="nombre_usuario">Usuario</label>
+          <input
+            type="text"
+            id="nombre_usuario"
+            name="nombre_usuario"
+            class="form-control"
+            placeholder="tu_usuario"
+            autocomplete="username"
+            autofocus
+            required
+          >
+          <span class="form-error" id="err-usuario"></span>
+        </div>
+
+        <div class="form-group" style="margin-top: 14px;">
+          <label class="form-label" for="contrasena">Contraseña</label>
+          <div class="input-password-wrap">
+            <input
+              type="password"
+              id="contrasena"
+              name="contrasena"
+              class="form-control"
+              placeholder="••••••••"
+              autocomplete="current-password"
+              required
+            >
+            <button type="button" class="input-password-toggle" onclick="togglePassword()" tabindex="-1">
+              <svg id="icon-eye" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+              <svg id="icon-eye-off" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="display:none"><path d="M17.94 17.94A10.07 10.07 0 0112 20c-7 0-11-8-11-8a18.45 18.45 0 015.06-5.94"/><path d="M9.9 4.24A9.12 9.12 0 0112 4c7 0 11 8 11 8a18.5 18.5 0 01-2.16 3.19"/><line x1="1" y1="1" x2="23" y2="23"/></svg>
+            </button>
+          </div>
+          <span class="form-error" id="err-contrasena"></span>
+        </div>
+
+        <button type="submit" class="btn btn-primary btn-lg w-full login-btn" id="btn-login" style="margin-top: 24px;">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M15 3h4a2 2 0 012 2v14a2 2 0 01-2 2h-4"/><polyline points="10 17 15 12 10 7"/><line x1="15" y1="12" x2="3" y2="12"/></svg>
+          Iniciar Sesión
+        </button>
+
+      </form>
+    </div>
+
+    <p class="login-footer">SmartVenta PDV © 2026 — Maquillaje Jean</p>
+
+  </div>
+
+<style>
+  /* Login — estilos propios, no dependen del layout general */
+  .login-body {
+    background: linear-gradient(135deg, #4A0517 0%, #6C0820 50%, #8B1030 100%);
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 24px;
+    margin: 0;
+  }
+
+  .login-wrapper {
+    width: 100%;
+    max-width: 400px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 24px;
+  }
+
+  .login-logo {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+  .login-logo__icon {
+    width: 52px;
+    height: 52px;
+    background: rgba(255,183,197,0.2);
+    border: 2px solid rgba(255,183,197,0.3);
+    border-radius: 14px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .login-logo__text {
+    display: flex;
+    flex-direction: column;
+  }
+  .login-logo__name {
+    font-family: 'Playfair Display', serif;
+    font-size: 1.4rem;
+    font-weight: 700;
+    color: #fff;
+  }
+  .login-logo__sub {
+    font-size: .72rem;
+    color: rgba(255,183,197,0.7);
+    letter-spacing: .08em;
+    text-transform: uppercase;
+  }
+
+  .login-card {
+    background: #fff;
+    border-radius: 18px;
+    padding: 36px 32px;
+    width: 100%;
+    box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+  }
+
+  .login-title {
+    font-family: 'Playfair Display', serif;
+    font-size: 1.6rem;
+    color: #6C0820;
+    margin: 0 0 4px;
+  }
+  .login-subtitle {
+    font-size: .88rem;
+    color: #aaa;
+    margin: 0 0 24px;
+  }
+
+  .login-form .form-label {
+    font-size: .82rem;
+    font-weight: 600;
+    color: #3D5D91;
+  }
+  .login-form .form-control {
+    width: 100%;
+    margin-top: 4px;
+  }
+
+  .input-password-wrap {
+    position: relative;
+    margin-top: 4px;
+  }
+  .input-password-wrap .form-control {
+    padding-right: 42px;
+    margin-top: 0;
+  }
+  .input-password-toggle {
+    position: absolute;
+    right: 10px;
+    top: 50%;
+    transform: translateY(-50%);
+    background: none;
+    border: none;
+    color: #aaa;
+    cursor: pointer;
+    padding: 4px;
+    display: flex;
+  }
+  .input-password-toggle:hover { color: #6C0820; }
+
+  .login-btn { width: 100%; justify-content: center; }
+
+  .login-footer {
+    font-size: .72rem;
+    color: rgba(255,183,197,0.4);
+    text-align: center;
+  }
+</style>
+
+<script>
+  // Toggle contraseña
+  function togglePassword() {
+    const input   = document.getElementById('contrasena');
+    const iconOn  = document.getElementById('icon-eye');
+    const iconOff = document.getElementById('icon-eye-off');
+    if (input.type === 'password') {
+      input.type = 'text';
+      iconOn.style.display  = 'none';
+      iconOff.style.display = 'block';
+    } else {
+      input.type = 'password';
+      iconOn.style.display  = 'block';
+      iconOff.style.display = 'none';
+    }
+  }
+
+  // Validación
+  document.getElementById('form-login').addEventListener('submit', e => {
+    let valid = true;
+
+    const usuario    = document.getElementById('nombre_usuario');
+    const errUsuario = document.getElementById('err-usuario');
+    if (!usuario.value.trim()) {
+      errUsuario.textContent = 'El usuario es obligatorio';
+      usuario.classList.add('form-control--error');
+      valid = false;
+    } else {
+      errUsuario.textContent = '';
+      usuario.classList.remove('form-control--error');
+    }
+
+    const contrasena    = document.getElementById('contrasena');
+    const errContrasena = document.getElementById('err-contrasena');
+    if (!contrasena.value.trim()) {
+      errContrasena.textContent = 'La contraseña es obligatoria';
+      contrasena.classList.add('form-control--error');
+      valid = false;
+    } else {
+      errContrasena.textContent = '';
+      contrasena.classList.remove('form-control--error');
+    }
+
+    if (!valid) e.preventDefault();
+  });
+</script>
+
+</body>
+</html>

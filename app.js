@@ -31,12 +31,26 @@ app.use(session({
   saveUninitialized: false
 }));
 
-// Ruta principal
+// ── Auth (sin protección) ──────────────────
+const auth = require('./routes/auth');
+app.use('/auth', auth);
+
+// ── Middleware de sesión ───────────────────
+const { requireAuth } = require('./middleware/auth');
+app.use(requireAuth);
+
+// ── Ruta principal ─────────────────────────
 app.get('/', (req, res) => {
   res.render('index');
 });
 
-// Rutas
+// ── Rutas ──────────────────────────────────
+
+// ✅ Migrado a API de Python
+const productos = require('./routes/productos');
+app.use('/productos', productos);
+
+// ⏳ Pendiente de migrar — sigue con Supabase
 const verificador = require('./routes/verificador');
 app.use('/verificador', verificador);
 
@@ -49,13 +63,9 @@ app.use('/turnos', turnos);
 const historial = require('./routes/historial');
 app.use('/historial', historial);
 
-const productos = require('./routes/productos');
-app.use('/productos', productos);
-
 const inventario = require('./routes/inventario');
 app.use('/inventario', inventario);
 
-// ← NUEVO
 const clientes = require('./routes/clientes');
 app.use('/clientes', clientes);
 
