@@ -2,6 +2,13 @@
 
 <main class="contenido">
 
+  <% if (typeof exito !== 'undefined' && exito) { %>
+    <div class="alert alert--success" style="margin-bottom:1.5rem; display:flex; align-items:center; gap:.6rem; padding:.875rem 1rem; background:#f0fdf4; border:1px solid #86efac; border-radius:10px; color:#166534; font-size:.9rem;">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+      <%= producto ? 'Producto actualizado correctamente.' : 'Producto registrado correctamente. Puedes registrar otro a continuación.' %>
+    </div>
+  <% } %>
+
   <div class="page-header flex-between">
     <div>
       <h1 class="page-title"><%= producto ? 'Editar Producto' : 'Nuevo Producto' %></h1>
@@ -133,7 +140,7 @@
 
       <div class="form-col-side">
         <div class="card card-imagen">
-          <div class="card-titulo">Imagen <span class="req">*</span></div>
+          <div class="card-titulo">Imagen</div>
 
           <div class="imagen-dropzone" id="dropzone">
             <div class="imagen-placeholder" id="imagenPlaceholder"
@@ -321,11 +328,6 @@
     let ok = true;
     Object.keys(reglas).forEach(id => { if (!validarCampo(id)) ok = false; });
 
-    const esNuevo = !<%= producto ? 'true' : 'false' %>;
-    if (esNuevo && !fileInput.files.length) {
-      document.getElementById('err-imagen').textContent = 'La imagen es obligatoria.';
-      ok = false;
-    }
 
     if (!ok) {
       e.preventDefault();

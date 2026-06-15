@@ -25,10 +25,17 @@ app.use(express.urlencoded({ extended: true }));
 app.use(express.json());
 
 // Sesiones
+// Sesiones
 app.use(session({
-  secret: 'smartventa_secret',
+  secret: process.env.SESSION_SECRET || 'cambiar_en_produccion',
   resave: false,
-  saveUninitialized: false
+  saveUninitialized: false,
+  cookie: {
+    httpOnly: true,
+    sameSite: 'lax',
+    secure: false,  // poner true en producción con HTTPS
+    maxAge: 1000 * 60 * 60 * 8,  // 8 horas, igual que el JWT
+  }
 }));
 
 // ── Auth (sin protección) ──────────────────

@@ -163,11 +163,14 @@
   });
 
   // Toast
-  const params = new URLSearchParams(window.location.search);
-  const toast  = params.get('toast');
-  if (toast === 'creado')   window.showToast && showToast('Departamento agregado', 'success');
-  if (toast === 'editado')  window.showToast && showToast('Departamento actualizado', 'success');
-  if (toast === 'eliminado') window.showToast && showToast('Departamento eliminado', 'info');
+  window.addEventListener('load', () => {
+    const params = new URLSearchParams(window.location.search);
+    const toast  = params.get('toast');
+    console.log('TOAST PARAM:', toast); // ← agregar esto
+    if (toast === 'creado')    showToast('Departamento agregado', 'success');
+    if (toast === 'editado')   showToast('Departamento actualizado', 'success');
+    if (toast === 'eliminado') showToast('Departamento eliminado', 'info');
+  });
 })();
 </script>
 
