@@ -114,16 +114,16 @@
 
     <div class="header-badge">
       <svg viewBox="0 0 24 24"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z"/><circle cx="12" cy="10" r="3"/></svg>
-      <span><%= typeof sucursal !== 'undefined' ? sucursal : 'Sucursal A' %></span>
+      <span><%= typeof sucursal !== 'undefined' && sucursal ? sucursal : 'Sucursal A' %></span>
     </div>
 
     <div class="header-badge">
       <svg viewBox="0 0 24 24"><rect x="2" y="3" width="20" height="14" rx="2" ry="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>
-      <span><%= typeof caja !== 'undefined' ? caja : 'Caja 1' %></span>
+      <span><%= typeof caja !== 'undefined' && caja ? caja : 'Caja 1' %></span>
     </div>
 
-    <div class="header-avatar" title="<%= typeof usuario !== 'undefined' ? usuario : 'Usuario' %>">
-      <%= typeof usuario !== 'undefined' ? usuario.charAt(0).toUpperCase() : 'U' %>
+    <div class="header-avatar" title="<%= typeof usuario !== 'undefined' && usuario ? (usuario.nombre_completo || usuario.nombre_usuario || 'Usuario') : 'Usuario' %>">
+      <%= typeof usuario !== 'undefined' && usuario ? (usuario.nombre_completo || usuario.nombre_usuario || 'U').charAt(0).toUpperCase() : 'U' %>
     </div>
 
   </div>
