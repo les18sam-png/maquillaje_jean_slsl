@@ -45,14 +45,15 @@
           </div>
           <div class="form-group">
             <label>Categoría</label>
-            <select name="categoria_id">
-              <option value="">Todas</option>
-              <% categorias.forEach(cat => { %>
-                <option value="<%= cat.id %>" <%= categoria_id == cat.id ? 'selected' : '' %>>
-                  <%= cat.nombre %>
-                </option>
-              <% }) %>
-            </select>
+           <select name="categoria_id">
+            <option value="">Todas</option>
+            <option value="ninguna">Sin categoría</option>
+            <% categorias.forEach(cat => { %>
+              <option value="<%= cat.id %>" <%= categoria_id == cat.id ? 'selected' : '' %>>
+                <%= cat.nombre %>
+              </option>
+            <% }) %>
+          </select>
           </div>
           <div class="form-group" style="display:flex; align-items:flex-end; gap:.5rem;">
             <button type="submit" class="btn btn-primary">Buscar</button>
@@ -84,7 +85,7 @@
               <% if (productos.length === 0) { %>
                 <tr>
                   <td colspan="9" class="text-center text-muted" style="padding:2rem;">
-                    Sin productos registrados
+                    <%= hayFiltros ? 'Sin productos que coincidan con la búsqueda' : 'Usa los filtros para buscar productos' %>
                   </td>
                 </tr>
               <% } else { %>
@@ -120,24 +121,16 @@
                     </td>
                     <td>
                       <div class="acciones">
-                        <a href="/productos/editar/<%= p.id %>" class="btn btn-ghost btn-xs" title="Editar">
+                          <a href="/productos/editar/<%= p.id %>" class="btn btn-ghost btn-xs" title="Editar">
                           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
                         </a>
-                        <form method="POST" action="/productos/toggle/<%= p.id %>" style="display:inline;" class="form-toggle">
-                          <button type="submit" class="btn btn-ghost btn-xs" title="<%= p.activo ? 'Desactivar' : 'Activar' %>">
-                            <% if (p.activo) { %>
-                              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17.94 17.94A10.07 10.07 0 0112 20c-7 0-11-8-11-8a18.45 18.45 0 015.06-5.94"/><path d="M9.9 4.24A9.12 9.12 0 0112 4c7 0 11 8 11 8a18.5 18.5 0 01-2.16 3.19"/><line x1="1" y1="1" x2="23" y2="23"/></svg>
-                            <% } else { %>
-                              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
-                            <% } %>
-                          </button>
-                        </form>
-                        <form method="POST" action="/productos/eliminar/<%= p.id %>" style="display:inline;" class="form-eliminar"
-                          data-nombre="<%= p.descripcion %>">
-                          <button type="submit" class="btn btn-ghost btn-xs btn-danger-ghost" title="Eliminar">
+                        <form method="POST" action="/productos/toggle/<%= p.id %>" style="display:inline;" class="form-toggle"
+                          data-nombre="<%= p.descripcion %>" data-activo="<%= p.activo %>">
+                          <button type="submit" class="btn btn-ghost btn-xs btn-danger-ghost"
+                            title="<%= p.activo ? 'Desactivar producto' : 'Activar producto' %>">
                             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6"/><path d="M10 11v6M14 11v6"/><path d="M9 6V4h6v2"/></svg>
                           </button>
-                        </form>
+                        </form>                   
                       </div>
                     </td>
                   </tr>
@@ -244,26 +237,31 @@
 
 <script>
 (function() {
-  const params = new URLSearchParams(window.location.search);
-  const toast  = params.get('toast');
-  if (toast === 'creado')    window.showToast && showToast('Producto registrado correctamente', 'success');
-  if (toast === 'editado')   window.showToast && showToast('Producto actualizado correctamente', 'success');
-  if (toast === 'eliminado') window.showToast && showToast('Producto eliminado', 'info');
-
-  document.querySelectorAll('.form-toggle').forEach(form => {
-    form.addEventListener('submit', async function(e) {
-      e.preventDefault();
-      const res  = await fetch(this.action, { method: 'POST' });
-      const data = await res.json();
-      if (data.ok) location.reload();
-    });
+  window.addEventListener('load', () => {
+    const params = new URLSearchParams(window.location.search);
+    const toast  = params.get('toast');
+    if (toast === 'creado')    showToast('Producto registrado correctamente', 'success');
+    if (toast === 'editado')   showToast('Producto actualizado correctamente', 'success');
+    if (toast === 'eliminado') showToast('Producto eliminado', 'info');
   });
-
-  document.querySelectorAll('.form-eliminar').forEach(form => {
-    form.addEventListener('submit', function(e) {
-      if (!confirm(`¿Eliminar "${this.dataset.nombre}"? Esta acción no se puede deshacer.`)) e.preventDefault();
-    });
+  // REEMPLAZA el bloque form-toggle
+document.querySelectorAll('.form-toggle').forEach(form => {
+  form.addEventListener('submit', async function(e) {
+    e.preventDefault();
+    const nombre = this.dataset.nombre;
+    const activo = this.dataset.activo === 'true';
+    const accion = activo ? 'desactivar' : 'activar';
+    if (!confirm(`¿${accion.charAt(0).toUpperCase() + accion.slice(1)} "${nombre}"?`)) return;
+    const res  = await fetch(this.action, { method: 'POST' });
+    const data = await res.json();
+    if (data.ok) {
+      showToast(`Producto ${data.estado === 'activo' ? 'activado' : 'desactivado'}`, 'info');
+      setTimeout(() => location.reload(), 1000);
+    }
   });
+});
+
+ 
 
   const tags  = document.querySelectorAll('.catalogo-tag');
   const items = document.querySelectorAll('.catalogo-item');

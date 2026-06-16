@@ -1,4 +1,6 @@
 // db/database.js
+// ARCHIVO OBSOLETO — NO USAR y borrar despues
+/*
 require('dotenv').config();
 const { createClient } = require('@supabase/supabase-js');
 
@@ -7,4 +9,4 @@ const supabase = createClient(
   process.env.SUPABASE_SERVICE_KEY
 );
 
-module.exports = { supabase };  // ← solo cambias esta línea
+module.exports = { supabase };  // ← solo cambias esta línea*/
