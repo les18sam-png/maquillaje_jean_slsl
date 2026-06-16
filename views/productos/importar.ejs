@@ -1,0 +1,227 @@
+<%- include('../partials/header') %>
+
+<main class="contenido">
+
+  <div class="page-header flex-between">
+    <div>
+      <h1 class="page-title">Importar Catálogo</h1>
+      <p class="page-subtitle">Carga masiva de productos desde Excel o CSV</p>
+    </div>
+    <a href="/productos" class="btn btn-ghost">← Volver al catálogo</a>
+  </div>
+
+  <% if (error) { %>
+    <div class="alert alert-error" style="margin-bottom:1.5rem;"><%= error %></div>
+  <% } %>
+
+  <div class="importar-layout">
+
+    <%/* ── Instrucciones ── */%>
+    <div class="card">
+      <div class="card-titulo">Formato esperado</div>
+      <p style="font-size:.85rem; color:#666; margin-bottom:1rem;">
+        El archivo debe contener estas columnas. Las marcadas con ✅ son obligatorias.
+        Las demás son opcionales y se usarán valores por defecto si no se incluyen.
+      </p>
+
+      <table class="tabla" style="font-size:.82rem;">
+        <thead>
+          <tr><th>Columna</th><th>¿Requerida?</th><th>Notas</th></tr>
+        </thead>
+        <tbody>
+          <tr><td><code>descripcion</code></td><td>✅</td><td>Nombre del producto</td></tr>
+          <tr><td><code>precio_venta</code></td><td>✅</td><td>Mayor a 0</td></tr>
+          <tr><td><code>precio_mayoreo</code></td><td>✅</td><td>Mayor a 0</td></tr>
+          <tr><td><code>costo_unitario</code></td><td>✅</td><td>Mayor o igual a 0</td></tr>
+          <tr><td><code>codigo_barras</code></td><td>—</td><td>Si ya existe en la sucursal, el producto se actualizará</td></tr>
+          <tr><td><code>categoria</code></td><td>—</td><td>Se crea automáticamente si no existe</td></tr>
+          <tr><td><code>inventario_minimo</code></td><td>—</td><td>Default: 0</td></tr>
+          <tr><td><code>stock_inicial</code></td><td>—</td><td>Si es mayor a 0 genera entrada en kardex</td></tr>
+        </tbody>
+      </table>
+
+      <div style="margin-top:1.25rem; display:flex; gap:.75rem; flex-wrap:wrap;">
+        <a href="/productos/exportar?plantilla=1" class="btn btn-ghost" style="font-size:.82rem;">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/>
+            <polyline points="7 10 12 15 17 10"/>
+            <line x1="12" y1="15" x2="12" y2="3"/>
+          </svg>
+          Descargar plantilla Excel
+        </a>
+        <a href="/productos/exportar" class="btn btn-ghost" style="font-size:.82rem;">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/>
+            <polyline points="7 10 12 15 17 10"/>
+            <line x1="12" y1="15" x2="12" y2="3"/>
+          </svg>
+          Exportar catálogo actual
+        </a>
+      </div>
+    </div>
+
+    <%/* ── Formulario ── */%>
+    <div class="card">
+      <div class="card-titulo">Cargar archivo</div>
+
+      <form method="POST" action="/productos/importar" enctype="multipart/form-data" id="formImportar">
+
+        <div class="zona-drop" id="zonaDrop">
+          <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" opacity="0.35">
+            <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/>
+            <polyline points="17 8 12 3 7 8"/>
+            <line x1="12" y1="3" x2="12" y2="15"/>
+          </svg>
+          <p>Arrastra tu archivo aquí o
+            <label for="archivoInput" class="link-label">selecciónalo</label>
+          </p>
+          <p style="font-size:.76rem; color:#aaa; margin-top:.25rem;">.xlsx o .csv — máximo 5 MB</p>
+          <input type="file" id="archivoInput" name="archivo" accept=".xlsx,.csv" style="display:none">
+        </div>
+
+        <div id="archivoInfo" style="display:none;" class="archivo-info">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/>
+            <polyline points="14 2 14 8 20 8"/>
+          </svg>
+          <span id="nombreArchivo" style="flex:1; font-size:.85rem;"></span>
+          <button type="button" id="btnQuitar" class="btn btn-ghost btn-xs">✕ Quitar</button>
+        </div>
+
+        <button type="submit" id="btnImportar" class="btn btn-primary"
+          style="width:100%; margin-top:1.25rem;" disabled>
+          Importar productos
+        </button>
+
+      </form>
+    </div>
+
+  </div>
+
+  <%/* ── Resultado (solo si viene de redirect con resultado) ── */%>
+  <% if (typeof resultado !== 'undefined' && resultado) { %>
+    <div class="card" style="margin-top:1.5rem;">
+      <div class="card-titulo">Resultado de la importación</div>
+
+      <div class="resultado-resumen">
+        <div class="resultado-stat stat-ok">
+          <span><%= resultado.insertados %></span>
+          <label>Productos nuevos</label>
+        </div>
+        <div class="resultado-stat stat-info">
+          <span><%= resultado.actualizados %></span>
+          <label>Actualizados</label>
+        </div>
+        <div class="resultado-stat stat-err">
+          <span><%= resultado.errores.length %></span>
+          <label>Con error</label>
+        </div>
+      </div>
+
+      <% if (resultado.errores.length > 0) { %>
+        <div style="margin-top:1.25rem;">
+          <p style="font-size:.85rem; font-weight:600; margin-bottom:.5rem;">Filas con error:</p>
+          <table class="tabla" style="font-size:.82rem;">
+            <thead><tr><th>Fila</th><th>Motivo</th></tr></thead>
+            <tbody>
+              <% resultado.errores.forEach(e => { %>
+                <tr>
+                  <td><%= e.fila %></td>
+                  <td><%= e.motivo %></td>
+                </tr>
+              <% }) %>
+            </tbody>
+          </table>
+        </div>
+      <% } %>
+
+    </div>
+  <% } %>
+
+</main>
+
+<style>
+  .importar-layout       { display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; align-items: start; }
+  .zona-drop             { border: 2px dashed #ddd; border-radius: 10px; padding: 2.5rem 1.5rem; text-align: center; cursor: pointer; transition: border-color .2s, background .2s; }
+  .zona-drop:hover,
+  .zona-drop.drag-sobre  { border-color: var(--raspberry); background: #fff5f7; }
+  .zona-drop p           { margin: .35rem 0; font-size: .88rem; color: #555; }
+  .link-label            { color: var(--raspberry); cursor: pointer; text-decoration: underline; }
+  .archivo-info          { display: flex; align-items: center; gap: .5rem; background: #f5f5f5; border-radius: 8px; padding: .6rem .9rem; margin-top: .75rem; }
+  .resultado-resumen     { display: flex; gap: 1.5rem; }
+  .resultado-stat        { flex: 1; text-align: center; padding: 1.25rem; border-radius: 10px; }
+  .resultado-stat span   { display: block; font-size: 2rem; font-weight: 700; }
+  .resultado-stat label  { font-size: .8rem; color: #666; }
+  .stat-ok               { background: #e6f9e6; color: #2d7a2d; }
+  .stat-info             { background: #e8f0fe; color: #1a56b0; }
+  .stat-err              { background: #ffeaea; color: #c0392b; }
+  @media (max-width: 700px) {
+    .importar-layout    { grid-template-columns: 1fr; }
+    .resultado-resumen  { flex-direction: column; }
+  }
+</style>
+
+<script>
+(function () {
+  const zona       = document.getElementById('zonaDrop');
+  const input      = document.getElementById('archivoInput');
+  const info       = document.getElementById('archivoInfo');
+  const nombre     = document.getElementById('nombreArchivo');
+  const btnQuitar  = document.getElementById('btnQuitar');
+  const btnSubmit  = document.getElementById('btnImportar');
+  const form       = document.getElementById('formImportar');
+
+  // Drag & drop
+  zona.addEventListener('dragover',  e => { e.preventDefault(); zona.classList.add('drag-sobre'); });
+  zona.addEventListener('dragleave', ()  => zona.classList.remove('drag-sobre'));
+  zona.addEventListener('drop', e => {
+    e.preventDefault();
+    zona.classList.remove('drag-sobre');
+    aplicarArchivo(e.dataTransfer.files[0]);
+  });
+
+ zona.addEventListener('click', (e) => {
+    // Evitar doble apertura cuando se hace clic sobre el <label>
+    if (e.target.tagName === 'LABEL' || e.target.closest('label')) return;
+    input.click();
+    });
+  input.addEventListener('change', () => aplicarArchivo(input.files[0]));
+  btnQuitar.addEventListener('click', e => { e.stopPropagation(); limpiar(); });
+
+  function aplicarArchivo(file) {
+    if (!file) return;
+    if (file.size > 5 * 1024 * 1024) {
+      showToast('El archivo supera los 5 MB', 'error');
+      return;
+    }
+    nombre.textContent     = file.name;
+    info.style.display     = 'flex';
+    zona.style.display     = 'none';
+    btnSubmit.disabled     = false;
+  }
+
+  function limpiar() {
+    input.value            = '';
+    info.style.display     = 'none';
+    zona.style.display     = 'block';
+    btnSubmit.disabled     = true;
+  }
+
+  // Feedback visual al enviar
+  form.addEventListener('submit', () => {
+    btnSubmit.disabled     = true;
+    btnSubmit.textContent  = 'Importando...';
+  });
+
+  // Toast si hay resultado
+  <% if (typeof resultado !== 'undefined' && resultado) { %>
+    const total = <%= resultado.insertados %> + <%= resultado.actualizados %>;
+    const errs  = <%= resultado.errores.length %>;
+    if (total > 0 && errs === 0) showToast(`${total} productos importados correctamente`, 'success');
+    else if (total > 0)          showToast(`${total} importados, ${errs} con error`, 'info');
+    else                         showToast('No se importó ningún producto', 'error');
+  <% } %>
+})();
+</script>
+
+<%- include('../partials/footer') %>

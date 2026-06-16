@@ -76,6 +76,11 @@ app.use('/inventario', inventario);
 const clientes = require('./routes/clientes');
 app.use('/clientes', clientes);
 
+const server = app.listen(PORT, () => {
+  console.log(`Servidor corriendo en http://localhost:${PORT}`);
+});
+server.timeout = 5 * 60 * 1000; // 5 minutos
+
 app.listen(PORT, () => {
   console.log(`Servidor corriendo en http://localhost:${PORT}`);
 });

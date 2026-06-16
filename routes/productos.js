@@ -436,5 +436,108 @@ router.post('/promociones/eliminar/:id', async (req, res) => {
     res.redirect('/productos/promociones');
   }
 });
+// ─── MULTER PARA EXCEL/CSV ────────────────────────────────────────────────────
+const storageExcel = multer.memoryStorage(); // buffer en memoria, no disco
+const uploadExcel  = multer({
+  storage: storageExcel,
+  limits: { fileSize: 20 * 1024 * 1024 }, // 5 MB
+  fileFilter: (req, file, cb) => {
+    const permitidos = [
+      'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', // .xlsx
+      'text/csv',
+      'application/csv',
+      'application/vnd.ms-excel', // .xls / .csv en algunos SO
+    ];
+    const extPermitida = /\.(xlsx|csv)$/i.test(file.originalname);
+    permitidos.includes(file.mimetype) || extPermitida
+      ? cb(null, true)
+      : cb(new Error('Solo se permiten archivos .xlsx o .csv'));
+  },
+});
 
+// ─── EXPORTAR EXCEL ───────────────────────────────────────────────────────────
+router.get('/exportar', async (req, res) => {
+  try {
+    const soloPlantilla = req.query.plantilla === '1';
+    const url = `/productos/exportar/excel${soloPlantilla ? '?solo_plantilla=true' : ''}`;
+
+    // api() devuelve JSON normalmente; aquí necesitamos el binario directo
+    const respuesta = await fetch(
+      `${API_URL}${url}`,
+      { headers: { Authorization: `Bearer ${req.session.token}` } }
+    );
+
+    if (!respuesta.ok) {
+      const err = await respuesta.json().catch(() => ({}));
+      throw new Error(err.detail || 'Error al exportar');
+    }
+
+    const buffer   = await respuesta.arrayBuffer();
+    const nombre   = soloPlantilla ? 'plantilla_productos.xlsx' : 'productos.xlsx';
+
+    res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+    res.setHeader('Content-Disposition', `attachment; filename="${nombre}"`);
+    res.send(Buffer.from(buffer));
+
+  } catch (err) {
+    if (err.status === 401) return res.redirect('/auth/login?error=sesion');
+    res.redirect('/productos?toast=error');
+  }
+});
+
+// ─── PANTALLA IMPORTAR ────────────────────────────────────────────────────────
+router.get('/importar', (req, res) => {
+  const resultado = req.session.importResult || null;
+  req.session.importResult = null; // limpiar después de mostrar
+  res.render('productos/importar', { error: null, resultado });
+});
+
+// ─── PROCESAR IMPORTACIÓN ─────────────────────────────────────────────────────
+router.post('/importar', uploadExcel.single('archivo'), async (req, res) => {
+  console.log('=== POST /importar ===');
+  console.log('req.file:', req.file);
+  console.log('req.body:', req.body);
+  console.log('Content-Type:', req.headers['content-type']);
+  
+  if (!req.file) {
+    return res.render('productos/importar', {
+      error: 'Debes seleccionar un archivo .xlsx o .csv',
+      resultado: null,
+    });
+  }
+
+  try {
+    // En Node 18+, FormData y Blob son globales — no se importan
+    const form = new FormData();
+    const blob = new Blob([req.file.buffer], { type: req.file.mimetype });
+    form.append('archivo', blob, req.file.originalname);
+
+    const respuesta = await fetch(`${API_URL}/productos/importar/excel`, {
+      method:  'POST',
+      headers: { Authorization: `Bearer ${req.session.token}` },
+      body:    form,
+    });
+
+    const data = await respuesta.json().catch(() => ({}));
+
+    if (!respuesta.ok) {
+      console.log('[IMPORTAR] Error de FastAPI:', respuesta.status, data);
+      return res.render('productos/importar', {
+        error: data.detail || `Error al importar (status ${respuesta.status})`,
+        resultado: null,
+      });
+    }
+
+    req.session.importResult = data;
+    res.redirect('/productos/importar');
+
+  } catch (err) {
+    console.log('[IMPORTAR] Error inesperado:', err);
+    if (err.status === 401) return res.redirect('/auth/login?error=sesion');
+    res.render('productos/importar', {
+      error: 'Error de conexión con el servidor: ' + err.message,
+      resultado: null,
+    });
+  }
+});
 module.exports = router;
