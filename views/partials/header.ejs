@@ -122,8 +122,8 @@
       <span><%= typeof caja !== 'undefined' ? caja : 'Caja 1' %></span>
     </div>
 
-    <div class="header-avatar" title="<%= typeof usuario !== 'undefined' ? usuario : 'Usuario' %>">
-      <%= typeof usuario !== 'undefined' ? usuario.charAt(0).toUpperCase() : 'U' %>
+    <div class="header-avatar" title="<%= typeof usuario !== 'undefined' && typeof usuario === 'string' ? usuario : 'Usuario' %>">
+     <%= typeof usuario !== 'undefined' && usuario ? (typeof usuario === 'string' ? usuario.charAt(0).toUpperCase() : 'U') : 'U' %>
     </div>
 
   </div>

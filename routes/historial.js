@@ -22,16 +22,16 @@ router.get('/', async (req, res) => {
     const pagina      = parseInt(req.query.pagina) || 1;
     const desde       = (pagina - 1) * POR_PAGINA;
 
-    let query = supabase
-      .from('ventas')
-      .select(`
-        id, folio, total, metodo_pago_principal,
-        estado, creado_en, aplico_mayoreo,
-        usuarios(nombre_completo),
-        clientes(nombre),
-        cajas(nombre)
-      `, { count: 'exact' })
-      .eq('sucursal_id', SUCURSAL_ID);
+   let query = supabase
+  .from('ventas')
+  .select(`
+    id, folio, total, metodo_pago_principal,
+    estado, creado_en, aplico_mayoreo,
+    usuarios!ventas_usuario_id_fkey(nombre_completo),
+    clientes(nombre),
+    cajas(nombre)
+  `, { count: 'exact' })
+  .eq('sucursal_id', SUCURSAL_ID);
 
     if (fechaInicio) query = query.gte('creado_en', fechaInicio);
     if (fechaFin)    query = query.lte('creado_en', fechaFin + 'T23:59:59');

@@ -16,16 +16,14 @@ router.get('/', async (req, res) => {
   try {
     const busqueda   = req.query.q          || '';
     const categoria  = req.query.categoria  || '';
-    const tipoBusq   = req.query.tipo_busq  || 'nombre'; // 'nombre' | 'codigo'
+    const tipoBusq   = req.query.tipo_busq  || 'nombre';
 
-    // Categorías para el filtro
     const { data: categorias } = await supabase
       .from('categorias')
       .select('id, nombre')
       .eq('activo', true)
       .order('nombre');
 
-    // Productos con stock
     let query = supabase
       .from('productos')
       .select(`
@@ -46,33 +44,37 @@ router.get('/', async (req, res) => {
       if (tipoBusq === 'codigo') {
         query = query.ilike('codigo_barras', `%${busqueda}%`);
       } else {
-       query = query.ilike('descripcion', `%${busqueda}%`);
+        query = query.ilike('descripcion', `%${busqueda}%`);
       }
     }
 
-    if (categoria) {
-      query = query.eq('categoria_id', categoria);
-    }
+    if (categoria) query = query.eq('categoria_id', categoria);
 
     query = query.order('descripcion');
 
     const { data: productos, error } = await query;
-if (error) throw error;
+    if (error) throw error;
 
-const productosNorm = (productos || []).map(p => ({ ...p, nombre: p.descripcion }));
+    const productosNorm = (productos || []).map(p => ({ ...p, nombre: p.descripcion }));
 
-res.render('venta/catalogo', {
-  title:      'Punto de Venta',
-  productos:  productosNorm,
+    // Clientes para el select
+    const { data: clientes } = await supabase
+      .from('clientes')
+      .select('id, nombre, es_mayorista')
+      .order('nombre');
 
+    res.render('venta/index', {
+      title:      'Punto de Venta',
+      productos:  productosNorm,
       categorias: categorias || [],
+      clientes:   clientes   || [],
       busqueda,
       categoria,
       tipoBusq,
     });
   } catch (err) {
     console.error('Error en GET /venta:', err.message);
-    res.status(500).render('error', { mensaje: 'No se pudo cargar el catálogo.' });
+    res.status(500).send('Error al cargar el catálogo: ' + err.message);
   }
 });
 

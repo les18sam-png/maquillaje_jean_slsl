@@ -1,0 +1,123 @@
+<%- include('../partials/header', { title }) %>
+
+<div class="page-wrapper page-wrapper--narrow">
+
+  <!-- Breadcrumb -->
+  <nav class="breadcrumb">
+    <a href="/admin" class="breadcrumb__link">Administración</a>
+    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg>
+    <span class="breadcrumb__current">Configuración</span>
+  </nav>
+
+  <!-- Encabezado -->
+  <div class="page-header">
+    <div class="page-header__left">
+      <h1 class="page-title">Configuración</h1>
+      <span class="page-subtitle">Datos de la sucursal y cajas</span>
+    </div>
+  </div>
+
+  <!-- Sucursal -->
+  <div class="form-card" style="margin-bottom: 20px;">
+    <div class="form-section">
+      <h2 class="form-section__title">Datos de la sucursal</h2>
+
+      <div class="form-group form-group--full">
+        <label class="form-label">Nombre</label>
+        <input type="text" class="form-control" value="<%= sucursal.nombre || '' %>" disabled>
+      </div>
+
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">Teléfono</label>
+          <input type="text" class="form-control" value="<%= sucursal.telefono || '' %>" disabled>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Estado</label>
+          <input type="text" class="form-control" value="<%= sucursal.activa ? 'Activa' : 'Inactiva' %>" disabled>
+        </div>
+      </div>
+
+      <div class="form-group form-group--full">
+        <label class="form-label">Dirección</label>
+        <textarea class="form-control" rows="2" disabled><%= sucursal.direccion || '' %></textarea>
+      </div>
+
+      <div class="form-group form-group--full">
+        <label class="form-label">ID de sucursal</label>
+        <input type="text" class="form-control form-control--mono" value="<%= sucursal.id || '' %>" disabled>
+        <span class="form-hint">Este ID está configurado en el archivo .env</span>
+      </div>
+    </div>
+
+    <div class="form-footer">
+      <span class="form-hint">La configuración de sucursal se gestiona desde el backend.</span>
+    </div>
+  </div>
+
+  <!-- Cajas -->
+  <div class="card">
+    <div class="card__header">
+      <h3 class="card__title">Cajas registradas</h3>
+      <span class="page-subtitle"><%= cajas.length %> caja<%= cajas.length !== 1 ? 's' : '' %></span>
+    </div>
+
+    <% if (cajas.length === 0) { %>
+      <div class="empty-state empty-state--sm">
+        <p>No hay cajas configuradas.</p>
+      </div>
+    <% } else { %>
+      <div class="table-wrapper">
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>Nombre</th>
+              <th>Tipo</th>
+              <th>Estado</th>
+            </tr>
+          </thead>
+          <tbody>
+            <% cajas.forEach(c => { %>
+            <tr>
+              <td class="fw-medium"><%= c.nombre %></td>
+              <td>
+                <% if (c.es_verificador) { %>
+                  <span class="badge badge--warning">Verificador</span>
+                <% } else { %>
+                  <span class="badge badge--info">Caja PDV</span>
+                <% } %>
+              </td>
+              <td>
+                <% if (c.activa) { %>
+                  <span class="badge badge--success">Activa</span>
+                <% } else { %>
+                  <span class="badge badge--danger">Inactiva</span>
+                <% } %>
+              </td>
+            </tr>
+            <% }) %>
+          </tbody>
+        </table>
+      </div>
+    <% } %>
+  </div>
+
+  <div class="alert alert--warning" style="margin-top: 16px;">
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+    Las cajas se gestionan desde el backend. Contacta al administrador para agregar o modificar cajas.
+  </div>
+
+</div>
+
+<style>
+.form-control--mono {
+  font-family: 'Courier New', monospace;
+  font-size: .82rem;
+  letter-spacing: .04em;
+  color: #6C0820;
+}
+.badge--info    { background: #dbeafe; color: #1e40af; }
+.badge--warning { background: #fef3c7; color: #92400e; }
+</style>
+
+<%- include('../partials/footer') %>

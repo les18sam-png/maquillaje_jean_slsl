@@ -72,3 +72,6 @@ app.use('/clientes', clientes);
 app.listen(PORT, () => {
   console.log(`Servidor corriendo en http://localhost:${PORT}`);
 });
+
+const admin = require('./routes/admin');
+app.use('/admin', admin);

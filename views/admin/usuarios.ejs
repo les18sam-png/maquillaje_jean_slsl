@@ -1,0 +1,137 @@
+<%- include('../partials/header', { title }) %>
+
+<div class="page-wrapper">
+
+  <!-- Breadcrumb -->
+  <nav class="breadcrumb">
+    <a href="/admin" class="breadcrumb__link">Administración</a>
+    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg>
+    <span class="breadcrumb__current">Usuarios</span>
+  </nav>
+
+  <!-- Encabezado -->
+  <div class="page-header">
+    <div class="page-header__left">
+      <h1 class="page-title">Usuarios</h1>
+      <span class="page-subtitle"><%= usuarios.length %> usuario<%= usuarios.length !== 1 ? 's' : '' %> registrado<%= usuarios.length !== 1 ? 's' : '' %></span>
+    </div>
+    <div class="page-header__right">
+      <a href="/admin/usuarios/nuevo" class="btn btn-primary">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+        Nuevo usuario
+      </a>
+    </div>
+  </div>
+
+  <!-- Toast -->
+  <% const toast = (typeof query !== 'undefined' ? query?.toast : null) || ''; %>
+  <% if (toast === 'creado') { %>
+    <div class="alert alert--success" id="toast">Usuario creado correctamente.</div>
+  <% } else if (toast === 'actualizado') { %>
+    <div class="alert alert--success" id="toast">Usuario actualizado.</div>
+  <% } %>
+
+  <!-- Tabla -->
+  <% if (usuarios.length === 0) { %>
+    <div class="empty-state">
+      <div class="empty-state__icon">
+        <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg>
+      </div>
+      <p class="empty-state__title">No hay usuarios registrados</p>
+      <a href="/admin/usuarios/nuevo" class="btn btn-primary">Crear primer usuario</a>
+    </div>
+  <% } else { %>
+    <div class="table-wrapper">
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th>Usuario</th>
+            <th>Nombre de usuario</th>
+            <th>Rol</th>
+            <th>Último login</th>
+            <th>Estado</th>
+            <th class="th-actions">Acciones</th>
+          </tr>
+        </thead>
+        <tbody>
+          <% usuarios.forEach(u => { %>
+          <tr class="data-table__row">
+            <td>
+              <div class="usuario-cell">
+                <div class="avatar avatar--<%= u.activo ? 'normal' : 'inactivo' %>">
+                  <%= u.nombre_completo.charAt(0).toUpperCase() %>
+                </div>
+                <span class="fw-medium"><%= u.nombre_completo %></span>
+              </div>
+            </td>
+            <td>
+              <code class="rfc-badge"><%= u.nombre_usuario %></code>
+            </td>
+            <td>
+              <span class="badge badge--rol"><%= u.roles?.nombre || '—' %></span>
+            </td>
+            <td class="text-sm text-muted">
+              <% if (u.ultimo_login) { %>
+                <%= new Date(u.ultimo_login).toLocaleString('es-MX', { day:'2-digit', month:'short', year:'numeric', hour:'2-digit', minute:'2-digit' }) %>
+              <% } else { %>
+                Nunca
+              <% } %>
+            </td>
+            <td>
+              <% if (u.activo) { %>
+                <span class="badge badge--success">Activo</span>
+              <% } else { %>
+                <span class="badge badge--danger">Inactivo</span>
+              <% } %>
+            </td>
+            <td class="td-actions">
+              <a href="/admin/usuarios/<%= u.id %>/editar" class="icon-btn" title="Editar">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+              </a>
+              <form method="POST" action="/admin/usuarios/<%= u.id %>/toggle" class="form-inline">
+                <input type="hidden" name="activo_actual" value="<%= u.activo %>">
+                <button type="submit" class="icon-btn <%= u.activo ? 'icon-btn--danger' : 'icon-btn--success' %>"
+                  title="<%= u.activo ? 'Desactivar' : 'Activar' %>"
+                  onclick="return confirm('<%= u.activo ? '¿Desactivar' : '¿Activar' %> a <%= u.nombre_completo %>?')">
+                  <% if (u.activo) { %>
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="8" y1="12" x2="16" y2="12"/></svg>
+                  <% } else { %>
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/></svg>
+                  <% } %>
+                </button>
+              </form>
+            </td>
+          </tr>
+          <% }) %>
+        </tbody>
+      </table>
+    </div>
+  <% } %>
+
+</div>
+
+<style>
+.usuario-cell {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.avatar--inactivo { background: #f3f4f6; color: #9ca3af; }
+.badge--rol {
+  background: #ede9fe;
+  color: #5b21b6;
+  font-size: .75rem;
+  padding: 3px 8px;
+  border-radius: 12px;
+  font-weight: 600;
+}
+.icon-btn--success { background: #d1fae5; color: #065f46; }
+.icon-btn--success:hover { background: #6ee7b7; }
+</style>
+
+<script>
+  const toastEl = document.getElementById('toast');
+  if (toastEl) setTimeout(() => toastEl.style.display = 'none', 3500);
+</script>
+
+<%- include('../partials/footer') %>

@@ -1,0 +1,257 @@
+<%- include('../partials/header', { title }) %>
+
+<div class="page-wrapper page-wrapper--narrow">
+
+  <!-- Breadcrumb -->
+  <nav class="breadcrumb">
+    <a href="/admin" class="breadcrumb__link">Administración</a>
+    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg>
+    <a href="/admin/usuarios" class="breadcrumb__link">Usuarios</a>
+    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg>
+    <span class="breadcrumb__current"><%= modoEdicion ? 'Editar' : 'Nuevo' %></span>
+  </nav>
+
+  <!-- Encabezado -->
+  <div class="page-header">
+    <div class="page-header__left">
+      <h1 class="page-title"><%= modoEdicion ? 'Editar usuario' : 'Nuevo usuario' %></h1>
+    </div>
+    <div class="page-header__right">
+      <a href="/admin/usuarios" class="btn btn-ghost">Cancelar</a>
+    </div>
+  </div>
+
+  <!-- Error -->
+  <% const errorParam = (typeof query !== 'undefined' ? query?.error : null) || ''; %>
+  <% if (errorParam === 'fallo') { %>
+    <div class="alert alert--error">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+      No se pudo guardar el usuario. Verifica los datos.
+    </div>
+  <% } %>
+
+  <!-- Formulario -->
+  <form
+    method="POST"
+    action="<%= modoEdicion ? `/admin/usuarios/${usuario.id}/editar` : '/admin/usuarios/nuevo' %>"
+    class="form-card"
+    id="form-usuario"
+    novalidate
+  >
+
+    <div class="form-section">
+      <h2 class="form-section__title">Datos del usuario</h2>
+
+      <!-- Nombre completo -->
+      <div class="form-group form-group--full">
+        <label class="form-label" for="nombre_completo">
+          Nombre completo <span class="required">*</span>
+        </label>
+        <input
+          type="text"
+          id="nombre_completo"
+          name="nombre_completo"
+          class="form-control"
+          value="<%= usuario?.nombre_completo || '' %>"
+          placeholder="Ej. María García López"
+          required
+          maxlength="150"
+          autofocus
+        >
+        <span class="form-error" id="err-nombre"></span>
+      </div>
+
+      <!-- Nombre de usuario + Rol -->
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label" for="nombre_usuario">
+            Nombre de usuario <span class="required">*</span>
+          </label>
+          <input
+            type="text"
+            id="nombre_usuario"
+            name="nombre_usuario"
+            class="form-control"
+            value="<%= usuario?.nombre_usuario || '' %>"
+            placeholder="cajero01"
+            required
+            maxlength="60"
+            autocomplete="off"
+          >
+          <span class="form-hint">Sin espacios ni caracteres especiales</span>
+          <span class="form-error" id="err-usuario"></span>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label" for="rol_id">
+            Rol <span class="required">*</span>
+          </label>
+          <% if (roles.length === 0) { %>
+            <div class="alert alert--warning" style="margin:0;font-size:.8rem;">
+              No hay roles configurados. <a href="/admin/roles" class="link">Crear rol</a>
+            </div>
+          <% } else { %>
+            <select name="rol_id" id="rol_id" class="form-control" required>
+              <option value="">Selecciona un rol…</option>
+              <% roles.forEach(r => { %>
+                <option value="<%= r.id %>" <%= usuario?.rol_id === r.id ? 'selected' : '' %>>
+                  <%= r.nombre %>
+                </option>
+              <% }) %>
+            </select>
+          <% } %>
+          <span class="form-error" id="err-rol"></span>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- Contraseña — solo en nuevo usuario -->
+    <% if (!modoEdicion) { %>
+    <div class="form-section">
+      <h2 class="form-section__title">Contraseña</h2>
+
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label" for="contrasena">
+            Contraseña <span class="required">*</span>
+          </label>
+          <div class="input-password-wrap">
+            <input
+              type="password"
+              id="contrasena"
+              name="contrasena"
+              class="form-control"
+              placeholder="Mínimo 6 caracteres"
+              required
+              minlength="6"
+              autocomplete="new-password"
+            >
+            <button type="button" class="input-password-toggle" onclick="togglePass('contrasena', 'eye1')" tabindex="-1">
+              <svg id="eye1" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+            </button>
+          </div>
+          <span class="form-error" id="err-contrasena"></span>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label" for="contrasena2">
+            Confirmar contraseña <span class="required">*</span>
+          </label>
+          <div class="input-password-wrap">
+            <input
+              type="password"
+              id="contrasena2"
+              name="contrasena2"
+              class="form-control"
+              placeholder="Repite la contraseña"
+              required
+              autocomplete="new-password"
+            >
+            <button type="button" class="input-password-toggle" onclick="togglePass('contrasena2', 'eye2')" tabindex="-1">
+              <svg id="eye2" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+            </button>
+          </div>
+          <span class="form-error" id="err-contrasena2"></span>
+        </div>
+      </div>
+
+    </div>
+    <% } %>
+
+    <!-- Botones -->
+    <div class="form-footer">
+      <button type="submit" class="btn btn-primary btn-lg">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
+        <%= modoEdicion ? 'Guardar cambios' : 'Crear usuario' %>
+      </button>
+    </div>
+
+  </form>
+</div>
+
+<style>
+.input-password-wrap {
+  position: relative;
+}
+.input-password-wrap .form-control { padding-right: 40px; }
+.input-password-toggle {
+  position: absolute;
+  right: 10px;
+  top: 50%;
+  transform: translateY(-50%);
+  background: none;
+  border: none;
+  color: #aaa;
+  cursor: pointer;
+  padding: 4px;
+  display: flex;
+}
+.input-password-toggle:hover { color: #6C0820; }
+</style>
+
+<script>
+  function togglePass(inputId, iconId) {
+    const input = document.getElementById(inputId);
+    input.type  = input.type === 'password' ? 'text' : 'password';
+  }
+
+  document.getElementById('form-usuario').addEventListener('submit', e => {
+    let valid = true;
+
+    const nombre    = document.getElementById('nombre_completo');
+    const errNombre = document.getElementById('err-nombre');
+    if (!nombre.value.trim()) {
+      errNombre.textContent = 'El nombre es obligatorio';
+      nombre.classList.add('form-control--error');
+      valid = false;
+    } else {
+      errNombre.textContent = '';
+      nombre.classList.remove('form-control--error');
+    }
+
+    const usuario    = document.getElementById('nombre_usuario');
+    const errUsuario = document.getElementById('err-usuario');
+    if (!usuario.value.trim()) {
+      errUsuario.textContent = 'El nombre de usuario es obligatorio';
+      usuario.classList.add('form-control--error');
+      valid = false;
+    } else if (/\s/.test(usuario.value)) {
+      errUsuario.textContent = 'No puede contener espacios';
+      usuario.classList.add('form-control--error');
+      valid = false;
+    } else {
+      errUsuario.textContent = '';
+      usuario.classList.remove('form-control--error');
+    }
+
+    <% if (!modoEdicion) { %>
+    const pass     = document.getElementById('contrasena');
+    const pass2    = document.getElementById('contrasena2');
+    const errPass  = document.getElementById('err-contrasena');
+    const errPass2 = document.getElementById('err-contrasena2');
+
+    if (!pass.value || pass.value.length < 6) {
+      errPass.textContent = 'Mínimo 6 caracteres';
+      pass.classList.add('form-control--error');
+      valid = false;
+    } else {
+      errPass.textContent = '';
+      pass.classList.remove('form-control--error');
+    }
+
+    if (pass.value !== pass2.value) {
+      errPass2.textContent = 'Las contraseñas no coinciden';
+      pass2.classList.add('form-control--error');
+      valid = false;
+    } else {
+      errPass2.textContent = '';
+      pass2.classList.remove('form-control--error');
+    }
+    <% } %>
+
+    if (!valid) e.preventDefault();
+  });
+</script>
+
+<%- include('../partials/footer') %>

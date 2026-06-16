@@ -10,4 +10,10 @@ function requireAuth(req, res, next) {
   next();
 }
 
+
+function requireAuth(req, res, next) {
+  // TEMPORAL — sin auth hasta que esté lista la API
+  return next();
+}
+
 module.exports = { requireAuth };
