@@ -109,13 +109,13 @@
                 </td>
                 <td>
                   <div class="acciones">
-                    <button class="btn btn-primary btn-xs" onclick="abrirEntrada('<%= p.id %>', '<%= p.descripcion %>', <%= p.stock_actual %>)">
+                    <button class="btn btn-primary btn-xs" onclick="abrirEntrada('<%= p.producto_id %>', '<%= p.descripcion %>', <%= p.stock_actual %>)">
                       + Entrada
                     </button>
-                    <button class="btn btn-ghost btn-xs" onclick="abrirAjuste('<%= p.id %>', '<%= p.descripcion %>', <%= p.stock_actual %>)">
+                    <button class="btn btn-ghost btn-xs" onclick="abrirAjuste('<%= p.producto_id %>', '<%= p.descripcion %>', <%= p.stock_actual %>)">
                       Ajuste
                     </button>
-                    <a href="/inventario/kardex?producto_id=<%= p.id %>" class="btn btn-ghost btn-xs">
+                    <a href="/inventario/kardex?producto_id=<%= p.producto_id %>" class="btn btn-ghost btn-xs">
                       Kardex
                     </a>
                   </div>

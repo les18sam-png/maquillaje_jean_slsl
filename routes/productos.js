@@ -369,9 +369,9 @@ router.get('/promociones/editar/:id', async (req, res) => {
 });
 
 router.post('/promociones/nuevo', async (req, res) => {
-  const { nombre, producto_id, cantidad_minima, tipo_beneficio, valor_beneficio } = req.body;
+  const { nombre, producto_id, cantidad_minima, tipo_beneficio, valor_beneficio, fecha_inicio } = req.body;
 
-  if (!nombre || !producto_id || !cantidad_minima || !valor_beneficio || !tipo_beneficio) {
+  if (!nombre || !producto_id || !cantidad_minima || !valor_beneficio || !tipo_beneficio || !fecha_inicio) {
     const promociones = await obtenerPromociones(req.session.token);
     return res.render('productos/promociones', {
       promociones,
@@ -389,7 +389,7 @@ router.post('/promociones/nuevo', async (req, res) => {
         cantidad_minima:  parseInt(cantidad_minima),
         tipo_beneficio,
         valor_beneficio:  parseFloat(valor_beneficio),
-        fecha_inicio:     new Date().toISOString().split('T')[0],
+        fecha_inicio,
       },
     }, req.session.token);
     res.redirect('/productos/promociones?toast=creado');
@@ -405,8 +405,8 @@ router.post('/promociones/nuevo', async (req, res) => {
 });
 
 router.post('/promociones/editar/:id', async (req, res) => {
-  const { nombre, producto_id, cantidad_minima, tipo_beneficio, valor_beneficio } = req.body;
-  if (!nombre || !producto_id || !cantidad_minima || !valor_beneficio)
+  const { nombre, cantidad_minima, tipo_beneficio, valor_beneficio, fecha_inicio, activa } = req.body;
+  if (!nombre || !cantidad_minima || !valor_beneficio || !tipo_beneficio)
     return res.redirect('/productos/promociones/editar/' + req.params.id);
 
   try {
@@ -414,10 +414,11 @@ router.post('/promociones/editar/:id', async (req, res) => {
       method: 'PUT',
       body: {
         nombre:          nombre.trim(),
-        producto_id,
         cantidad_minima: parseInt(cantidad_minima),
         tipo_beneficio,
         valor_beneficio: parseFloat(valor_beneficio),
+        fecha_inicio,
+        activa:          activa === 'true',
       },
     }, req.session.token);
     res.redirect('/productos/promociones?toast=editado');

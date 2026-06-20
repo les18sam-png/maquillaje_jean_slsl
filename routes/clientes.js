@@ -9,6 +9,7 @@ const { supabase } = require('../db/database');
 /* ─────────────────────────────────────────
    CONSTANTES
 ───────────────────────────────────────── */
+/*
 const SUCURSAL_ID = process.env.SUCURSAL_ID;
 const POR_PAGINA  = 20;
 

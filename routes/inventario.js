@@ -1,125 +1,104 @@
 // routes/inventario.js
-const express  = require('express');
-const router   = express.Router();
-const { supabase } = require('../db/database');
+// MIGRADO — usa helper api.js en lugar de Supabase directo
+const express = require('express');
+const router  = express.Router();
+const { api } = require('../db/api');
 
-const SUCURSAL_ID = process.env.SUCURSAL_ID;
+// ─── HELPER: obtener categorías vía FastAPI ───────────────────────────────────
+async function obtenerCategorias(token) {
+  try {
+    const resultado = await api('/categorias/', {}, token);
+    return resultado?.items || [];
+  } catch {
+    return [];
+  }
+}
 
-// ─── EXISTENCIAS ──────────────────────────────────────────────────────────────
+// ─── LISTADO / PANTALLA PRINCIPAL ─────────────────────────────────────────────
 router.get('/', async (req, res) => {
   const { q = '', categoria_id = '', alerta = '' } = req.query;
 
-  let query = supabase
-    .from('productos')
-    .select('*, categorias(nombre), inventario(cantidad_actual)')
-    .eq('sucursal_id', SUCURSAL_ID)
-    .eq('activo', true)
-    .order('descripcion');
+  try {
+    const params = new URLSearchParams();
+    if (q)            params.append('termino', q);
+    if (categoria_id) params.append('categoria_id', categoria_id);
+    if (alerta === '1') params.append('solo_stock_bajo', 'true');
 
-  if (q) query = query.or(`codigo_barras.ilike.%${q}%,descripcion.ilike.%${q}%`);
-  if (categoria_id) query = query.eq('categoria_id', categoria_id);
+    const [respuesta, categorias] = await Promise.all([
+      api(`/inventario/?${params}`, {}, req.session.token),
+      obtenerCategorias(req.session.token),
+    ]);
 
-  const { data: productos } = await query;
-  const { data: categorias } = await supabase
-    .from('categorias').select('*').eq('activo', true).order('nombre');
-
-  let lista = (productos || []).map(p => ({
-    ...p,
-    categoria_nombre: p.categorias?.nombre || '—',
-    stock_actual:     p.inventario?.[0]?.cantidad_actual ?? 0
-  }));
-
-  if (alerta === '1') lista = lista.filter(p => p.stock_actual <= p.inventario_minimo);
-
-  const totalProductos  = lista.length;
-  const totalBajoStock  = lista.filter(p => p.stock_actual <= p.inventario_minimo).length;
-
-  res.render('inventario/index', {
-    productos: lista,
-    categorias: categorias || [],
-    q, categoria_id, alerta,
-    totalProductos, totalBajoStock
-  });
+    res.render('inventario/index', {
+      productos: respuesta?.items || [],
+      categorias,
+      q, categoria_id, alerta,
+      totalProductos: respuesta?.resumen?.productos_activos || 0,
+      totalBajoStock: respuesta?.resumen?.productos_stock_bajo || 0,
+    });
+  } catch (err) {
+    if (err.status === 401) return res.redirect('/auth/login?error=sesion');
+    res.render('inventario/index', {
+      productos: [], categorias: [], q, categoria_id, alerta,
+      totalProductos: 0, totalBajoStock: 0,
+    });
+  }
 });
 
 // ─── ENTRADA DE INVENTARIO ────────────────────────────────────────────────────
 router.post('/entrada', async (req, res) => {
   const { producto_id, cantidad, notas } = req.body;
+
+  console.log('BODY RECIBIDO:', req.body); // ← agregar
+
   if (!producto_id || !cantidad || parseInt(cantidad) <= 0) {
+    console.log('VALIDACIÓN FALLÓ'); // ← agregar
     return res.redirect('/inventario?toast=error_entrada');
   }
 
-  // Obtener stock actual
-  const { data: inv } = await supabase
-    .from('inventario')
-    .select('cantidad_actual')
-    .eq('producto_id', producto_id)
-    .eq('sucursal_id', SUCURSAL_ID)
-    .single();
+  try {
+    await api('/inventario/entradas', {
+      method: 'POST',
+      body: {
+        producto_id,
+        cantidad: parseInt(cantidad),
+        notas: notas || null,
+      },
+    }, req.session.token);
 
-  const stockAntes   = inv?.cantidad_actual ?? 0;
-  const stockDespues = stockAntes + parseInt(cantidad);
-
-  // Actualizar inventario
-  await supabase.from('inventario')
-    .update({ cantidad_actual: stockDespues, ultima_actualizacion: new Date().toISOString() })
-    .eq('producto_id', producto_id)
-    .eq('sucursal_id', SUCURSAL_ID);
-
-  // Registrar en kardex
-  await supabase.from('kardex').insert({
-    producto_id,
-    sucursal_id:          SUCURSAL_ID,
-    usuario_id:           '00000000-0000-0000-0000-000000000000', // temporal hasta tener auth
-    tipo_movimiento:      'entrada_mercancia',
-    tipo_referencia:      'entrada',
-    cantidad_entrada:     parseInt(cantidad),
-    cantidad_salida:      0,
-    existencia_resultante: stockDespues,
-    costo_unitario:       0,
-    notas:                notas || null
-  });
-
-  res.redirect('/inventario?toast=entrada_ok');
+    res.redirect('/inventario?toast=entrada_ok');
+  } catch (err) {
+    console.log('ERROR AL LLAMAR API:', err.message, err.status); // ← agregar
+    if (err.status === 401) return res.redirect('/auth/login?error=sesion');
+    if (err.status === 403) return res.redirect('/inventario?toast=sin_permiso');
+    res.redirect('/inventario?toast=error_entrada');
+  }
 });
 
 // ─── AJUSTE DE INVENTARIO ─────────────────────────────────────────────────────
 router.post('/ajuste', async (req, res) => {
-  const { producto_id, nueva_cantidad, notas } = req.body;
-  if (!producto_id || nueva_cantidad === undefined || nueva_cantidad === '') {
+  const { producto_id, nueva_cantidad, motivo } = req.body;
+
+  if (!producto_id || nueva_cantidad === undefined || nueva_cantidad === '' || !motivo) {
     return res.redirect('/inventario?toast=error_ajuste');
   }
 
-  const { data: inv } = await supabase
-    .from('inventario')
-    .select('cantidad_actual')
-    .eq('producto_id', producto_id)
-    .eq('sucursal_id', SUCURSAL_ID)
-    .single();
+  try {
+    await api('/inventario/ajustes', {
+      method: 'POST',
+      body: {
+        producto_id,
+        nueva_cantidad: parseInt(nueva_cantidad),
+        motivo,
+      },
+    }, req.session.token);
 
-  const stockAntes   = inv?.cantidad_actual ?? 0;
-  const stockDespues = parseInt(nueva_cantidad);
-  const diff         = stockDespues - stockAntes;
-
-  await supabase.from('inventario')
-    .update({ cantidad_actual: stockDespues, ultima_actualizacion: new Date().toISOString() })
-    .eq('producto_id', producto_id)
-    .eq('sucursal_id', SUCURSAL_ID);
-
-  await supabase.from('kardex').insert({
-    producto_id,
-    sucursal_id:           SUCURSAL_ID,
-    usuario_id:            '00000000-0000-0000-0000-000000000000',
-    tipo_movimiento:       'ajuste_inventario',
-    tipo_referencia:       'ajuste',
-    cantidad_entrada:      diff > 0 ? diff : 0,
-    cantidad_salida:       diff < 0 ? Math.abs(diff) : 0,
-    existencia_resultante: stockDespues,
-    costo_unitario:        0,
-    notas:                 notas || null
-  });
-
-  res.redirect('/inventario?toast=ajuste_ok');
+    res.redirect('/inventario?toast=ajuste_ok');
+  } catch (err) {
+    if (err.status === 401) return res.redirect('/auth/login?error=sesion');
+    if (err.status === 403) return res.redirect('/inventario?toast=sin_permiso');
+    res.redirect('/inventario?toast=error_ajuste');
+  }
 });
 
 // ─── KARDEX ───────────────────────────────────────────────────────────────────
@@ -130,48 +109,49 @@ router.get('/kardex', async (req, res) => {
   let productoSel = null;
 
   if (producto_id) {
-    const { data: prod } = await supabase
-      .from('productos')
-      .select('*, categorias(nombre), inventario(cantidad_actual)')
-      .eq('id', producto_id)
-      .single();
+    try {
+      const resultado = await api(`/kardex/${producto_id}`, {}, req.session.token);
 
-    productoSel = prod ? {
-      ...prod,
-      categoria_nombre: prod.categorias?.nombre || '—',
-      stock_actual:     prod.inventario?.[0]?.cantidad_actual ?? 0
-    } : null;
+      productoSel = {
+        id: resultado.encabezado.producto_id,
+        descripcion: resultado.encabezado.descripcion,
+        codigo_barras: resultado.encabezado.codigo_barras,
+        categoria_nombre: resultado.encabezado.categoria_nombre,
+        stock_actual: resultado.encabezado.existencia_actual,
+        inventario_minimo: resultado.encabezado.inventario_minimo,
+        precio_venta: resultado.encabezado.costo_unitario, // ver nota abajo
+        ruta_imagen: null, // el kardex no devuelve imagen — ver nota abajo
+      };
 
-    const { data: kardex } = await supabase
-      .from('kardex')
-      .select('*')
-      .eq('producto_id', producto_id)
-      .eq('sucursal_id', SUCURSAL_ID)
-      .order('fecha_hora', { ascending: false });
-
-    movimientos = kardex || [];
+      movimientos = resultado.movimientos || [];
+    } catch (err) {
+      if (err.status === 401) return res.redirect('/auth/login?error=sesion');
+      productoSel = null;
+      movimientos = [];
+    }
   }
 
   res.render('inventario/kardex', { productoSel, movimientos, producto_id, q });
 });
 
-// ─── API BUSCAR PRODUCTO (para modales) ───────────────────────────────────────
+// ─── API BUSCAR PRODUCTO (para el buscador de kardex) ─────────────────────────
 router.get('/api/buscar', async (req, res) => {
   const { q = '' } = req.query;
   if (!q) return res.json([]);
 
-  const { data } = await supabase
-    .from('productos')
-    .select('id, codigo_barras, descripcion, precio_venta, inventario(cantidad_actual)')
-    .eq('sucursal_id', SUCURSAL_ID)
-    .eq('activo', true)
-    .or(`codigo_barras.ilike.%${q}%,descripcion.ilike.%${q}%`)
-    .limit(15);
-
-  res.json((data || []).map(p => ({
-    ...p,
-    stock_actual: p.inventario?.[0]?.cantidad_actual ?? 0
-  })));
+  try {
+    const resultados = await api(
+      `/kardex/productos/buscar?termino=${encodeURIComponent(q)}`,
+      {},
+      req.session.token,
+    );
+    res.json((resultados || []).map(p => ({
+      ...p,
+      stock_actual: p.cantidad_actual,
+    })));
+  } catch {
+    res.json([]);
+  }
 });
 
 module.exports = router;
