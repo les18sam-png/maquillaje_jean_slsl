@@ -1,9 +1,10 @@
 // routes/inventario.js
+// MIGRADO — usa helper api.js en lugar de Supabase directo
 const express = require('express');
 const router  = express.Router();
 const { api } = require('../db/api');
 
-// ─── EXISTENCIAS ──────────────────────────────────────────────────────────────
+// ─── LISTADO / PANTALLA PRINCIPAL ─────────────────────────────────────────────
 router.get('/', async (req, res) => {
   try {
     const { q = '', categoria_id = '', alerta = '', pagina = '1' } = req.query;
@@ -64,6 +65,8 @@ router.post('/entrada', async (req, res) => {
     res.redirect(`/inventario?toast=entrada_ok${volver}`);
   } catch (err) {
     console.error('Error en POST /inventario/entrada:', err.message);
+    if (err.status === 401) return res.redirect('/auth/login?error=sesion');
+    if (err.status === 403) return res.redirect(`/inventario?toast=sin_permiso${volver}`);
     res.redirect(`/inventario?toast=error_entrada${volver}`);
   }
 });
@@ -93,11 +96,12 @@ router.post('/ajuste', async (req, res) => {
     res.redirect(`/inventario?toast=ajuste_ok${volver}`);
   } catch (err) {
     console.error('Error en POST /inventario/ajuste:', err.message);
+    if (err.status === 401) return res.redirect('/auth/login?error=sesion');
+    if (err.status === 403) return res.redirect(`/inventario?toast=sin_permiso${volver}`);
     res.redirect(`/inventario?toast=error_ajuste${volver}`);
   }
 });
 
-// ─── KARDEX ───────────────────────────────────────────────────────────────────
 // ─── KARDEX ───────────────────────────────────────────────────────────────────
 router.get('/kardex', async (req, res) => {
   try {
@@ -131,13 +135,13 @@ router.get('/kardex', async (req, res) => {
   }
 });
 
-// ─── API BUSCAR PRODUCTO (para modales) ───────────────────────────────────────
+// ─── API BUSCAR PRODUCTO (para el buscador de kardex) ─────────────────────────
 router.get('/api/buscar', async (req, res) => {
   try {
     const { q = '' } = req.query;
     if (!q) return res.json([]);
 
-    const data = await api(`/productos/buscar?termino=${encodeURIComponent(q)}`, {}, req.session.token);
+    const data = await api(`/kardex/productos/buscar?termino=${encodeURIComponent(q)}`, {}, req.session.token);
 
     res.json((data || []).map(p => ({
       ...p,

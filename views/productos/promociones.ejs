@@ -48,39 +48,48 @@
           </div>
 
           <div class="form-group">
-            <label>Cuando la cantidad va de <span class="req">*</span></label>
-            <div class="rango-wrap">
-              <input type="number" name="cantidad_desde" id="cantidad_desde" min="1" step="1"
-                placeholder="Desde" value="<%= editando ? editando.cantidad_desde : 1 %>">
-              <span class="rango-sep">hasta</span>
-              <input type="number" name="cantidad_hasta" id="cantidad_hasta" min="1" step="1"
-                placeholder="Hasta" value="<%= editando ? editando.cantidad_hasta : '' %>">
-              <span class="rango-sep">piezas</span>
-            </div>
-            <span class="field-hint">Deja "hasta" vacío para que aplique sin límite</span>
-            <span class="field-error" id="err-rango"></span>
+            <label for="cantidad_minima">Cantidad mínima de compra <span class="req">*</span></label>
+            <input type="number" id="cantidad_minima" name="cantidad_minima"
+              min="1" step="1" placeholder="Ej. 12"
+              value="<%= editando ? editando.cantidad_minima : '' %>">
+            <span class="field-hint">A partir de cuántas piezas se activa la promoción</span>
+            <span class="field-error" id="err-cantidad"></span>
           </div>
 
           <div class="form-group">
-            <label for="precio_promo">Precio unitario promocional <span class="req">*</span></label>
+            <label for="tipo_beneficio">Tipo de beneficio <span class="req">*</span></label>
+            <select id="tipo_beneficio" name="tipo_beneficio">
+              <option value="precio_especial" <%= editando && editando.tipo_beneficio === 'precio_especial' ? 'selected' : '' %>>Precio especial fijo</option>
+              <option value="porcentaje_descuento" <%= editando && editando.tipo_beneficio === 'porcentaje_descuento' ? 'selected' : '' %>>Porcentaje de descuento</option>
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label for="valor_beneficio" id="labelValor">Precio unitario promocional <span class="req">*</span></label>
             <div class="input-prefix-wrap">
-              <span class="input-prefix">$</span>
-              <input type="number" id="precio_promo" name="precio_promo"
+              <span class="input-prefix" id="prefijoValor">$</span>
+              <input type="number" id="valor_beneficio" name="valor_beneficio"
                 placeholder="0.00" min="0.01" step="0.01" class="input-with-prefix"
-                value="<%= editando ? editando.precio_promo : '' %>">
+                value="<%= editando ? editando.valor_beneficio : '' %>">
             </div>
             <div class="precios-ref" id="preciosRef" style="display:none;">
               <span>Precio normal: <strong id="refNormal">—</strong></span>
-              <span>Precio costo: <strong id="refCosto">—</strong></span>
             </div>
-            <span class="field-error" id="err-precio_promo"></span>
+            <span class="field-error" id="err-valor"></span>
           </div>
 
           <div class="form-group">
-            <label for="activo">Estado</label>
-            <select name="activo" id="activo">
-              <option value="1" <%= !editando || editando.activo ? 'selected' : '' %>>Activa</option>
-              <option value="0" <%= editando && !editando.activo ? 'selected' : '' %>>Inactiva</option>
+            <label for="fecha_inicio">Fecha de inicio <span class="req">*</span></label>
+            <input type="date" id="fecha_inicio" name="fecha_inicio"
+              value="<%= editando ? editando.fecha_inicio : new Date().toISOString().split('T')[0] %>">
+            <span class="field-error" id="err-fecha"></span>
+          </div>
+
+          <div class="form-group">
+            <label for="activa">Estado</label>
+            <select name="activa" id="activa">
+              <option value="true" <%= !editando || editando.activa ? 'selected' : '' %>>Activa</option>
+              <option value="false" <%= editando && !editando.activa ? 'selected' : '' %>>Inactiva</option>
             </select>
           </div>
 
@@ -115,10 +124,10 @@
         <% } else { %>
           <div class="promos-lista">
             <% promociones.forEach(p => { %>
-              <div class="promo-item <%= !p.activo ? 'promo-inactiva' : '' %> <%= editando && editando.id === p.id ? 'editando' : '' %>">
+              <div class="promo-item <%= !p.activa ? 'promo-inactiva' : '' %> <%= editando && editando.id === p.id ? 'editando' : '' %>">
                 <div class="promo-header">
                   <span class="promo-nombre"><%= p.nombre %></span>
-                  <span class="badge badge-<%= p.activo ? 'activo' : 'inactivo' %>"><%= p.activo ? 'Activa' : 'Inactiva' %></span>
+                  <span class="badge badge-<%= p.activa ? 'activo' : 'inactivo' %>"><%= p.activa ? 'Activa' : 'Inactiva' %></span>
                 </div>
                 <div class="promo-detalle">
                   <span class="promo-producto">
@@ -128,8 +137,12 @@
                     <%= p.producto_descripcion %>
                   </span>
                   <span class="promo-rango">
-                    De <%= p.cantidad_desde %> a <%= p.cantidad_hasta >= 999 ? '∞' : p.cantidad_hasta %> pzas
-                    → <strong>$<%= parseFloat(p.precio_promo).toFixed(2) %></strong> c/u
+                    A partir de <%= p.cantidad_minima %> pzas →
+                    <% if (p.tipo_beneficio === 'porcentaje_descuento') { %>
+                      <strong><%= parseFloat(p.valor_beneficio).toFixed(0) %>% de descuento</strong>
+                    <% } else { %>
+                      <strong>$<%= parseFloat(p.valor_beneficio).toFixed(2) %></strong> c/u
+                    <% } %>
                   </span>
                 </div>
                 <div class="promo-acciones">
@@ -176,14 +189,9 @@
   .badge-activo { background: #e6f9e6; color: #2d7a2d; }
   .badge-inactivo { background: #f5f5f5; color: #999; }
 
-  /* Rango */
-  .rango-wrap { display: flex; align-items: center; gap: .5rem; }
-  .rango-wrap input { width: 90px; }
-  .rango-sep { font-size: .85rem; color: #888; white-space: nowrap; }
-
   /* Prefijo $ */
   .input-prefix-wrap { display: flex; align-items: stretch; }
-  .input-prefix { display: flex; align-items: center; padding: 0 .75rem; background: var(--champagne); border: 1px solid #ddd; border-right: none; border-radius: 8px 0 0 8px; color: var(--burgundy); font-weight: 600; font-size: .9rem; }
+  .input-prefix { display: flex; align-items: center; padding: 0 .75rem; background: var(--champagne); border: 1px solid #ddd; border-right: none; border-radius: 8px 0 0 8px; color: var(--burgundy); font-weight: 600; font-size: .9rem; min-width: 2.5rem; justify-content: center; }
   .input-with-prefix { border-radius: 0 8px 8px 0 !important; }
 
   /* Precios referencia */
@@ -228,7 +236,6 @@
   const contenedor   = document.getElementById('sugerencias');
   const preciosRef   = document.getElementById('preciosRef');
   const refNormal    = document.getElementById('refNormal');
-  const refCosto     = document.getElementById('refCosto');
   let timer;
 
   inputBuscar.addEventListener('input', function() {
@@ -250,7 +257,6 @@
           inputId.value      = p.id;
           contenedor.innerHTML = '';
           refNormal.textContent = '$' + parseFloat(p.precio_venta).toFixed(2);
-          refCosto.textContent  = '—';
           preciosRef.style.display = 'flex';
           document.getElementById('err-producto').textContent = '';
         });
@@ -274,13 +280,32 @@
     });
   });
 
+  // ── Cambiar UI según tipo de beneficio ──
+  const tipoSelect = document.getElementById('tipo_beneficio');
+  const labelValor = document.getElementById('labelValor');
+  const prefijo    = document.getElementById('prefijoValor');
+
+  function actualizarTipoBeneficio() {
+    if (tipoSelect.value === 'porcentaje_descuento') {
+      labelValor.innerHTML = 'Porcentaje de descuento <span class="req">*</span>';
+      prefijo.textContent = '%';
+    } else {
+      labelValor.innerHTML = 'Precio unitario promocional <span class="req">*</span>';
+      prefijo.textContent = '$';
+    }
+  }
+  tipoSelect.addEventListener('change', actualizarTipoBeneficio);
+  actualizarTipoBeneficio();
+
   // ── VALIDACIÓN ──
   document.querySelector('form').addEventListener('submit', function(e) {
     let ok = true;
-    const nombre = document.getElementById('nombre').value.trim();
-    const prodId = document.getElementById('producto_id').value;
-    const desde  = document.getElementById('cantidad_desde').value;
-    const precio = document.getElementById('precio_promo').value;
+    const nombre   = document.getElementById('nombre').value.trim();
+    const prodId   = document.getElementById('producto_id').value;
+    const cantidad = document.getElementById('cantidad_minima').value;
+    const valor    = document.getElementById('valor_beneficio').value;
+    const fecha    = document.getElementById('fecha_inicio').value;
+    const tipo     = document.getElementById('tipo_beneficio').value;
 
     if (!nombre) { document.getElementById('err-nombre').textContent = 'El nombre es obligatorio.'; ok = false; }
     else document.getElementById('err-nombre').textContent = '';
@@ -288,11 +313,17 @@
     if (!prodId) { document.getElementById('err-producto').textContent = 'Selecciona un producto de la lista.'; ok = false; }
     else document.getElementById('err-producto').textContent = '';
 
-    if (!desde || parseInt(desde) < 1) { document.getElementById('err-rango').textContent = 'La cantidad mínima debe ser al menos 1.'; ok = false; }
-    else document.getElementById('err-rango').textContent = '';
+    if (!cantidad || parseInt(cantidad) < 1) { document.getElementById('err-cantidad').textContent = 'La cantidad mínima debe ser al menos 1.'; ok = false; }
+    else document.getElementById('err-cantidad').textContent = '';
 
-    if (!precio || parseFloat(precio) <= 0) { document.getElementById('err-precio_promo').textContent = 'El precio debe ser mayor a $0.'; ok = false; }
-    else document.getElementById('err-precio_promo').textContent = '';
+    if (!valor || parseFloat(valor) <= 0) { document.getElementById('err-valor').textContent = 'El valor debe ser mayor a 0.'; ok = false; }
+    else if (tipo === 'porcentaje_descuento' && parseFloat(valor) >= 100) {
+      document.getElementById('err-valor').textContent = 'El porcentaje debe ser menor a 100.'; ok = false;
+    }
+    else document.getElementById('err-valor').textContent = '';
+
+    if (!fecha) { document.getElementById('err-fecha').textContent = 'La fecha de inicio es obligatoria.'; ok = false; }
+    else document.getElementById('err-fecha').textContent = '';
 
     if (!ok) e.preventDefault();
   });

@@ -16,7 +16,7 @@
   <!-- BUSCADOR DE PRODUCTO -->
   <div class="card">
     <div class="card-titulo">Seleccionar Producto</div>
-    <div class="form-group">
+    <div class="form-group form-group-buscador">
       <label>Busca por código o descripción</label>
       <div class="buscar-wrap">
         <input type="text" id="buscarProducto" placeholder="Escribe para buscar..."
@@ -79,13 +79,14 @@
             <th>Entrada</th>
             <th>Salida</th>
             <th>Existencia</th>
+            <th>Caja</th>
             <th>Notas</th>
           </tr>
         </thead>
         <tbody>
           <% if (movimientos.length === 0) { %>
             <tr>
-              <td colspan="6" class="text-center text-muted" style="padding:2rem;">
+              <td colspan="7" class="text-center text-muted" style="padding:2rem;">
                 Sin movimientos registrados
               </td>
             </tr>
@@ -111,6 +112,7 @@
                   <% } %>
                 </td>
                 <td><strong><%= m.existencia_resultante %></strong></td>
+                <td class="text-muted" style="font-size:.82rem;"><%= m.caja_nombre || '—' %></td>
                 <td class="text-muted" style="font-size:.82rem;"><%= m.notas || '—' %></td>
               </tr>
             <% }) %>
@@ -128,7 +130,7 @@
   /* Permitir que las sugerencias se salgan de la card */
   .card:has(.buscar-wrap) { overflow: visible; }
   .sugerencias-wrap { position: relative; }
-  .sugerencias-lista { position: absolute; top: 0; left: 0; right: 0; background: white; border: 1px solid #ddd; border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,.1); z-index: 100; max-height: 220px; overflow-y: auto; }
+  .sugerencias-lista { position: absolute; top: calc(100% + 4px); left: 0; right: 0; background: white; border: 1px solid #ddd; border-radius: 8px; box-shadow: 0 4px 16px rgba(0,0,0,.15); z-index: 1000; max-height: 220px; overflow-y: auto; }
   .sugerencia-item { padding: .6rem 1rem; cursor: pointer; font-size: .875rem; border-bottom: 1px solid #f5f5f5; display: flex; justify-content: space-between; align-items: center; }
   .sugerencia-item:hover { background: #fff8f9; }
   .sugerencia-item:last-child { border-bottom: none; }
@@ -158,6 +160,9 @@
 
   .mov-entrada { color: #2d7a2d; font-weight: 700; }
   .mov-salida  { color: #c0392b; font-weight: 700; }
+  .form-group-buscador {
+    display: block !important;
+  }
 </style>
 
 <script>
