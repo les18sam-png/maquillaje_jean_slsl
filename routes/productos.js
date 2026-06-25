@@ -103,10 +103,10 @@ router.get('/nuevo', async (req, res) => {
 // ─── CREAR PRODUCTO ───────────────────────────────────────────────────────────
 router.post('/nuevo', upload.single('imagen'), async (req, res) => {
   const {
-    codigo_barras, descripcion, categoria_id,
-    precio_venta, precio_mayoreo, costo_unitario,
-    inventario_minimo, estado
-  } = req.body;
+  codigo_barras, descripcion, categoria_id,
+  precio_venta, precio_mayoreo, costo_unitario,
+  inventario_minimo, estado, stock_inicial
+} = req.body;
 
   if (!descripcion || !precio_venta || !precio_mayoreo) {
     if (req.file) fs.unlinkSync(req.file.path);
@@ -119,20 +119,21 @@ router.post('/nuevo', upload.single('imagen'), async (req, res) => {
   }
 
   try {
-    await api('/productos/', {
-      method: 'POST',
-      body: {
-        codigo_barras:     codigo_barras  || null,
-        descripcion,
-        categoria_id:      categoria_id   || null,
-        precio_venta:      parseFloat(precio_venta),
-        precio_mayoreo:    parseFloat(precio_mayoreo),
-        costo_unitario:    parseFloat(costo_unitario)    || 0,
-        inventario_minimo: parseInt(inventario_minimo)   || 0,
-        ruta_imagen:       req.file ? req.file.filename  : null,
-        activo:            estado !== 'inactivo',
-      },
-    }, req.session.token);
+await api('/productos/', {
+  method: 'POST',
+  body: {
+    codigo_barras:     codigo_barras  || null,
+    descripcion,
+    categoria_id:      categoria_id   || null,
+    precio_venta:      parseFloat(precio_venta),
+    precio_mayoreo:    parseFloat(precio_mayoreo),
+    costo_unitario:    parseFloat(costo_unitario)    || 0,
+    inventario_minimo: parseInt(inventario_minimo)   || 0,
+    stock_inicial:     parseInt(stock_inicial)        || 0,
+    ruta_imagen:       req.file ? req.file.filename  : null,
+    activo:            estado !== 'inactivo',
+  },
+}, req.session.token);
 
     res.redirect('/productos/nuevo?exito=1');
   } catch (err) {
@@ -173,7 +174,7 @@ router.post('/editar/:id', upload.single('imagen'), async (req, res) => {
   const {
     codigo_barras, descripcion, categoria_id,
     precio_venta, precio_mayoreo, costo_unitario,
-    inventario_minimo, estado
+    inventario_minimo, stock_inicial, estado
   } = req.body;
 
   if (!descripcion || !precio_venta || !precio_mayoreo) {

@@ -25,10 +25,7 @@
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
         Promociones
       </a>
-      <a href="/productos/ventas-periodo" class="btn btn-secondary">
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
-        Ventas por Periodo
-      </a>
+
     </div>
   </div>
 
@@ -76,7 +73,6 @@
                 <th>Precio Venta</th>
                 <th>Precio Mayoreo</th>
                 <th>Stock actual</th>
-<th>Stock mín.</th>
                 <th>Estado</th>
                 <th></th>
               </tr>
@@ -84,7 +80,7 @@
             <tbody>
               <% if (productos.length === 0) { %>
                 <tr>
-                  <td colspan="9" class="text-center text-muted" style="padding:2rem;">
+                  <td colspan="8" class="text-center text-muted" style="padding:2rem;">
                     <%= hayFiltros ? 'Sin productos que coincidan con la búsqueda' : 'Usa los filtros para buscar productos' %>
                   </td>
                 </tr>
@@ -113,8 +109,7 @@
     <%= p.stock_actual %>
   </span>
 </td>
-<td><span class="text-muted"><%= p.inventario_minimo %></span></td>
-                    <td>
+<td>
                       <span class="badge badge-<%= p.activo ? 'activo' : 'inactivo' %>">
                         <%= p.activo ? 'Activo' : 'Inactivo' %>
                       </span>
@@ -155,12 +150,13 @@
           <input type="text" id="catalogoBuscar" placeholder="Filtrar..." class="catalogo-search">
         </div>
 
-        <div class="catalogo-filtros">
-          <button class="catalogo-tag activo" data-cat="">Todos</button>
-          <% categorias.forEach(cat => { %>
-            <button class="catalogo-tag" data-cat="<%= cat.id %>"><%= cat.nombre %></button>
-          <% }) %>
-        </div>
+          <input type="text" id="catBuscar" placeholder="Buscar categoría..." class="catalogo-cat-search">
+          <div class="catalogo-filtros" id="catalogoFiltros">
+            <button class="catalogo-tag activo" data-cat="" data-nombre="todos">Todos</button>
+            <% categorias.forEach(cat => { %>
+              <button class="catalogo-tag" data-cat="<%= cat.id %>" data-nombre="<%= cat.nombre.toLowerCase() %>"><%= cat.nombre %></button>
+            <% }) %>
+          </div>
 
         <div class="catalogo-grid" id="catalogoGrid">
           <% if (productos.length === 0) { %>
@@ -219,6 +215,17 @@
   .catalogo-header { display: flex; align-items: center; justify-content: space-between; gap: .5rem; margin-bottom: .75rem; }
   .catalogo-search { flex: 1; padding: .35rem .6rem; font-size: .8rem; border: 1px solid #ddd; border-radius: 6px; outline: none; }
   .catalogo-search:focus { border-color: var(--raspberry); }
+  .catalogo-cat-search {
+  width: 100%;
+  padding: .4rem .7rem;
+  font-size: .8rem;
+  border: 1px solid #ddd;
+  border-radius: 6px;
+  outline: none;
+  margin-bottom: .5rem;
+}
+.catalogo-cat-search:focus { border-color: var(--raspberry); }
+.catalogo-tag.oculto-cat { display: none; }
   .catalogo-filtros { display: flex; flex-wrap: wrap; gap: .35rem; margin-bottom: .75rem; }
   .catalogo-tag { font-size: .72rem; padding: 3px 10px; border-radius: 20px; border: 1px solid #ddd; background: white; cursor: pointer; color: #666; transition: all .15s; }
   .catalogo-tag:hover, .catalogo-tag.activo { background: var(--burgundy); color: white; border-color: var(--burgundy); }
@@ -288,7 +295,19 @@ document.querySelectorAll('.form-toggle').forEach(form => {
     });
   }
 
-  document.getElementById('catalogoBuscar').addEventListener('input', filtrarBusqueda);
+ document.getElementById('catalogoBuscar').addEventListener('input', filtrarBusqueda);
+
+  // Buscador de chips de categoría
+  const catBuscarInput = document.getElementById('catBuscar');
+  if (catBuscarInput) {
+    catBuscarInput.addEventListener('input', function() {
+      const q = this.value.toLowerCase().trim();
+      tags.forEach(tag => {
+        const match = !q || tag.dataset.nombre.includes(q);
+        tag.classList.toggle('oculto-cat', !match);
+      });
+    });
+  }
 })();
 </script>
 

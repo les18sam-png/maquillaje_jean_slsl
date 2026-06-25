@@ -30,7 +30,6 @@
     </div>
   <% } %>
 
-  <!-- Formulario -->
   <form
     method="POST"
     action="<%= modoEdicion ? `/admin/usuarios/${usuario.id}/editar` : '/admin/usuarios/nuevo' %>"
@@ -39,10 +38,10 @@
     novalidate
   >
 
+    <!-- Datos básicos -->
     <div class="form-section">
       <h2 class="form-section__title">Datos del usuario</h2>
 
-      <!-- Nombre completo -->
       <div class="form-group form-group--full">
         <label class="form-label" for="nombre_completo">
           Nombre completo <span class="required">*</span>
@@ -61,11 +60,10 @@
         <span class="form-error" id="err-nombre"></span>
       </div>
 
-      <!-- Nombre de usuario + Rol -->
       <div class="form-row">
         <div class="form-group">
           <label class="form-label" for="nombre_usuario">
-            Nombre de usuario <span class="required">*</span>
+            Usuario <span class="required">*</span>
           </label>
           <input
             type="text"
@@ -78,7 +76,7 @@
             maxlength="60"
             autocomplete="off"
           >
-          <span class="form-hint">Sin espacios ni caracteres especiales</span>
+          <span class="form-hint">Sin espacios</span>
           <span class="form-error" id="err-usuario"></span>
         </div>
 
@@ -88,7 +86,7 @@
           </label>
           <% if (roles.length === 0) { %>
             <div class="alert alert--warning" style="margin:0;font-size:.8rem;">
-              No hay roles configurados. <a href="/admin/roles" class="link">Crear rol</a>
+              No hay roles. <a href="/admin/roles" class="link">Ver roles</a>
             </div>
           <% } else { %>
             <select name="rol_id" id="rol_id" class="form-control" required>
@@ -106,11 +104,10 @@
 
     </div>
 
-    <!-- Contraseña — solo en nuevo usuario -->
+    <!-- Contraseña — solo nuevo -->
     <% if (!modoEdicion) { %>
     <div class="form-section">
       <h2 class="form-section__title">Contraseña</h2>
-
       <div class="form-row">
         <div class="form-group">
           <label class="form-label" for="contrasena">
@@ -127,8 +124,8 @@
               minlength="6"
               autocomplete="new-password"
             >
-            <button type="button" class="input-password-toggle" onclick="togglePass('contrasena', 'eye1')" tabindex="-1">
-              <svg id="eye1" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+            <button type="button" class="input-password-toggle" onclick="togglePass('contrasena')" tabindex="-1">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
             </button>
           </div>
           <span class="form-error" id="err-contrasena"></span>
@@ -136,7 +133,7 @@
 
         <div class="form-group">
           <label class="form-label" for="contrasena2">
-            Confirmar contraseña <span class="required">*</span>
+            Confirmar <span class="required">*</span>
           </label>
           <div class="input-password-wrap">
             <input
@@ -148,16 +145,123 @@
               required
               autocomplete="new-password"
             >
-            <button type="button" class="input-password-toggle" onclick="togglePass('contrasena2', 'eye2')" tabindex="-1">
-              <svg id="eye2" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+            <button type="button" class="input-password-toggle" onclick="togglePass('contrasena2')" tabindex="-1">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
             </button>
           </div>
           <span class="form-error" id="err-contrasena2"></span>
         </div>
       </div>
-
     </div>
     <% } %>
+
+    <!-- Tabs de permisos -->
+    <div class="form-section">
+      <h2 class="form-section__title">Permisos</h2>
+      <p class="form-hint" style="margin-bottom:14px;">
+        Los permisos se heredan del rol seleccionado. Aquí puedes consultarlos — para modificarlos, cambia el rol.
+      </p>
+
+      <!-- Tabs -->
+      <div class="permisos-tabs">
+        <button type="button" class="permisos-tab permisos-tab--active" onclick="switchTab(this, 'tab-ventas')">Ventas</button>
+        <button type="button" class="permisos-tab" onclick="switchTab(this, 'tab-clientes')">Clientes</button>
+        <button type="button" class="permisos-tab" onclick="switchTab(this, 'tab-productos')">Productos</button>
+        <button type="button" class="permisos-tab" onclick="switchTab(this, 'tab-inventario')">Inventario</button>
+        <button type="button" class="permisos-tab" onclick="switchTab(this, 'tab-otros')">Otros</button>
+      </div>
+
+      <!-- Tab Ventas -->
+      <div class="permisos-tab-content" id="tab-ventas">
+        <div class="permisos-check-grid">
+          <label class="permiso-check">
+            <input type="checkbox" name="perm_corte_caja" disabled
+              <%= usuario?.roles?.perm_corte_caja ? 'checked' : '' %>>
+            <span>Corte de caja</span>
+          </label>
+          <label class="permiso-check">
+            <input type="checkbox" name="perm_cancelar_tickets" disabled
+              <%= usuario?.roles?.perm_cancelar_tickets ? 'checked' : '' %>>
+            <span>Cancelar tickets</span>
+          </label>
+          <label class="permiso-check">
+            <input type="checkbox" name="perm_descuentos" disabled
+              <%= usuario?.roles?.perm_descuentos ? 'checked' : '' %>>
+            <span>Aplicar descuentos</span>
+          </label>
+        </div>
+      </div>
+
+      <!-- Tab Clientes -->
+      <div class="permisos-tab-content" id="tab-clientes" style="display:none">
+        <div class="permisos-check-grid">
+          <label class="permiso-check">
+            <input type="checkbox" name="perm_clientes" disabled
+              <%= usuario?.roles?.perm_clientes ? 'checked' : '' %>>
+            <span>Gestionar clientes</span>
+          </label>
+        </div>
+      </div>
+
+      <!-- Tab Productos -->
+      <div class="permisos-tab-content" id="tab-productos" style="display:none">
+        <div class="permisos-check-grid">
+          <label class="permiso-check">
+            <input type="checkbox" name="perm_modificar_precios" disabled
+              <%= usuario?.roles?.perm_modificar_precios ? 'checked' : '' %>>
+            <span>Modificar precios</span>
+          </label>
+          <label class="permiso-check">
+            <input type="checkbox" name="perm_promociones" disabled
+              <%= usuario?.roles?.perm_promociones ? 'checked' : '' %>>
+            <span>Promociones</span>
+          </label>
+        </div>
+      </div>
+
+      <!-- Tab Inventario -->
+      <div class="permisos-tab-content" id="tab-inventario" style="display:none">
+        <div class="permisos-check-grid">
+          <label class="permiso-check">
+            <input type="checkbox" name="perm_inventario_entrada" disabled
+              <%= usuario?.roles?.perm_inventario_entrada ? 'checked' : '' %>>
+            <span>Entrada de mercancía</span>
+          </label>
+          <label class="permiso-check">
+            <input type="checkbox" name="perm_inventario_ajuste" disabled
+              <%= usuario?.roles?.perm_inventario_ajuste ? 'checked' : '' %>>
+            <span>Ajuste de inventario</span>
+          </label>
+          <label class="permiso-check">
+            <input type="checkbox" name="perm_kardex" disabled
+              <%= usuario?.roles?.perm_kardex ? 'checked' : '' %>>
+            <span>Ver kardex</span>
+          </label>
+        </div>
+      </div>
+
+      <!-- Tab Otros -->
+      <div class="permisos-tab-content" id="tab-otros" style="display:none">
+        <div class="permisos-check-grid">
+          <label class="permiso-check">
+            <input type="checkbox" name="perm_reportes" disabled
+              <%= usuario?.roles?.perm_reportes ? 'checked' : '' %>>
+            <span>Ver reportes</span>
+          </label>
+          <label class="permiso-check">
+            <input type="checkbox" name="perm_exportar" disabled
+              <%= usuario?.roles?.perm_exportar ? 'checked' : '' %>>
+            <span>Exportar datos</span>
+          </label>
+          <label class="permiso-check">
+            <input type="checkbox" name="perm_administrar" disabled
+              <%= usuario?.roles?.perm_administrar ? 'checked' : '' %>>
+            <span>Administrar sistema</span>
+          </label>
+        </div>
+      </div>
+
+    </div>
 
     <!-- Botones -->
     <div class="form-footer">
@@ -171,9 +275,58 @@
 </div>
 
 <style>
-.input-password-wrap {
-  position: relative;
+.permisos-tabs {
+  display: flex;
+  gap: 0;
+  border-bottom: 2px solid #F2DCDB;
+  margin-bottom: 16px;
 }
+.permisos-tab {
+  padding: 8px 16px;
+  background: none;
+  border: none;
+  border-bottom: 2px solid transparent;
+  margin-bottom: -2px;
+  font-size: .82rem;
+  font-weight: 600;
+  color: #aaa;
+  cursor: pointer;
+  transition: color .15s, border-color .15s;
+  font-family: 'DM Sans', sans-serif;
+}
+.permisos-tab:hover { color: #B5294E; }
+.permisos-tab--active {
+  color: #6C0820;
+  border-bottom-color: #6C0820;
+}
+
+.permisos-check-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 10px;
+  padding: 4px 0;
+}
+.permiso-check {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 14px;
+  border: 1.5px solid #E0C8C8;
+  border-radius: 8px;
+  cursor: default;
+  font-size: .84rem;
+  color: #555;
+  background: #fafafa;
+}
+.permiso-check input[type="checkbox"] {
+  width: 16px;
+  height: 16px;
+  accent-color: #6C0820;
+  flex-shrink: 0;
+}
+.permiso-check input:checked ~ span { color: #065f46; font-weight: 600; }
+
+.input-password-wrap { position: relative; }
 .input-password-wrap .form-control { padding-right: 40px; }
 .input-password-toggle {
   position: absolute;
@@ -191,8 +344,15 @@
 </style>
 
 <script>
-  function togglePass(inputId, iconId) {
-    const input = document.getElementById(inputId);
+  function switchTab(btn, tabId) {
+    document.querySelectorAll('.permisos-tab').forEach(t => t.classList.remove('permisos-tab--active'));
+    document.querySelectorAll('.permisos-tab-content').forEach(c => c.style.display = 'none');
+    btn.classList.add('permisos-tab--active');
+    document.getElementById(tabId).style.display = 'block';
+  }
+
+  function togglePass(id) {
+    const input = document.getElementById(id);
     input.type  = input.type === 'password' ? 'text' : 'password';
   }
 
@@ -213,7 +373,7 @@
     const usuario    = document.getElementById('nombre_usuario');
     const errUsuario = document.getElementById('err-usuario');
     if (!usuario.value.trim()) {
-      errUsuario.textContent = 'El nombre de usuario es obligatorio';
+      errUsuario.textContent = 'El usuario es obligatorio';
       usuario.classList.add('form-control--error');
       valid = false;
     } else if (/\s/.test(usuario.value)) {

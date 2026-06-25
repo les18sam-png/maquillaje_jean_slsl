@@ -125,6 +125,8 @@
 
 <style>
   .buscar-wrap { position: relative; }
+  /* Permitir que las sugerencias se salgan de la card */
+  .card:has(.buscar-wrap) { overflow: visible; }
   .sugerencias-wrap { position: relative; }
   .sugerencias-lista { position: absolute; top: 0; left: 0; right: 0; background: white; border: 1px solid #ddd; border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,.1); z-index: 100; max-height: 220px; overflow-y: auto; }
   .sugerencia-item { padding: .6rem 1rem; cursor: pointer; font-size: .875rem; border-bottom: 1px solid #f5f5f5; display: flex; justify-content: space-between; align-items: center; }

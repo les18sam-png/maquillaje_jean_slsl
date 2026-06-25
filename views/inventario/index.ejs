@@ -94,11 +94,11 @@
                 <td><span class="codigo-badge"><%= p.codigo_barras || '—' %></span></td>
                 <td><strong><%= p.descripcion %></strong></td>
                 <td><%= p.categoria_nombre %></td>
-                <td>
-                  <span class="<%= p.stock_actual <= p.inventario_minimo ? 'stock-bajo' : 'stock-ok' %>">
-                    <%= p.stock_actual %>
-                  </span>
-                </td>
+<td>
+  <span class="<%= p.cantidad_actual <= p.inventario_minimo ? 'stock-bajo' : 'stock-ok' %>">
+    <%= p.cantidad_actual %>
+  </span>
+</td>
                 <td><span class="text-muted"><%= p.inventario_minimo %></span></td>
                 <td>
                   <% if (p.stock_actual <= p.inventario_minimo) { %>
@@ -126,6 +126,21 @@
         </tbody>
       </table>
     </div>
+    <% if (totalPaginas > 1) { %>
+<div class="paginacion">
+  <% if (paginaActual > 1) { %>
+    <a href="/inventario?q=<%= q %>&categoria_id=<%= categoria_id %>&alerta=<%= alerta %>&pagina=<%= paginaActual - 1 %>" class="btn btn-ghost btn-xs">← Anterior</a>
+  <% } %>
+  <span class="pagina-info">Página <%= paginaActual %> de <%= totalPaginas %></span>
+  <% if (paginaActual < totalPaginas) { %>
+    <a href="/inventario?q=<%= q %>&categoria_id=<%= categoria_id %>&alerta=<%= alerta %>&pagina=<%= paginaActual + 1 %>" class="btn btn-ghost btn-xs">Siguiente →</a>
+  <% } %>
+</div>
+<% } %>
+
+
+
+
     <% if (productos.length > 0) { %>
       <div class="tabla-footer"><%= productos.length %> producto<%= productos.length !== 1 ? 's' : '' %></div>
     <% } %>
@@ -144,6 +159,7 @@
     </div>
     <form method="POST" action="/inventario/entrada">
       <input type="hidden" name="producto_id" id="entradaProductoId">
+      <input type="hidden" name="q" value="<%= q %>">
       <div class="modal-body">
         <div class="modal-producto-info" id="entradaProductoInfo"></div>
         <div class="form-group">
@@ -174,6 +190,7 @@
     </div>
     <form method="POST" action="/inventario/ajuste">
       <input type="hidden" name="producto_id" id="ajusteProductoId">
+      <input type="hidden" name="q" value="<%= q %>">
       <div class="modal-body">
         <div class="modal-producto-info" id="ajusteProductoInfo"></div>
         <div class="form-group">
@@ -181,10 +198,10 @@
           <input type="number" name="nueva_cantidad" id="ajusteCantidad" min="0" step="1" placeholder="0">
           <span class="field-hint">Ingresa el conteo físico real del producto</span>
         </div>
-        <div class="form-group">
-          <label>Motivo <span class="req">*</span></label>
-          <input type="text" name="notas" placeholder="Ej. Conteo físico, merma, daño...">
-        </div>
+          <div class="form-group">
+            <label>Motivo <span class="req">*</span></label>
+            <input type="text" name="motivo" placeholder="Ej. Conteo físico, merma, daño..." minlength="3" required>
+          </div>
       </div>
       <div class="modal-footer">
         <button type="submit" class="btn btn-primary">Aplicar ajuste</button>
@@ -227,6 +244,19 @@
   .modal-footer { padding: 1rem 1.5rem; border-top: 1px solid #f0f0f0; display: flex; gap: .75rem; }
   .modal-producto-info { background: var(--champagne); border-radius: 8px; padding: .75rem 1rem; font-size: .875rem; }
   .modal-producto-info strong { color: var(--burgundy); display: block; font-size: 1rem; margin-bottom: .2rem; }
+
+  /* Paginación */
+  .paginacion {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 1rem;
+  padding: 1rem;
+  border-top: 1px solid #f0f0f0;
+}
+.pagina-info { font-size: .82rem; color: #999; }
+
+
 </style>
 
 <script>
@@ -260,7 +290,8 @@
     document.getElementById('modalEntrada').style.display = 'none';
     document.getElementById('modalAjuste').style.display  = 'none';
   };
-
+  
+  
   document.querySelectorAll('.modal-overlay').forEach(overlay => {
     overlay.addEventListener('click', function(e) {
       if (e.target === this) cerrarModales();

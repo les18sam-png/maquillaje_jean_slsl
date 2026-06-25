@@ -1,10 +1,11 @@
 // routes/admin.js
 // SmartVenta PDV — Módulo Admin
-// SOLO FRONTEND
+// Usuarios migrado a API · Roles y Configuración siguen con Supabase
 
 const express = require('express');
 const router  = express.Router();
 const { supabase } = require('../db/database');
+const { api }      = require('../db/api');
 
 const SUCURSAL_ID = process.env.SUCURSAL_ID;
 
@@ -16,37 +17,34 @@ router.get('/', (req, res) => {
 });
 
 /* ─────────────────────────────────────────
-   72 — GET /admin/usuarios
+   72 — GET /admin/usuarios — MIGRADO
 ───────────────────────────────────────── */
 router.get('/usuarios', async (req, res) => {
   try {
-    const { data: usuarios, error } = await supabase
-      .from('usuarios')
-      .select(`
-        id, nombre_completo, nombre_usuario,
-        activo, ultimo_login, creado_en,
-        roles(nombre)
-      `)
-      .eq('sucursal_id', SUCURSAL_ID)
-      .order('nombre_completo');
+    const data = await api('/usuarios/', {}, req.session.token);
 
-    if (error) throw error;
+    const usuarios = (data.items || []).map(u => ({
+      ...u,
+      roles: { nombre: u.rol_nombre },
+    }));
 
     res.render('admin/usuarios', {
       title:    'Usuarios',
-      usuarios: usuarios || [],
+      usuarios,
     });
   } catch (err) {
+    if (err.status === 401) return res.redirect('/auth/login?error=sesion');
     console.error('Error en GET /admin/usuarios:', err.message);
     res.status(500).send('Error al cargar usuarios: ' + err.message);
   }
 });
 
 /* ─────────────────────────────────────────
-   GET /admin/usuarios/nuevo
+   GET /admin/usuarios/nuevo — MIGRADO
 ───────────────────────────────────────── */
 router.get('/usuarios/nuevo', async (req, res) => {
   try {
+    // Roles sigue en Supabase por ahora
     const { data: roles } = await supabase
       .from('roles')
       .select('id, nombre')
@@ -66,48 +64,36 @@ router.get('/usuarios/nuevo', async (req, res) => {
 });
 
 /* ─────────────────────────────────────────
-   POST /admin/usuarios/nuevo
+   POST /admin/usuarios/nuevo — MIGRADO
 ───────────────────────────────────────── */
 router.post('/usuarios/nuevo', async (req, res) => {
   try {
     const { nombre_completo, nombre_usuario, contrasena, rol_id } = req.body;
 
-    // TODO: conectar con endpoint de tu novia para crear usuario con hash bcrypt
-    // await api('/admin/usuarios', { method: 'POST', body: JSON.stringify({...}) }, req.session.token)
-
-    // Temporal — insert directo (sin hash, tu novia lo maneja)
-    const { error } = await supabase
-      .from('usuarios')
-      .insert([{
-        sucursal_id:    SUCURSAL_ID,
-        rol_id,
+    await api('/usuarios/', {
+      method: 'POST',
+      body: JSON.stringify({
         nombre_completo: nombre_completo?.trim(),
         nombre_usuario:  nombre_usuario?.trim(),
-        contrasena_hash: contrasena, // temporal, tu novia hashea
-        activo: true,
-      }]);
-
-    if (error) throw error;
+        contrasena,
+        rol_id,
+      }),
+    }, req.session.token);
 
     res.redirect('/admin/usuarios?toast=creado');
   } catch (err) {
+    if (err.status === 401) return res.redirect('/auth/login?error=sesion');
     console.error('Error creando usuario:', err.message);
     res.redirect('/admin/usuarios/nuevo?error=fallo');
   }
 });
 
 /* ─────────────────────────────────────────
-   GET /admin/usuarios/:id/editar
+   GET /admin/usuarios/:id/editar — MIGRADO
 ───────────────────────────────────────── */
 router.get('/usuarios/:id/editar', async (req, res) => {
   try {
-    const { data: usuario, error } = await supabase
-      .from('usuarios')
-      .select('id, nombre_completo, nombre_usuario, activo, rol_id')
-      .eq('id', req.params.id)
-      .single();
-
-    if (error || !usuario) return res.status(404).send('Usuario no encontrado.');
+    const usuario = await api(`/usuarios/${req.params.id}`, {}, req.session.token);
 
     const { data: roles } = await supabase
       .from('roles')
@@ -122,56 +108,55 @@ router.get('/usuarios/:id/editar', async (req, res) => {
       modoEdicion: true,
     });
   } catch (err) {
+    if (err.status === 401) return res.redirect('/auth/login?error=sesion');
+    if (err.status === 404) return res.status(404).send('Usuario no encontrado.');
     console.error('Error en GET /admin/usuarios/:id/editar:', err.message);
     res.status(500).send('Error: ' + err.message);
   }
 });
 
 /* ─────────────────────────────────────────
-   POST /admin/usuarios/:id/editar
+   POST /admin/usuarios/:id/editar — MIGRADO
 ───────────────────────────────────────── */
 router.post('/usuarios/:id/editar', async (req, res) => {
   try {
     const { nombre_completo, nombre_usuario, rol_id } = req.body;
 
-    const { error } = await supabase
-      .from('usuarios')
-      .update({ nombre_completo, nombre_usuario, rol_id })
-      .eq('id', req.params.id);
-
-    if (error) throw error;
+    await api(`/usuarios/${req.params.id}`, {
+      method: 'PUT',
+      body: JSON.stringify({ nombre_completo, nombre_usuario, rol_id }),
+    }, req.session.token);
 
     res.redirect('/admin/usuarios?toast=actualizado');
   } catch (err) {
+    if (err.status === 401) return res.redirect('/auth/login?error=sesion');
     console.error('Error actualizando usuario:', err.message);
     res.redirect(`/admin/usuarios/${req.params.id}/editar?error=fallo`);
   }
 });
 
 /* ─────────────────────────────────────────
-   POST /admin/usuarios/:id/toggleactivo
+   POST /admin/usuarios/:id/toggle — MIGRADO
 ───────────────────────────────────────── */
 router.post('/usuarios/:id/toggle', async (req, res) => {
   try {
     const { activo_actual } = req.body;
     const nuevoEstado = activo_actual === 'true' ? false : true;
 
-    const { error } = await supabase
-      .from('usuarios')
-      .update({ activo: nuevoEstado })
-      .eq('id', req.params.id);
-
-    if (error) throw error;
+    await api(`/usuarios/${req.params.id}/estado?activo=${nuevoEstado}`, {
+      method: 'PATCH',
+    }, req.session.token);
 
     res.redirect('/admin/usuarios?toast=actualizado');
   } catch (err) {
+    if (err.status === 401) return res.redirect('/auth/login?error=sesion');
     console.error('Error toggling usuario:', err.message);
     res.redirect('/admin/usuarios');
   }
 });
 
 /* ─────────────────────────────────────────
-   73 — GET /admin/roles
+   73 — GET /admin/roles — sigue con Supabase
 ───────────────────────────────────────── */
 router.get('/roles', async (req, res) => {
   try {
@@ -194,7 +179,7 @@ router.get('/roles', async (req, res) => {
 });
 
 /* ─────────────────────────────────────────
-   74 — GET /admin/configuracion
+   74 — GET /admin/configuracion — sigue con Supabase
 ───────────────────────────────────────── */
 router.get('/configuracion', async (req, res) => {
   try {

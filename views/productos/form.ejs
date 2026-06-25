@@ -133,9 +133,16 @@
               <span class="field-error" id="err-inventario_minimo"></span>
             </div>
 
+            <% if (!producto) { %>
+            <div class="form-group">
+              <label for="stock_inicial">Stock inicial</label>
+              <input type="number" id="stock_inicial" name="stock_inicial" placeholder="0" min="0" step="1" value="0">
+              <span class="field-hint">Cantidad con la que entra el producto al inventario</span>
+            </div>
+            <% } %>
+
           </div>
         </div>
-
       </div>
 
       <div class="form-col-side">

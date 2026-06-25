@@ -1,6 +1,6 @@
 <%- include('../partials/header', { title }) %>
 
-<div class="page-wrapper page-wrapper--narrow">
+<div class="page-wrapper">
 
   <!-- Breadcrumb -->
   <nav class="breadcrumb">
@@ -13,111 +13,402 @@
   <div class="page-header">
     <div class="page-header__left">
       <h1 class="page-title">Configuración</h1>
-      <span class="page-subtitle">Datos de la sucursal y cajas</span>
+      <span class="page-subtitle">Datos del sistema y sucursal</span>
     </div>
   </div>
 
-  <!-- Sucursal -->
-  <div class="form-card" style="margin-bottom: 20px;">
-    <div class="form-section">
-      <h2 class="form-section__title">Datos de la sucursal</h2>
+  <!-- Tabs -->
+  <div class="config-tabs">
+    <button class="config-tab config-tab--active" onclick="switchConfigTab(this, 'tab-sucursal')">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+      Sucursal
+    </button>
+    <button class="config-tab" onclick="switchConfigTab(this, 'tab-cajas')">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="3" width="20" height="14" rx="2" ry="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>
+      Cajas
+    </button>
+    <button class="config-tab" onclick="switchConfigTab(this, 'tab-ticket')">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
+      Ticket / Recibo
+    </button>
+  </div>
 
-      <div class="form-group form-group--full">
-        <label class="form-label">Nombre</label>
-        <input type="text" class="form-control" value="<%= sucursal.nombre || '' %>" disabled>
-      </div>
+  <!-- Tab Sucursal -->
+  <div class="config-tab-content" id="tab-sucursal">
+    <div class="config-section-grid">
 
-      <div class="form-row">
-        <div class="form-group">
-          <label class="form-label">Teléfono</label>
-          <input type="text" class="form-control" value="<%= sucursal.telefono || '' %>" disabled>
+      <div class="config-card">
+        <div class="config-card__header">
+          <div class="config-card__icon" style="background:#F7E7CE; color:#B5294E;">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg>
+          </div>
+          <h3 class="config-card__title">Datos generales</h3>
         </div>
-        <div class="form-group">
-          <label class="form-label">Estado</label>
-          <input type="text" class="form-control" value="<%= sucursal.activa ? 'Activa' : 'Inactiva' %>" disabled>
+        <dl class="config-info-list">
+          <div class="config-info-item">
+            <dt>Nombre</dt>
+            <dd><%= sucursal.nombre || '—' %></dd>
+          </div>
+          <div class="config-info-item">
+            <dt>Teléfono</dt>
+            <dd><%= sucursal.telefono || '—' %></dd>
+          </div>
+          <div class="config-info-item">
+            <dt>Estado</dt>
+            <dd>
+              <% if (sucursal.activa) { %>
+                <span class="badge badge--success">Activa</span>
+              <% } else { %>
+                <span class="badge badge--danger">Inactiva</span>
+              <% } %>
+            </dd>
+          </div>
+          <div class="config-info-item">
+            <dt>Dirección</dt>
+            <dd><%= sucursal.direccion || '—' %></dd>
+          </div>
+          <div class="config-info-item">
+            <dt>ID Sucursal</dt>
+            <dd><code class="rfc-badge"><%= sucursal.id || '—' %></code></dd>
+          </div>
+          <div class="config-info-item">
+            <dt>Registrada</dt>
+            <dd><%= sucursal.creado_en ? new Date(sucursal.creado_en).toLocaleDateString('es-MX', { day:'2-digit', month:'long', year:'numeric' }) : '—' %></dd>
+          </div>
+        </dl>
+        <div class="config-card__footer">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+          Para modificar estos datos contacta al administrador del sistema.
         </div>
       </div>
 
-      <div class="form-group form-group--full">
-        <label class="form-label">Dirección</label>
-        <textarea class="form-control" rows="2" disabled><%= sucursal.direccion || '' %></textarea>
+      <div class="config-card">
+        <div class="config-card__header">
+          <div class="config-card__icon" style="background:#dbeafe; color:#1e40af;">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.07 4.93A10 10 0 1 1 4.93 19.07"/></svg>
+          </div>
+          <h3 class="config-card__title">Sistema</h3>
+        </div>
+        <dl class="config-info-list">
+          <div class="config-info-item">
+            <dt>Versión</dt>
+            <dd>SmartVenta PDV v1.0</dd>
+          </div>
+          <div class="config-info-item">
+            <dt>Base de datos</dt>
+            <dd>Supabase (PostgreSQL)</dd>
+          </div>
+          <div class="config-info-item">
+            <dt>Umbral mayoreo</dt>
+            <dd>$300.00 MXN</dd>
+          </div>
+          <div class="config-info-item">
+            <dt>Métodos de pago</dt>
+            <dd>Efectivo, Tarjeta, Transferencia, Cheque, Mixto</dd>
+          </div>
+        </dl>
       </div>
 
-      <div class="form-group form-group--full">
-        <label class="form-label">ID de sucursal</label>
-        <input type="text" class="form-control form-control--mono" value="<%= sucursal.id || '' %>" disabled>
-        <span class="form-hint">Este ID está configurado en el archivo .env</span>
-      </div>
-    </div>
-
-    <div class="form-footer">
-      <span class="form-hint">La configuración de sucursal se gestiona desde el backend.</span>
     </div>
   </div>
 
-  <!-- Cajas -->
-  <div class="card">
-    <div class="card__header">
-      <h3 class="card__title">Cajas registradas</h3>
-      <span class="page-subtitle"><%= cajas.length %> caja<%= cajas.length !== 1 ? 's' : '' %></span>
-    </div>
+  <!-- Tab Cajas -->
+  <div class="config-tab-content" id="tab-cajas" style="display:none">
+    <div class="config-card" style="max-width:700px;">
+      <div class="config-card__header">
+        <div class="config-card__icon" style="background:#F2DCDB; color:#6C0820;">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>
+        </div>
+        <h3 class="config-card__title">Cajas registradas (<%= cajas.length %>)</h3>
+      </div>
 
-    <% if (cajas.length === 0) { %>
-      <div class="empty-state empty-state--sm">
-        <p>No hay cajas configuradas.</p>
+      <% if (cajas.length === 0) { %>
+        <div class="empty-state empty-state--sm">
+          <p>No hay cajas configuradas.</p>
+        </div>
+      <% } else { %>
+        <div class="table-wrapper">
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th>Nombre</th>
+                <th>Tipo</th>
+                <th>Estado</th>
+                <th>Registrada</th>
+              </tr>
+            </thead>
+            <tbody>
+              <% cajas.forEach(c => { %>
+              <tr>
+                <td class="fw-medium"><%= c.nombre %></td>
+                <td>
+                  <% if (c.es_verificador) { %>
+                    <span class="badge badge--warning">Verificador</span>
+                  <% } else { %>
+                    <span class="badge badge--info">PDV</span>
+                  <% } %>
+                </td>
+                <td>
+                  <% if (c.activa) { %>
+                    <span class="badge badge--success">Activa</span>
+                  <% } else { %>
+                    <span class="badge badge--danger">Inactiva</span>
+                  <% } %>
+                </td>
+                <td class="text-sm text-muted">
+                  <%= new Date(c.creado_en).toLocaleDateString('es-MX', { day:'2-digit', month:'short', year:'numeric' }) %>
+                </td>
+              </tr>
+              <% }) %>
+            </tbody>
+          </table>
+        </div>
+      <% } %>
+
+      <div class="config-card__footer">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+        Las cajas se crean y modifican desde el backend.
       </div>
-    <% } else { %>
-      <div class="table-wrapper">
-        <table class="data-table">
-          <thead>
-            <tr>
-              <th>Nombre</th>
-              <th>Tipo</th>
-              <th>Estado</th>
-            </tr>
-          </thead>
-          <tbody>
-            <% cajas.forEach(c => { %>
-            <tr>
-              <td class="fw-medium"><%= c.nombre %></td>
-              <td>
-                <% if (c.es_verificador) { %>
-                  <span class="badge badge--warning">Verificador</span>
-                <% } else { %>
-                  <span class="badge badge--info">Caja PDV</span>
-                <% } %>
-              </td>
-              <td>
-                <% if (c.activa) { %>
-                  <span class="badge badge--success">Activa</span>
-                <% } else { %>
-                  <span class="badge badge--danger">Inactiva</span>
-                <% } %>
-              </td>
-            </tr>
-            <% }) %>
-          </tbody>
-        </table>
-      </div>
-    <% } %>
+    </div>
   </div>
 
-  <div class="alert alert--warning" style="margin-top: 16px;">
-    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
-    Las cajas se gestionan desde el backend. Contacta al administrador para agregar o modificar cajas.
+  <!-- Tab Ticket -->
+  <div class="config-tab-content" id="tab-ticket" style="display:none">
+    <div class="config-section-grid">
+
+      <!-- Vista previa del ticket -->
+      <div class="config-card">
+        <div class="config-card__header">
+          <div class="config-card__icon" style="background:#d1fae5; color:#065f46;">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+          </div>
+          <h3 class="config-card__title">Vista previa del ticket</h3>
+        </div>
+
+        <div class="ticket-preview">
+          <div class="ticket-preview__paper">
+            <div class="ticket-line ticket-line--center ticket-line--bold" style="font-size:1rem;"><%= sucursal.nombre || 'MAQUILLAJE JEAN' %></div>
+            <div class="ticket-line ticket-line--center"><%= sucursal.direccion || 'Dirección de la sucursal' %></div>
+            <div class="ticket-line ticket-line--center"><%= sucursal.telefono || 'Tel: —' %></div>
+            <div class="ticket-divider">- - - - - - - - - - - - - - - - -</div>
+            <div class="ticket-line"><span>Folio:</span> <span>#0001</span></div>
+            <div class="ticket-line"><span>Fecha:</span> <span><%= new Date().toLocaleString('es-MX', { day:'2-digit', month:'short', year:'numeric', hour:'2-digit', minute:'2-digit' }) %></span></div>
+            <div class="ticket-line"><span>Cajero:</span> <span>Usuario</span></div>
+            <div class="ticket-divider">- - - - - - - - - - - - - - - - -</div>
+            <div class="ticket-line ticket-line--header">
+              <span>Producto</span><span>Cant</span><span>Total</span>
+            </div>
+            <div class="ticket-divider">- - - - - - - - - - - - - - - - -</div>
+            <div class="ticket-line">
+              <span>Labial Rojo</span><span>2</span><span>$100.00</span>
+            </div>
+            <div class="ticket-line">
+              <span>Sombra Marrón</span><span>1</span><span>$85.00</span>
+            </div>
+            <div class="ticket-divider">- - - - - - - - - - - - - - - - -</div>
+            <div class="ticket-line ticket-line--bold">
+              <span>TOTAL</span><span></span><span>$185.00</span>
+            </div>
+            <div class="ticket-line"><span>Efectivo:</span><span></span><span>$200.00</span></div>
+            <div class="ticket-line"><span>Cambio:</span><span></span><span>$15.00</span></div>
+            <div class="ticket-divider">- - - - - - - - - - - - - - - - -</div>
+            <div class="ticket-line ticket-line--center">¡Gracias por su compra!</div>
+            <div class="ticket-line ticket-line--center">Vuelva pronto</div>
+          </div>
+        </div>
+
+        <div class="config-card__footer">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+          El ticket se genera automáticamente al cobrar una venta.
+        </div>
+      </div>
+
+      <!-- Info del ticket -->
+      <div class="config-card">
+        <div class="config-card__header">
+          <div class="config-card__icon" style="background:#ede9fe; color:#5b21b6;">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+          </div>
+          <h3 class="config-card__title">Información del ticket</h3>
+        </div>
+        <dl class="config-info-list">
+          <div class="config-info-item">
+            <dt>Encabezado</dt>
+            <dd><%= sucursal.nombre || '—' %></dd>
+          </div>
+          <div class="config-info-item">
+            <dt>Dirección</dt>
+            <dd><%= sucursal.direccion || '—' %></dd>
+          </div>
+          <div class="config-info-item">
+            <dt>Teléfono</dt>
+            <dd><%= sucursal.telefono || '—' %></dd>
+          </div>
+          <div class="config-info-item">
+            <dt>Mensaje final</dt>
+            <dd>¡Gracias por su compra! Vuelva pronto</dd>
+          </div>
+          <div class="config-info-item">
+            <dt>Formato</dt>
+            <dd>Ticket térmico 80mm</dd>
+          </div>
+        </dl>
+        <div class="config-card__footer">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+          Para personalizar el ticket contacta al administrador.
+        </div>
+      </div>
+
+    </div>
   </div>
 
 </div>
 
 <style>
-.form-control--mono {
-  font-family: 'Courier New', monospace;
-  font-size: .82rem;
-  letter-spacing: .04em;
-  color: #6C0820;
+/* Tabs configuración */
+.config-tabs {
+  display: flex;
+  gap: 0;
+  border-bottom: 2px solid #F2DCDB;
+  margin-bottom: 20px;
 }
-.badge--info    { background: #dbeafe; color: #1e40af; }
-.badge--warning { background: #fef3c7; color: #92400e; }
+.config-tab {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 10px 18px;
+  background: none;
+  border: none;
+  border-bottom: 2px solid transparent;
+  margin-bottom: -2px;
+  font-size: .84rem;
+  font-weight: 600;
+  color: #aaa;
+  cursor: pointer;
+  transition: color .15s, border-color .15s;
+  font-family: 'DM Sans', sans-serif;
+}
+.config-tab:hover { color: #B5294E; }
+.config-tab--active { color: #6C0820; border-bottom-color: #6C0820; }
+
+.config-section-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+}
+@media (max-width: 700px) {
+  .config-section-grid { grid-template-columns: 1fr; }
+}
+
+/* Config card */
+.config-card {
+  background: #fff;
+  border-radius: 12px;
+  box-shadow: 0 1px 4px rgba(60,40,50,.07);
+  overflow: hidden;
+}
+.config-card__header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 16px 20px;
+  border-bottom: 1px solid #F2DCDB;
+}
+.config-card__icon {
+  width: 40px;
+  height: 40px;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+.config-card__title {
+  font-family: 'Playfair Display', serif;
+  font-size: .95rem;
+  font-weight: 700;
+  color: #3D5D91;
+  margin: 0;
+}
+.config-card__footer {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 10px 20px;
+  background: #FDF5F5;
+  border-top: 1px solid #F2DCDB;
+  font-size: .75rem;
+  color: #aaa;
+}
+
+/* Info list */
+.config-info-list {
+  padding: 16px 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.config-info-item {
+  display: grid;
+  grid-template-columns: 120px 1fr;
+  gap: 8px;
+  align-items: baseline;
+}
+.config-info-item dt {
+  font-size: .75rem;
+  font-weight: 600;
+  color: #aaa;
+  text-transform: uppercase;
+  letter-spacing: .05em;
+}
+.config-info-item dd {
+  font-size: .88rem;
+  color: #3D5D91;
+  margin: 0;
+  word-break: break-word;
+}
+
+/* Ticket preview */
+.ticket-preview {
+  padding: 16px 20px;
+  display: flex;
+  justify-content: center;
+}
+.ticket-preview__paper {
+  width: 240px;
+  background: #fff;
+  border: 1px dashed #ddd;
+  border-radius: 4px;
+  padding: 14px 12px;
+  font-family: 'Courier New', monospace;
+  font-size: .72rem;
+  color: #333;
+  box-shadow: 0 2px 8px rgba(0,0,0,.08);
+}
+.ticket-line {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 3px;
+  gap: 4px;
+}
+.ticket-line--center { justify-content: center; text-align: center; }
+.ticket-line--bold   { font-weight: 700; }
+.ticket-line--header { font-weight: 700; font-size: .68rem; color: #666; }
+.ticket-divider {
+  text-align: center;
+  color: #bbb;
+  font-size: .65rem;
+  margin: 4px 0;
+}
 </style>
+
+<script>
+function switchConfigTab(btn, tabId) {
+  document.querySelectorAll('.config-tab').forEach(t => t.classList.remove('config-tab--active'));
+  document.querySelectorAll('.config-tab-content').forEach(c => c.style.display = 'none');
+  btn.classList.add('config-tab--active');
+  document.getElementById(tabId).style.display = 'block';
+}
+</script>
 
 <%- include('../partials/footer') %>

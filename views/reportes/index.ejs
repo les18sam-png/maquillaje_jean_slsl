@@ -1,0 +1,235 @@
+<%- include('../partials/header', { title }) %>
+
+<div class="page-wrapper">
+
+  <!-- Encabezado -->
+  <div class="page-header">
+    <div class="page-header__left">
+      <h1 class="page-title">Reportes</h1>
+      <span class="page-subtitle">Análisis de ventas y desempeño</span>
+    </div>
+  </div>
+
+  <!-- Filtro de fechas -->
+  <form method="GET" action="/reportes" class="filtros-bar">
+    <div class="form-group" style="margin:0;">
+      <input type="date" name="fecha_inicio" class="form-control" value="<%= fechaInicio %>" style="padding:7px 10px; font-size:.85rem;">
+    </div>
+    <span style="color:#aaa; font-size:.85rem;">a</span>
+    <div class="form-group" style="margin:0;">
+      <input type="date" name="fecha_fin" class="form-control" value="<%= fechaFin %>" style="padding:7px 10px; font-size:.85rem;">
+    </div>
+    <button type="submit" class="btn btn-primary btn-sm">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+      Buscar
+    </button>
+  </form>
+
+  <!-- Stats principales -->
+  <div class="stat-grid">
+    <div class="stat-card">
+      <div class="stat-icon burgundy">
+        <svg viewBox="0 0 24 24"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6"/></svg>
+      </div>
+      <div class="stat-info">
+        <div class="stat-value">$<%= totalVentas.toLocaleString('es-MX', {minimumFractionDigits:2}) %></div>
+        <div class="stat-label">Total del periodo</div>
+      </div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-icon raspberry">
+        <svg viewBox="0 0 24 24"><path d="M6 2L3 6v14a2 2 0 002 2h14a2 2 0 002-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/></svg>
+      </div>
+      <div class="stat-info">
+        <div class="stat-value"><%= totalTickets %></div>
+        <div class="stat-label">Tickets emitidos</div>
+      </div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-icon navy">
+        <svg viewBox="0 0 24 24"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+      </div>
+      <div class="stat-info">
+        <div class="stat-value">$<%= ticketProm.toLocaleString('es-MX', {minimumFractionDigits:2}) %></div>
+        <div class="stat-label">Ticket promedio</div>
+      </div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-icon cherry">
+        <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+      </div>
+      <div class="stat-info">
+        <div class="stat-value"><%= turnosConVentas.length %></div>
+        <div class="stat-label">Turnos con ventas</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Gráficas -->
+  <div class="reportes-graficas-grid">
+
+    <div class="card">
+      <div class="card__header">
+        <h3 class="card__title">Ventas por día</h3>
+      </div>
+      <div style="padding:16px;">
+        <canvas id="chart-ventas-dia" height="220"></canvas>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card__header">
+        <h3 class="card__title">Por método de pago</h3>
+      </div>
+      <div style="padding:16px;">
+        <canvas id="chart-metodos" height="220"></canvas>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- Tabla por cajero -->
+  <div class="card" style="margin-top:16px;">
+    <div class="card__header">
+      <h3 class="card__title">Desempeño por cajero</h3>
+    </div>
+    <% if (cajerosArray.length === 0) { %>
+      <div class="empty-state empty-state--sm"><p>Sin ventas en el periodo.</p></div>
+    <% } else { %>
+      <div class="table-wrapper">
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>Cajero</th>
+              <th class="text-right">Tickets</th>
+              <th class="text-right">Total vendido</th>
+              <th class="text-right">Promedio por ticket</th>
+            </tr>
+          </thead>
+          <tbody>
+            <% cajerosArray.forEach(c => { %>
+            <tr>
+              <td class="fw-medium"><%= c.nombre %></td>
+              <td class="text-right"><%= c.tickets %></td>
+              <td class="text-right fw-medium">$<%= c.total.toLocaleString('es-MX', {minimumFractionDigits:2}) %></td>
+              <td class="text-right text-muted">$<%= (c.total / c.tickets).toLocaleString('es-MX', {minimumFractionDigits:2}) %></td>
+            </tr>
+            <% }) %>
+          </tbody>
+        </table>
+      </div>
+    <% } %>
+  </div>
+
+  <!-- Tabla por turno -->
+  <div class="card" style="margin-top:16px;">
+    <div class="card__header">
+      <h3 class="card__title">Últimos turnos con ventas</h3>
+    </div>
+    <% if (turnosConVentas.length === 0) { %>
+      <div class="empty-state empty-state--sm"><p>Sin turnos con ventas en el periodo.</p></div>
+    <% } else { %>
+      <div class="table-wrapper">
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>Caja</th>
+              <th>Inicio</th>
+              <th>Estado</th>
+              <th class="text-right">Tickets</th>
+              <th class="text-right">Total</th>
+            </tr>
+          </thead>
+          <tbody>
+            <% turnosConVentas.forEach(t => { %>
+            <tr>
+              <td class="fw-medium"><%= t.cajas?.nombre || '—' %></td>
+              <td class="text-sm">
+                <%= new Date(t.inicio).toLocaleString('es-MX', { day:'2-digit', month:'short', hour:'2-digit', minute:'2-digit' }) %>
+              </td>
+              <td>
+                <% if (t.estado === 'abierto') { %>
+                  <span class="badge badge--success">Abierto</span>
+                <% } else { %>
+                  <span class="badge badge--normal">Cerrado</span>
+                <% } %>
+              </td>
+              <td class="text-right"><%= t.numTickets %></td>
+              <td class="text-right fw-medium">$<%= t.totalVentas.toLocaleString('es-MX', {minimumFractionDigits:2}) %></td>
+            </tr>
+            <% }) %>
+          </tbody>
+        </table>
+      </div>
+    <% } %>
+  </div>
+
+</div>
+
+<style>
+.reportes-graficas-grid {
+  display: grid;
+  grid-template-columns: 1.3fr 1fr;
+  gap: 16px;
+}
+@media (max-width: 800px) {
+  .reportes-graficas-grid { grid-template-columns: 1fr; }
+}
+</style>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
+<script>
+  const labelsDias = <%- JSON.stringify(labelsDias) %>;
+  const dataDias   = <%- JSON.stringify(dataDias) %>;
+  const porMetodo  = <%- JSON.stringify(porMetodo) %>;
+
+  // Gráfica línea — ventas por día
+  new Chart(document.getElementById('chart-ventas-dia'), {
+    type: 'line',
+    data: {
+      labels: labelsDias.length ? labelsDias : ['Sin datos'],
+      datasets: [{
+        label: 'Ventas',
+        data: dataDias.length ? dataDias : [0],
+        borderColor: '#B5294E',
+        backgroundColor: 'rgba(181,41,78,0.1)',
+        fill: true,
+        tension: 0.3,
+        pointBackgroundColor: '#6C0820',
+      }]
+    },
+    options: {
+      responsive: true,
+      plugins: { legend: { display: false } },
+      scales: {
+        y: { beginAtZero: true, ticks: { callback: v => '$' + v.toLocaleString() } }
+      }
+    }
+  });
+
+  // Gráfica barras — por método de pago
+  const metodosLabels = Object.keys(porMetodo).map(k => k.charAt(0).toUpperCase() + k.slice(1));
+  const metodosData   = Object.values(porMetodo);
+
+  new Chart(document.getElementById('chart-metodos'), {
+    type: 'bar',
+    data: {
+      labels: metodosLabels,
+      datasets: [{
+        label: 'Total',
+        data: metodosData,
+        backgroundColor: ['#6C0820', '#B5294E', '#FFB7C5', '#F7E7CE', '#3D5D91'],
+        borderRadius: 6,
+      }]
+    },
+    options: {
+      responsive: true,
+      plugins: { legend: { display: false } },
+      scales: {
+        y: { beginAtZero: true, ticks: { callback: v => '$' + v.toLocaleString() } }
+      }
+    }
+  });
+</script>
+
+<%- include('../partials/footer') %>

@@ -25,111 +25,349 @@
 
   <!-- Toast -->
   <% const toast = (typeof query !== 'undefined' ? query?.toast : null) || ''; %>
-  <% if (toast === 'creado') { %>
-    <div class="alert alert--success" id="toast">Usuario creado correctamente.</div>
-  <% } else if (toast === 'actualizado') { %>
-    <div class="alert alert--success" id="toast">Usuario actualizado.</div>
+  <% if (toast) { %>
+    <div class="alert alert--success" id="toast">
+      <%= toast === 'creado' ? 'Usuario creado correctamente.' : 'Usuario actualizado.' %>
+    </div>
   <% } %>
 
-  <!-- Tabla -->
-  <% if (usuarios.length === 0) { %>
-    <div class="empty-state">
-      <div class="empty-state__icon">
-        <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg>
+  <!-- Layout dos columnas -->
+  <div class="admin-usuarios-layout">
+
+    <!-- Lista izquierda -->
+    <div class="admin-usuarios-lista">
+
+      <!-- Buscador -->
+      <div class="admin-lista__search">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+        <input type="text" id="buscar-usuario" placeholder="Buscar usuario…" class="admin-lista__input" oninput="filtrarUsuarios()">
       </div>
-      <p class="empty-state__title">No hay usuarios registrados</p>
-      <a href="/admin/usuarios/nuevo" class="btn btn-primary">Crear primer usuario</a>
+
+      <!-- Items -->
+      <div class="admin-lista__items" id="lista-usuarios">
+        <% if (usuarios.length === 0) { %>
+          <div class="empty-state empty-state--sm">
+            <p>No hay usuarios registrados.</p>
+          </div>
+        <% } %>
+        <% usuarios.forEach((u, idx) => { %>
+        <div
+          class="admin-lista__item <%= idx === 0 ? 'admin-lista__item--active' : '' %>"
+          data-nombre="<%= u.nombre_completo.toLowerCase() %>"
+          data-usuario="<%= u.nombre_usuario.toLowerCase() %>"
+          onclick="seleccionarUsuario(this, '<%= u.id %>')"
+        >
+          <div class="avatar avatar--<%= u.activo ? 'normal' : 'inactivo' %>">
+            <%= u.nombre_completo.charAt(0).toUpperCase() %>
+          </div>
+          <div class="admin-lista__item-info">
+            <span class="admin-lista__item-nombre"><%= u.nombre_completo %></span>
+            <span class="admin-lista__item-rol"><%= u.roles?.nombre || '—' %></span>
+          </div>
+          <% if (!u.activo) { %>
+            <span class="badge badge--danger" style="font-size:.65rem">Inactivo</span>
+          <% } %>
+        </div>
+        <% }) %>
+      </div>
     </div>
-  <% } else { %>
-    <div class="table-wrapper">
-      <table class="data-table">
-        <thead>
-          <tr>
-            <th>Usuario</th>
-            <th>Nombre de usuario</th>
-            <th>Rol</th>
-            <th>Último login</th>
-            <th>Estado</th>
-            <th class="th-actions">Acciones</th>
-          </tr>
-        </thead>
-        <tbody>
-          <% usuarios.forEach(u => { %>
-          <tr class="data-table__row">
-            <td>
-              <div class="usuario-cell">
-                <div class="avatar avatar--<%= u.activo ? 'normal' : 'inactivo' %>">
-                  <%= u.nombre_completo.charAt(0).toUpperCase() %>
-                </div>
-                <span class="fw-medium"><%= u.nombre_completo %></span>
-              </div>
-            </td>
-            <td>
-              <code class="rfc-badge"><%= u.nombre_usuario %></code>
-            </td>
-            <td>
-              <span class="badge badge--rol"><%= u.roles?.nombre || '—' %></span>
-            </td>
-            <td class="text-sm text-muted">
-              <% if (u.ultimo_login) { %>
-                <%= new Date(u.ultimo_login).toLocaleString('es-MX', { day:'2-digit', month:'short', year:'numeric', hour:'2-digit', minute:'2-digit' }) %>
-              <% } else { %>
-                Nunca
-              <% } %>
-            </td>
-            <td>
+
+    <!-- Panel derecho -->
+    <div class="admin-usuario-panel" id="panel-usuario">
+      <% if (usuarios.length === 0) { %>
+        <div class="empty-state">
+          <p>No hay usuarios para mostrar.</p>
+        </div>
+      <% } else { %>
+        <% const u = usuarios[0]; %>
+
+        <!-- Header del panel -->
+        <div class="panel-header">
+          <div class="panel-header__left">
+            <div class="avatar avatar--xl avatar--<%= u.activo ? 'normal' : 'inactivo' %>" id="panel-avatar">
+              <%= u.nombre_completo.charAt(0).toUpperCase() %>
+            </div>
+            <div>
+              <h2 class="panel-nombre" id="panel-nombre"><%= u.nombre_completo %></h2>
+              <code class="rfc-badge" id="panel-username"><%= u.nombre_usuario %></code>
+              <span class="badge badge--rol" id="panel-rol"><%= u.roles?.nombre || '—' %></span>
+            </div>
+          </div>
+          <div class="panel-header__right" id="panel-acciones">
+            <a href="/admin/usuarios/<%= u.id %>/editar" class="btn btn-secondary btn-sm" id="btn-editar">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+              Editar
+            </a>
+            <form method="POST" action="/admin/usuarios/<%= u.id %>/toggle" class="form-inline" id="form-toggle">
+              <input type="hidden" name="activo_actual" value="<%= u.activo %>" id="toggle-activo-actual">
+              <button type="submit" class="btn btn-sm <%= u.activo ? 'btn-danger' : 'btn-ghost' %>" id="btn-toggle"
+                onclick="return confirm('<%= u.activo ? '¿Desactivar' : '¿Activar' %> a <%= u.nombre_completo %>?')">
+                <%= u.activo ? 'Desactivar' : 'Activar' %>
+              </button>
+            </form>
+          </div>
+        </div>
+
+        <!-- Info del usuario -->
+        <div class="panel-info-grid">
+          <div class="panel-info-item">
+            <span class="panel-info-label">Estado</span>
+            <span id="panel-estado">
               <% if (u.activo) { %>
                 <span class="badge badge--success">Activo</span>
               <% } else { %>
                 <span class="badge badge--danger">Inactivo</span>
               <% } %>
-            </td>
-            <td class="td-actions">
-              <a href="/admin/usuarios/<%= u.id %>/editar" class="icon-btn" title="Editar">
-                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
-              </a>
-              <form method="POST" action="/admin/usuarios/<%= u.id %>/toggle" class="form-inline">
-                <input type="hidden" name="activo_actual" value="<%= u.activo %>">
-                <button type="submit" class="icon-btn <%= u.activo ? 'icon-btn--danger' : 'icon-btn--success' %>"
-                  title="<%= u.activo ? 'Desactivar' : 'Activar' %>"
-                  onclick="return confirm('<%= u.activo ? '¿Desactivar' : '¿Activar' %> a <%= u.nombre_completo %>?')">
-                  <% if (u.activo) { %>
-                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="8" y1="12" x2="16" y2="12"/></svg>
-                  <% } else { %>
-                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/></svg>
-                  <% } %>
-                </button>
-              </form>
-            </td>
-          </tr>
-          <% }) %>
-        </tbody>
-      </table>
-    </div>
-  <% } %>
+            </span>
+          </div>
+          <div class="panel-info-item">
+            <span class="panel-info-label">Último login</span>
+            <span class="panel-info-value" id="panel-login">
+              <%= u.ultimo_login ? new Date(u.ultimo_login).toLocaleString('es-MX', { day:'2-digit', month:'short', year:'numeric', hour:'2-digit', minute:'2-digit' }) : 'Nunca' %>
+            </span>
+          </div>
+          <div class="panel-info-item">
+            <span class="panel-info-label">Registrado</span>
+            <span class="panel-info-value" id="panel-creado">
+              <%= new Date(u.creado_en).toLocaleDateString('es-MX', { day:'2-digit', month:'short', year:'numeric' }) %>
+            </span>
+          </div>
+        </div>
 
+        <!-- Tabs de permisos -->
+        <div class="permisos-section">
+          <h3 class="permisos-title">Permisos del rol: <span id="permisos-rol-nombre"><%= u.roles?.nombre || '—' %></span></h3>
+          <div class="permisos-grid" id="permisos-grid">
+            <%
+              const permisos = [
+                { key: 'perm_inventario_entrada',  label: 'Entrada inventario',  grupo: 'Inventario' },
+                { key: 'perm_inventario_ajuste',   label: 'Ajuste inventario',   grupo: 'Inventario' },
+                { key: 'perm_kardex',              label: 'Ver kardex',           grupo: 'Inventario' },
+                { key: 'perm_corte_caja',          label: 'Corte de caja',        grupo: 'Ventas' },
+                { key: 'perm_modificar_precios',   label: 'Modificar precios',    grupo: 'Productos' },
+                { key: 'perm_cancelar_tickets',    label: 'Cancelar tickets',     grupo: 'Ventas' },
+                { key: 'perm_clientes',            label: 'Clientes',             grupo: 'Clientes' },
+                { key: 'perm_descuentos',          label: 'Descuentos',           grupo: 'Ventas' },
+                { key: 'perm_reportes',            label: 'Reportes',             grupo: 'Otros' },
+                { key: 'perm_exportar',            label: 'Exportar',             grupo: 'Otros' },
+                { key: 'perm_promociones',         label: 'Promociones',          grupo: 'Productos' },
+                { key: 'perm_administrar',         label: 'Administrar',          grupo: 'Otros' },
+              ];
+            %>
+            <% permisos.forEach(p => { %>
+              <div class="permiso-chip permiso-chip--<%= u.roles && u.roles[p.key] ? 'on' : 'off' %>">
+                <% if (u.roles && u.roles[p.key]) { %>
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg>
+                <% } else { %>
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+                <% } %>
+                <%= p.label %>
+              </div>
+            <% }) %>
+          </div>
+          <p class="form-hint" style="margin-top:10px;">Los permisos se heredan del rol asignado. Para cambiarlos, edita el rol desde el backend.</p>
+        </div>
+
+      <% } %>
+    </div>
+
+  </div>
 </div>
 
 <style>
-.usuario-cell {
+.admin-usuarios-layout {
+  display: grid;
+  grid-template-columns: 280px 1fr;
+  gap: 20px;
+  align-items: start;
+}
+@media (max-width: 800px) {
+  .admin-usuarios-layout { grid-template-columns: 1fr; }
+}
+
+/* Lista izquierda */
+.admin-usuarios-lista {
+  background: #fff;
+  border-radius: 12px;
+  box-shadow: 0 1px 4px rgba(60,40,50,.07);
+  overflow: hidden;
+}
+.admin-lista__search {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 12px;
+  border-bottom: 1px solid #F2DCDB;
+  color: #aaa;
+}
+.admin-lista__input {
+  flex: 1;
+  border: none;
+  outline: none;
+  font-size: .85rem;
+  font-family: 'DM Sans', sans-serif;
+  color: #333;
+}
+.admin-lista__items { display: flex; flex-direction: column; }
+.admin-lista__item {
   display: flex;
   align-items: center;
   gap: 10px;
+  padding: 12px 14px;
+  cursor: pointer;
+  border-bottom: 1px solid #F7E7CE;
+  transition: background .12s;
 }
-.avatar--inactivo { background: #f3f4f6; color: #9ca3af; }
-.badge--rol {
-  background: #ede9fe;
-  color: #5b21b6;
-  font-size: .75rem;
-  padding: 3px 8px;
+.admin-lista__item:last-child { border-bottom: none; }
+.admin-lista__item:hover { background: #FDF5F5; }
+.admin-lista__item--active { background: #F2DCDB !important; }
+.admin-lista__item-info { display: flex; flex-direction: column; flex: 1; min-width: 0; }
+.admin-lista__item-nombre { font-size: .85rem; font-weight: 600; color: #3D5D91; }
+.admin-lista__item-rol { font-size: .72rem; color: #aaa; }
+
+/* Panel derecho */
+.admin-usuario-panel {
+  background: #fff;
   border-radius: 12px;
+  box-shadow: 0 1px 4px rgba(60,40,50,.07);
+  padding: 24px;
+}
+
+.panel-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 20px;
+  padding-bottom: 20px;
+  border-bottom: 1px solid #F2DCDB;
+}
+.panel-header__left { display: flex; align-items: center; gap: 14px; }
+.panel-header__right { display: flex; gap: 8px; flex-shrink: 0; }
+
+.panel-nombre {
+  font-family: 'Playfair Display', serif;
+  font-size: 1.15rem;
+  color: #3D5D91;
+  margin: 0 0 4px;
+}
+
+.panel-info-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 12px;
+  margin-bottom: 24px;
+}
+.panel-info-item {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+.panel-info-label {
+  font-size: .72rem;
+  font-weight: 600;
+  color: #aaa;
+  text-transform: uppercase;
+  letter-spacing: .06em;
+}
+.panel-info-value { font-size: .85rem; color: #3D5D91; font-weight: 500; }
+
+/* Permisos */
+.permisos-section { border-top: 1px solid #F2DCDB; padding-top: 20px; }
+.permisos-title {
+  font-size: .88rem;
+  font-weight: 600;
+  color: #6C0820;
+  margin: 0 0 14px;
+}
+.permisos-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.permiso-chip {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  padding: 5px 12px;
+  border-radius: 20px;
+  font-size: .75rem;
   font-weight: 600;
 }
-.icon-btn--success { background: #d1fae5; color: #065f46; }
-.icon-btn--success:hover { background: #6ee7b7; }
+.permiso-chip--on  { background: #d1fae5; color: #065f46; }
+.permiso-chip--off { background: #f3f4f6; color: #9ca3af; }
 </style>
 
 <script>
+  // Datos de usuarios para el panel
+  const usuariosData = <%- JSON.stringify(usuarios) %>;
+
+  function filtrarUsuarios() {
+    const q = document.getElementById('buscar-usuario').value.toLowerCase();
+    document.querySelectorAll('.admin-lista__item').forEach(item => {
+      const match = item.dataset.nombre.includes(q) || item.dataset.usuario.includes(q);
+      item.style.display = match ? '' : 'none';
+    });
+  }
+
+  function seleccionarUsuario(el, id) {
+    // Marcar activo
+    document.querySelectorAll('.admin-lista__item').forEach(i => i.classList.remove('admin-lista__item--active'));
+    el.classList.add('admin-lista__item--active');
+
+    // Buscar datos del usuario
+    const u = usuariosData.find(x => x.id === id);
+    if (!u) return;
+
+    // Actualizar panel
+    document.getElementById('panel-nombre').textContent   = u.nombre_completo;
+    document.getElementById('panel-username').textContent = u.nombre_usuario;
+    document.getElementById('panel-rol').textContent      = u.roles?.nombre || '—';
+    document.getElementById('panel-avatar').textContent   = u.nombre_completo.charAt(0).toUpperCase();
+    document.getElementById('panel-login').textContent    = u.ultimo_login
+      ? new Date(u.ultimo_login).toLocaleString('es-MX', { day:'2-digit', month:'short', year:'numeric', hour:'2-digit', minute:'2-digit' })
+      : 'Nunca';
+    document.getElementById('panel-creado').textContent   = new Date(u.creado_en).toLocaleDateString('es-MX', { day:'2-digit', month:'short', year:'numeric' });
+    document.getElementById('panel-estado').innerHTML     = u.activo
+      ? '<span class="badge badge--success">Activo</span>'
+      : '<span class="badge badge--danger">Inactivo</span>';
+    document.getElementById('permisos-rol-nombre').textContent = u.roles?.nombre || '—';
+
+    // Botones
+    document.getElementById('btn-editar').href = `/admin/usuarios/${u.id}/editar`;
+    document.getElementById('form-toggle').action = `/admin/usuarios/${u.id}/toggle`;
+    document.getElementById('toggle-activo-actual').value = u.activo;
+    const btnToggle = document.getElementById('btn-toggle');
+    btnToggle.textContent = u.activo ? 'Desactivar' : 'Activar';
+    btnToggle.className   = `btn btn-sm ${u.activo ? 'btn-danger' : 'btn-ghost'}`;
+
+    // Permisos
+    const permisos = [
+      { key: 'perm_inventario_entrada', label: 'Entrada inventario' },
+      { key: 'perm_inventario_ajuste',  label: 'Ajuste inventario' },
+      { key: 'perm_kardex',             label: 'Ver kardex' },
+      { key: 'perm_corte_caja',         label: 'Corte de caja' },
+      { key: 'perm_modificar_precios',  label: 'Modificar precios' },
+      { key: 'perm_cancelar_tickets',   label: 'Cancelar tickets' },
+      { key: 'perm_clientes',           label: 'Clientes' },
+      { key: 'perm_descuentos',         label: 'Descuentos' },
+      { key: 'perm_reportes',           label: 'Reportes' },
+      { key: 'perm_exportar',           label: 'Exportar' },
+      { key: 'perm_promociones',        label: 'Promociones' },
+      { key: 'perm_administrar',        label: 'Administrar' },
+    ];
+
+    document.getElementById('permisos-grid').innerHTML = permisos.map(p => `
+      <div class="permiso-chip permiso-chip--${u.roles && u.roles[p.key] ? 'on' : 'off'}">
+        ${u.roles && u.roles[p.key]
+          ? '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg>'
+          : '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>'
+        }
+        ${p.label}
+      </div>
+    `).join('');
+  }
+
   const toastEl = document.getElementById('toast');
   if (toastEl) setTimeout(() => toastEl.style.display = 'none', 3500);
 </script>
