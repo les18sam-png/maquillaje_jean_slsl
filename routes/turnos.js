@@ -1,73 +1,52 @@
 // routes/turnos.js
 // SmartVenta PDV — Módulo Turnos
-// SOLO FRONTEND
+// MIGRADO — usa helper api.js en lugar de Supabase directo
 
 const express = require('express');
 const router  = express.Router();
-const { supabase } = require('../db/database');
-
-const SUCURSAL_ID = process.env.SUCURSAL_ID;
-const USUARIO_ID  = '00000000-0000-0000-0000-000000000000'; // temporal
-
-/* ─────────────────────────────────────────
-   Helper: obtener turno abierto actual
-───────────────────────────────────────── */
-async function getTurnoAbierto() {
-  const { data } = await supabase
-    .from('turnos')
-    .select(`
-      id, inicio, estado,
-      cajas(id, nombre),
-      usuarios(id, nombre_completo)
-    `)
-    .eq('estado', 'abierto')
-    .order('inicio', { ascending: false })
-    .limit(1)
-    .single();
-  return data || null;
-}
+const { api } = require('../db/api');
 
 /* ─────────────────────────────────────────
    GET /turnos → redirige según estado
+   Usa la sesión del servidor; si no hay nada en sesión
+   (ej. el server se reinició), consulta a FastAPI si el
+   usuario ya tiene un turno abierto en otra caja.
 ───────────────────────────────────────── */
 router.get('/', async (req, res) => {
+  if (req.session.turno_id) {
+    return res.redirect('/turnos/cierre');
+  }
+
   try {
-    const turno = await getTurnoAbierto();
+    const turno = await api('/turnos/mi-activo', {}, req.session.token);
     if (turno) {
-      res.redirect('/turnos/cierre');
-    } else {
-      res.redirect('/turnos/apertura');
+      req.session.caja_id  = turno.caja_id;
+      req.session.turno_id = turno.id;
+      return res.redirect('/turnos/cierre');
     }
   } catch (err) {
-    console.error('Error en GET /turnos:', err.message);
-    res.redirect('/turnos/apertura');
+    if (err.status === 401) return res.redirect('/auth/login?error=sesion');
   }
+
+  res.redirect('/turnos/apertura');
 });
 
 /* ─────────────────────────────────────────
-   64 — GET /turnos/apertura
+   GET /turnos/apertura
 ───────────────────────────────────────── */
 router.get('/apertura', async (req, res) => {
   try {
-    // Verificar si ya hay turno abierto
-    const turnoAbierto = await getTurnoAbierto();
-
-    // Obtener cajas de la sucursal
-    const { data: cajas } = await supabase
-      .from('cajas')
-      .select('id, nombre')
-      .eq('sucursal_id', SUCURSAL_ID)
-      .eq('activa', true)
-      .eq('es_verificador', false)
-      .order('nombre');
+    const resultado = await api('/cajas/', {}, req.session.token);
+    const cajas = (resultado?.items || []).filter(c => !c.es_verificador);
 
     res.render('turnos/apertura', {
-      title:        'Apertura de Turno',
-      turnoAbierto: turnoAbierto || null,
-      cajas:        cajas || [],
-      ahora:        new Date().toISOString(),
+      title: 'Apertura de Turno',
+      cajas,
+      ahora: new Date().toISOString(),
+      error: req.query.error || null,
     });
   } catch (err) {
+    if (err.status === 401) return res.redirect('/auth/login?error=sesion');
     console.error('Error en GET /turnos/apertura:', err.message);
     res.status(500).send('Error al cargar apertura de turno: ' + err.message);
   }
@@ -75,95 +54,62 @@ router.get('/apertura', async (req, res) => {
 
 /* ─────────────────────────────────────────
    POST /turnos/apertura — Abrir turno
+   El fondo inicial ahora se registra como movimiento de caja
+   dentro del mismo RPC en FastAPI (RF-10.1).
 ───────────────────────────────────────── */
 router.post('/apertura', async (req, res) => {
+  const { caja_id, fondo_inicial, notas } = req.body;
+
+  if (!caja_id) return res.redirect('/turnos/apertura?error=sin-caja');
+
   try {
-    const { caja_id, fondo_inicial, notas } = req.body;
-
-    // Verificar que no haya turno abierto en esa caja
-    const { data: turnoExistente } = await supabase
-      .from('turnos')
-      .select('id')
-      .eq('caja_id', caja_id)
-      .eq('estado', 'abierto')
-      .single();
-
-    if (turnoExistente) {
-      return res.redirect('/turnos/apertura?error=ya-abierto');
-    }
-
-    const { error } = await supabase
-      .from('turnos')
-      .insert([{
+    const turno = await api('/turnos/abrir', {
+      method: 'POST',
+      body: {
         caja_id,
-        usuario_id: USUARIO_ID,
-        estado:     'abierto',
-        inicio:     new Date().toISOString(),
-      }]);
+        fondo_inicial: parseFloat(fondo_inicial) || 0,
+        notas: notas || null,
+      },
+    }, req.session.token);
 
-    if (error) throw error;
+    req.session.caja_id  = turno.caja_id;
+    req.session.turno_id = turno.id;
 
     res.redirect('/turnos/cierre?toast=abierto');
   } catch (err) {
+    if (err.status === 401) return res.redirect('/auth/login?error=sesion');
+    if (err.status === 409) return res.redirect('/turnos/apertura?error=ya-abierto');
     console.error('Error abriendo turno:', err.message);
     res.redirect('/turnos/apertura?error=fallo');
   }
 });
 
 /* ─────────────────────────────────────────
-   65 — GET /turnos/cierre
+   GET /turnos/cierre
 ───────────────────────────────────────── */
 router.get('/cierre', async (req, res) => {
+  if (!req.session.turno_id) {
+    return res.redirect('/turnos/apertura?error=sin-turno');
+  }
+
   try {
-    const turno = await getTurnoAbierto();
+    const resumen = await api(`/turnos/${req.session.turno_id}/resumen`, {}, req.session.token);
 
-    if (!turno) {
-      return res.redirect('/turnos/apertura?error=sin-turno');
-    }
-
-    // Resumen de ventas del turno
-    const { data: ventas } = await supabase
-      .from('ventas')
-      .select('total, metodo_pago_principal, estado')
-      .eq('turno_id', turno.id)
-      .eq('estado', 'activa');
-
-    const resumen = {
-      totalVentas:      0,
-      totalTickets:     0,
-      totalEfectivo:    0,
-      totalTarjeta:     0,
-      totalTransferencia: 0,
-      totalCheque:      0,
-      totalMixto:       0,
-    };
-
-    (ventas || []).forEach(v => {
-      resumen.totalVentas  += Number(v.total) || 0;
-      resumen.totalTickets += 1;
-      if (v.metodo_pago_principal === 'efectivo')      resumen.totalEfectivo      += Number(v.total);
-      if (v.metodo_pago_principal === 'tarjeta')       resumen.totalTarjeta       += Number(v.total);
-      if (v.metodo_pago_principal === 'transferencia') resumen.totalTransferencia += Number(v.total);
-      if (v.metodo_pago_principal === 'cheque')        resumen.totalCheque        += Number(v.total);
-      if (v.metodo_pago_principal === 'mixto')         resumen.totalMixto         += Number(v.total);
-    });
-
-    // Duración del turno
-    const inicio   = new Date(turno.inicio);
+    const inicio   = new Date(resumen.turno.inicio);
     const ahora    = new Date();
     const diffMs   = ahora - inicio;
     const diffHrs  = Math.floor(diffMs / 3600000);
     const diffMins = Math.floor((diffMs % 3600000) / 60000);
-    const duracion = `${diffHrs}h ${diffMins}m`;
 
     res.render('turnos/cierre', {
       title:    'Cierre de Turno',
-      turno,
+      turno:    resumen.turno,
       resumen,
-      duracion,
+      duracion: `${diffHrs}h ${diffMins}m`,
       inicio:   inicio.toLocaleString('es-MX', { dateStyle: 'medium', timeStyle: 'short' }),
     });
   } catch (err) {
+    if (err.status === 401) return res.redirect('/auth/login?error=sesion');
     console.error('Error en GET /turnos/cierre:', err.message);
     res.status(500).send('Error al cargar cierre de turno: ' + err.message);
   }
@@ -171,24 +117,23 @@ router.get('/cierre', async (req, res) => {
 
 /* ─────────────────────────────────────────
    POST /turnos/cierre — Cerrar turno
+   Requiere perm_corte_caja (validado en FastAPI).
 ───────────────────────────────────────── */
 router.post('/cierre', async (req, res) => {
+  if (!req.session.turno_id) {
+    return res.redirect('/turnos/apertura?error=sin-turno');
+  }
+
   try {
-    const { turno_id, notas } = req.body;
+    await api(`/turnos/${req.session.turno_id}/cerrar`, { method: 'POST' }, req.session.token);
 
-    const { error } = await supabase
-      .from('turnos')
-      .update({
-        estado: 'cerrado',
-        cierre: new Date().toISOString(),
-      })
-      .eq('id', turno_id)
-      .eq('estado', 'abierto');
-
-    if (error) throw error;
+    req.session.caja_id  = null;
+    req.session.turno_id = null;
 
     res.redirect('/turnos/apertura?toast=cerrado');
   } catch (err) {
+    if (err.status === 401) return res.redirect('/auth/login?error=sesion');
+    if (err.status === 403) return res.redirect('/turnos/cierre?error=sin-permiso');
     console.error('Error cerrando turno:', err.message);
     res.redirect('/turnos/cierre?error=fallo');
   }
