@@ -31,11 +31,6 @@ async function obtenerClientes(token) {
 /* ─────────────────────────────────────────
    GET /venta
    Catálogo de productos con buscador
-   NOTA: asumo que /productos/buscar sin "termino" regresa
-   el catálogo completo activo de la sucursal (con stock vía
-   join a inventario, ya resuelto del lado de FastAPI).
-   Si tu endpoint no soporta búsqueda vacía, dime el endpoint
-   correcto para listar catálogo completo y lo ajusto.
 ───────────────────────────────────────── */
 router.get('/', async (req, res) => {
   try {
@@ -108,8 +103,9 @@ router.get('/producto/:id', async (req, res) => {
    POST /venta/cobrar
    Cierra la venta — llama al endpoint de FastAPI que ejecuta
    el RPC registrar_venta_completa (inventario + kardex + auditoría).
-   caja_id y turno_id NO se reciben del cliente: se toman de la
-   sesión de servidor, poblada al abrir turno (RNF-03.4).
+   caja_id y turno_id se toman de la sesión de servidor (poblada al
+   abrir turno) y se envían en el body para que FastAPI los valide
+   contra la base de datos antes de registrar la venta (RNF-03.4).
 ───────────────────────────────────────── */
 router.post('/cobrar', async (req, res) => {
   if (!req.session.caja_id || !req.session.turno_id) {
@@ -131,6 +127,8 @@ router.post('/cobrar', async (req, res) => {
     const venta = await api('/ventas/', {
       method: 'POST',
       body: {
+        caja_id: req.session.caja_id,
+        turno_id: req.session.turno_id,
         cliente_id: cliente_id || null,
         articulos,
         pagos,
