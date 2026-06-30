@@ -1,136 +1,176 @@
-<%- include('../partials/header', { title }) %>
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Apertura de Turno — SmartVenta</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600;700&family=Playfair+Display:wght@600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/css/main.css">
+</head>
+<body class="apertura-body">
 
-<div class="page-wrapper">
+  <div class="apertura-backdrop"></div>
 
-  <!-- Breadcrumb -->
-  <nav class="breadcrumb">
-    <span class="breadcrumb__current">Turnos</span>
-    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg>
-    <span class="breadcrumb__current">Apertura</span>
-  </nav>
+  <div class="apertura-card">
 
-  <!-- Encabezado -->
-  <div class="page-header">
-    <div class="page-header__left">
-      <h1 class="page-title">Apertura de Turno</h1>
-      <span class="page-subtitle">Registra el inicio de tu turno de trabajo</span>
+    <!-- Logo compacto -->
+    <div class="apertura-logo">
+      <div class="apertura-logo__icon">
+        <svg viewBox="0 0 24 24" fill="white" width="20" height="20">
+          <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 14H9V8h2v8zm4 0h-2V8h2v8z"/>
+        </svg>
+      </div>
+      <span class="apertura-logo__name">SmartVenta</span>
     </div>
-  </div>
 
-  <!-- Alerta turno ya abierto -->
-  <% const errorParam = (typeof query !== 'undefined' ? query?.error : null) || ''; %>
-  <% if (turnoAbierto) { %>
-    <div class="alert alert--warning">
-      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
-      Ya hay un turno abierto en <strong><%= turnoAbierto.cajas?.nombre || 'una caja' %></strong>.
-      ¿Quieres <a href="/turnos/cierre" class="link">ir al cierre</a>?
-    </div>
-  <% } %>
+    <h1 class="apertura-title">Apertura de Turno</h1>
+    <p class="apertura-subtitle">Hola, <strong><%= usuario?.nombre_completo || 'cajero' %></strong> — elige tu caja para comenzar</p>
 
-  <% if (errorParam === 'ya-abierto') { %>
-    <div class="alert alert--error">
-      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
-      Esa caja ya tiene un turno abierto.
-    </div>
-  <% } %>
+    <!-- Alertas -->
+    <% if (turnoAbierto) { %>
+      <div class="alert alert--warning" style="margin-bottom:16px">
+        Ya tienes un turno abierto en <strong><%= turnoAbierto.cajas?.nombre || 'una caja' %></strong>.
+        <a href="/turnos/cierre" class="link">Ir al cierre</a>
+      </div>
+    <% } %>
+    <% const err = query?.error || ''; %>
+    <% if (err === 'ya-abierto') { %>
+      <div class="alert alert--error" style="margin-bottom:16px">Esa caja ya tiene un turno abierto.</div>
+    <% } %>
+    <% if (err === 'fallo') { %>
+      <div class="alert alert--error" style="margin-bottom:16px">No se pudo abrir el turno. Intenta de nuevo.</div>
+    <% } %>
+    <% if (err === 'sin-caja') { %>
+      <div class="alert alert--error" style="margin-bottom:16px">Debes seleccionar una caja.</div>
+    <% } %>
+    <% if (query?.toast === 'cerrado') { %>
+      <div class="alert alert--success" style="margin-bottom:16px">Turno cerrado correctamente.</div>
+    <% } %>
 
-  <!-- Toast turno cerrado -->
-  <% const toastParam = (typeof query !== 'undefined' ? query?.toast : null) || ''; %>
-  <% if (toastParam === 'cerrado') { %>
-    <div class="alert alert--success">
-      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>
-      Turno cerrado correctamente.
-    </div>
-  <% } %>
+    <form method="POST" action="/turnos/apertura" id="form-apertura">
 
-  <!-- Formulario apertura -->
-  <div class="turno-form-wrap">
-    <form method="POST" action="/turnos/apertura" class="form-card" id="form-apertura">
-
-      <div class="form-section">
-        <h2 class="form-section__title">Datos del turno</h2>
-
-        <!-- Fecha y hora -->
-        <div class="form-group form-group--full">
-          <label class="form-label">Fecha y hora de apertura</label>
-          <div class="turno-datetime">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
-            <span id="fecha-hora-display"></span>
-          </div>
-        </div>
-
-        <!-- Caja + Fondo inicial -->
-        <div class="form-row">
-          <div class="form-group">
-            <label class="form-label" for="caja_id">
-              Caja <span class="required">*</span>
-            </label>
-            <% if (cajas.length === 0) { %>
-              <div class="alert alert--warning" style="margin:0">No hay cajas activas configuradas.</div>
-            <% } else { %>
-              <select name="caja_id" id="caja_id" class="form-control" required>
-                <option value="">Selecciona una caja…</option>
-                <% cajas.forEach(c => { %>
-                  <option value="<%= c.id %>"><%= c.nombre %></option>
-                <% }) %>
-              </select>
-            <% } %>
-          </div>
-
-          <div class="form-group">
-            <label class="form-label" for="fondo_inicial">
-              Fondo inicial en efectivo
-            </label>
-            <div class="input-money-wrap">
-              <span class="input-money-prefix">$</span>
-              <input
-                type="number"
-                id="fondo_inicial"
-                name="fondo_inicial"
-                class="form-control form-control--money"
-                placeholder="0.00"
-                min="0"
-                step="0.01"
-                value="0"
-              >
-            </div>
-            <span class="form-hint">Efectivo con que inicia la caja</span>
-          </div>
-        </div>
-
-        <!-- Cajero -->
-        <div class="form-group form-group--full">
-          <label class="form-label">Cajero</label>
-          <input type="text" class="form-control" value="Usuario (temporal)" disabled>
-          <span class="form-hint">Se asignará automáticamente al implementar login</span>
-        </div>
-
+      <!-- Fecha/hora -->
+      <div class="apertura-datetime">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+        <span id="fecha-hora-display"></span>
       </div>
 
-      <div class="form-footer">
-        <button type="submit" class="btn btn-primary btn-lg" <%= cajas.length === 0 ? 'disabled' : '' %>>
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
-          Abrir Turno
-        </button>
+      <!-- Caja -->
+      <div class="form-group" style="margin-top:16px">
+        <label class="form-label" for="caja_id">Caja <span class="required">*</span></label>
+        <% if (cajas.length === 0) { %>
+          <div class="alert alert--warning" style="margin:4px 0 0">
+            No hay cajas activas. Pide al administrador que configure una en
+            <a href="/admin/cajas" class="link">Admin → Cajas</a>.
+          </div>
+        <% } else { %>
+          <select name="caja_id" id="caja_id" class="form-control" required>
+            <option value="">Selecciona una caja…</option>
+            <% cajas.forEach(c => { %>
+              <option value="<%= c.id %>"><%= c.nombre %></option>
+            <% }) %>
+          </select>
+        <% } %>
       </div>
+
+      <!-- Fondo inicial -->
+      <div class="form-group" style="margin-top:14px">
+        <label class="form-label" for="fondo_inicial">Fondo inicial en efectivo</label>
+        <div class="input-money-wrap">
+          <span class="input-money-prefix">$</span>
+          <input
+            type="number" id="fondo_inicial" name="fondo_inicial"
+            class="form-control form-control--money"
+            placeholder="0.00" min="0" step="0.01" value="0"
+          >
+        </div>
+        <span class="form-hint">Efectivo con que inicia la caja</span>
+      </div>
+
+      <button
+        type="submit"
+        class="btn btn-primary btn-lg w-full"
+        style="margin-top:24px;justify-content:center"
+        <%= cajas.length === 0 ? 'disabled' : '' %>
+      >
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+        Abrir Turno
+      </button>
 
     </form>
+
+    <form method="POST" action="/auth/logout" style="margin-top:14px;text-align:center">
+      <button type="submit" class="btn btn-ghost" style="font-size:.8rem;color:#aaa">
+        Cerrar sesión
+      </button>
+    </form>
+
   </div>
 
-</div>
+<style>
+  .apertura-body {
+    background: linear-gradient(135deg, #4A0517 0%, #6C0820 50%, #8B1030 100%);
+    min-height: 100vh;
+    display: flex; align-items: center; justify-content: center;
+    padding: 24px; margin: 0;
+  }
+  .apertura-backdrop {
+    position: fixed; inset: 0;
+    background: url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23ffffff' fill-opacity='0.03'%3E%3Ccircle cx='30' cy='30' r='2'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E");
+    pointer-events: none;
+  }
+  .apertura-card {
+    position: relative;
+    background: #fff;
+    border-radius: 20px;
+    padding: 32px 28px;
+    width: 100%; max-width: 420px;
+    box-shadow: 0 28px 80px rgba(0,0,0,.35);
+  }
+  .apertura-logo {
+    display: flex; align-items: center; gap: 10px; margin-bottom: 20px;
+  }
+  .apertura-logo__icon {
+    width: 36px; height: 36px;
+    background: #6C0820; border-radius: 10px;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .apertura-logo__name {
+    font-family: 'Playfair Display', serif;
+    font-size: 1.1rem; font-weight: 700; color: #6C0820;
+  }
+  .apertura-title {
+    font-family: 'Playfair Display', serif;
+    font-size: 1.45rem; color: #1a1a2e; margin: 0 0 4px;
+  }
+  .apertura-subtitle {
+    font-size: .85rem; color: #888; margin: 0 0 20px;
+  }
+  .apertura-datetime {
+    display: flex; align-items: center; gap: 8px;
+    background: #fdf5f7; border: 1px solid #f5d0d8;
+    border-radius: 8px; padding: 10px 14px;
+    font-size: .83rem; color: #6C0820;
+  }
+</style>
 
 <script>
   function actualizarReloj() {
     const el = document.getElementById('fecha-hora-display');
-    if (el) {
-      el.textContent = new Date().toLocaleString('es-MX', {
-        weekday: 'long', day: '2-digit', month: 'long',
-        year: 'numeric', hour: '2-digit', minute: '2-digit', second: '2-digit'
-      });
-    }
+    if (el) el.textContent = new Date().toLocaleString('es-MX', {
+      weekday:'long', day:'2-digit', month:'long',
+      year:'numeric', hour:'2-digit', minute:'2-digit', second:'2-digit'
+    });
   }
   actualizarReloj();
   setInterval(actualizarReloj, 1000);
 </script>
 
-<%- include('../partials/footer') %>
+<% if (query?.limpiar_caja) { %>
+<script>localStorage.removeItem('smartventa_caja_id');</script>
+<% } %>
+
+</body>
+</html>

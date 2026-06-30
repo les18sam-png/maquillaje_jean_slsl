@@ -42,12 +42,12 @@ const auth = require('./routes/auth');
 app.use('/auth', auth);
 
 // ── Middleware de sesión (protege lo de abajo) ──
-const { requireAuth } = require('./middleware/auth');
+const { requireAuth, requireTurno } = require('./middleware/auth');
 app.use(requireAuth);
 
 // ── Ruta principal ─────────────────────────
 app.get('/', (req, res) => {
-  res.render('index');
+  res.redirect('/venta');
 });
 
 // ── Rutas ──────────────────────────────────

@@ -9,9 +9,9 @@ const { api, API_URL } = require('../db/api');
 // GET /auth/login — muestra formulario
 // ─────────────────────────────────────────
 router.get('/login', (req, res) => {
-  // Si ya hay sesión activa, redirige a inicio
+  // Si ya hay sesión activa, redirige a abrir turno
   if (req.session.token) {
-    return res.redirect('/');
+    return res.redirect('/venta');
   }
   res.render('auth/login', { error: req.query.error || null });
 });

@@ -206,4 +206,44 @@ router.get('/configuracion', async (req, res) => {
   }
 });
 
+/* ─────────────────────────────────────────
+   GET /admin/cajas — MIGRADO a API
+───────────────────────────────────────── */
+router.get('/cajas', async (req, res) => {
+  try {
+    const data = await api('/cajas/?solo_activas=false', {}, req.session.token);
+    res.render('admin/cajas', {
+      title: 'Cajas',
+      cajas: data.items || [],
+      toast: req.query.toast || null,
+      error: req.query.error || null,
+    });
+  } catch (err) {
+    if (err.status === 401) return res.redirect('/auth/login?error=sesion');
+    console.error('Error en GET /admin/cajas:', err.message);
+    res.status(500).send('Error al cargar cajas: ' + err.message);
+  }
+});
+
+/* ─────────────────────────────────────────
+   POST /admin/cajas — MIGRADO a API
+───────────────────────────────────────── */
+router.post('/cajas', async (req, res) => {
+  try {
+    const { nombre, es_verificador } = req.body;
+    await api('/cajas/', {
+      method: 'POST',
+      body: JSON.stringify({
+        nombre:         nombre?.trim(),
+        es_verificador: es_verificador === 'true',
+      }),
+    }, req.session.token);
+    res.redirect('/admin/cajas?toast=creada');
+  } catch (err) {
+    if (err.status === 401) return res.redirect('/auth/login?error=sesion');
+    const msg = err.status === 409 ? 'limite' : 'fallo';
+    res.redirect(`/admin/cajas?error=${msg}`);
+  }
+});
+
 module.exports = router;

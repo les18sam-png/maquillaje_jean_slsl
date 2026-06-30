@@ -2,12 +2,39 @@
 
 <div class="page-wrapper">
 
-  <!-- Breadcrumb -->
   <nav class="breadcrumb">
-    <span class="breadcrumb__current">Turnos</span>
+    <a href="/venta" class="breadcrumb__link">POS</a>
     <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg>
-    <span class="breadcrumb__current">Cierre</span>
+    <span class="breadcrumb__current">Cierre de Turno</span>
   </nav>
+
+  <!-- Filtro de turno -->
+  <div class="card" style="margin-bottom:16px;padding:14px 20px;">
+    <form method="GET" action="/turnos/cierre" style="display:flex;align-items:flex-end;gap:12px;flex-wrap:wrap;">
+      <div class="form-group" style="margin:0;flex:1;min-width:140px;">
+        <label class="form-label">Fecha</label>
+        <input type="date" name="fecha" class="form-control"
+          value="<%= fechaFiltro %>"
+          max="<%= new Date().toISOString().split('T')[0] %>">
+      </div>
+      <% if (turnosDelDia.length > 0) { %>
+      <div class="form-group" style="margin:0;flex:2;min-width:200px;">
+        <label class="form-label">Turno</label>
+        <select name="turno_id" class="form-control">
+          <% turnosDelDia.forEach(t => { %>
+            <option value="<%= t.id %>" <%= t.id === turnoSeleccionado ? 'selected' : '' %>>
+              <%= new Date(t.inicio.includes('Z') ? t.inicio : t.inicio + 'Z')
+                    .toLocaleString('es-MX', {hour:'2-digit', minute:'2-digit'}) %>
+              — <%= t.estado === 'abierto' ? '🟢 Abierto' : '⚫ Cerrado' %>
+            </option>
+          <% }) %>
+        </select>
+      </div>
+      <% } %>
+      <button type="submit" class="btn btn-primary" style="flex-shrink:0;">Ver turno</button>
+      <a href="/turnos/cierre" class="btn btn-ghost" style="flex-shrink:0;">Turno actual</a>
+    </form>
+  </div>
 
   <!-- Encabezado -->
   <div class="page-header">
@@ -24,16 +51,11 @@
     </div>
   </div>
 
-  <!-- Error -->
-  <% const errorParam = (typeof query !== 'undefined' ? query?.error : null) || ''; %>
-  <% if (errorParam === 'fallo') { %>
-    <div class="alert alert--error">
-      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
-      No se pudo cerrar el turno. Intenta de nuevo.
-    </div>
+  <% if ((query?.error || '') === 'fallo') { %>
+    <div class="alert alert--error" style="margin-bottom:16px;">No se pudo cerrar el turno. Intenta de nuevo.</div>
   <% } %>
 
-  <!-- Info del turno -->
+  <!-- Meta del turno -->
   <div class="turno-meta-grid">
     <div class="turno-meta-item">
       <span class="turno-meta-label">Caja</span>
@@ -41,7 +63,7 @@
     </div>
     <div class="turno-meta-item">
       <span class="turno-meta-label">Cajero</span>
-      <span class="turno-meta-value"><%= turno.usuarios?.nombre_completo || 'Usuario temporal' %></span>
+      <span class="turno-meta-value"><%= turno.usuarios?.nombre_completo || '—' %></span>
     </div>
     <div class="turno-meta-item">
       <span class="turno-meta-label">Inicio</span>
@@ -53,14 +75,14 @@
     </div>
   </div>
 
-  <!-- Stats -->
-  <div class="stat-grid" style="margin-bottom: 20px;">
+  <!-- Stats siempre visibles -->
+  <div class="stat-grid" style="margin-bottom:20px;">
     <div class="stat-card">
       <div class="stat-icon burgundy">
         <svg viewBox="0 0 24 24"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6"/></svg>
       </div>
       <div class="stat-info">
-        <div class="stat-value">$<%= resumen.totalVentas.toLocaleString('es-MX', {minimumFractionDigits:2}) %></div>
+        <div class="stat-value">$<%= Number(resumen.totalVentas).toLocaleString('es-MX',{minimumFractionDigits:2}) %></div>
         <div class="stat-label">Total Ventas</div>
       </div>
     </div>
@@ -78,7 +100,7 @@
         <svg viewBox="0 0 24 24"><rect x="2" y="6" width="20" height="12" rx="2"/><path d="M22 10H2"/></svg>
       </div>
       <div class="stat-info">
-        <div class="stat-value">$<%= resumen.totalEfectivo.toLocaleString('es-MX', {minimumFractionDigits:2}) %></div>
+        <div class="stat-value">$<%= Number(resumen.totalEfectivo).toLocaleString('es-MX',{minimumFractionDigits:2}) %></div>
         <div class="stat-label">Efectivo</div>
       </div>
     </div>
@@ -87,91 +109,64 @@
         <svg viewBox="0 0 24 24"><rect x="1" y="4" width="22" height="16" rx="2" ry="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg>
       </div>
       <div class="stat-info">
-        <div class="stat-value">$<%= resumen.totalTarjeta.toLocaleString('es-MX', {minimumFractionDigits:2}) %></div>
+        <div class="stat-value">$<%= Number(resumen.totalTarjeta).toLocaleString('es-MX',{minimumFractionDigits:2}) %></div>
         <div class="stat-label">Tarjeta</div>
       </div>
     </div>
   </div>
 
-  <!-- Desglose por método -->
-  <% if (resumen.totalTransferencia > 0 || resumen.totalCheque > 0 || resumen.totalMixto > 0) { %>
-  <div class="card" style="margin-bottom: 20px;">
+  <!-- Desglose completo — siempre visible -->
+  <div class="card" style="margin-bottom:20px;">
     <div class="card__header">
       <h3 class="card__title">Desglose por método de pago</h3>
     </div>
-    <div style="padding: 16px 20px;">
+    <div style="padding:0 20px 16px;">
       <table class="data-table">
         <thead>
-          <tr>
-            <th>Método</th>
-            <th class="text-right">Monto</th>
-          </tr>
+          <tr><th>Método</th><th class="text-right">Monto</th></tr>
         </thead>
         <tbody>
-          <% if (resumen.totalEfectivo > 0) { %>
+          <% [
+            ['efectivo',     'Efectivo',      'efectivo'],
+            ['tarjeta',      'Tarjeta',       'tarjeta'],
+            ['transferencia','Transferencia', 'transferencia'],
+            ['cheque',       'Cheque',        'cheque'],
+            ['mixto',        'Mixto',         'mixto'],
+          ].forEach(([key, label, badge]) => { %>
           <tr>
-            <td><span class="metodo-badge metodo-badge--efectivo">Efectivo</span></td>
-            <td class="text-right fw-medium">$<%= resumen.totalEfectivo.toLocaleString('es-MX', {minimumFractionDigits:2}) %></td>
+            <td><span class="metodo-badge metodo-badge--<%= badge %>"><%= label %></span></td>
+            <td class="text-right fw-medium">
+              $<%= Number(resumen['total' + key.charAt(0).toUpperCase() + key.slice(1)] || 0).toLocaleString('es-MX',{minimumFractionDigits:2}) %>
+            </td>
           </tr>
-          <% } %>
-          <% if (resumen.totalTarjeta > 0) { %>
-          <tr>
-            <td><span class="metodo-badge metodo-badge--tarjeta">Tarjeta</span></td>
-            <td class="text-right fw-medium">$<%= resumen.totalTarjeta.toLocaleString('es-MX', {minimumFractionDigits:2}) %></td>
+          <% }) %>
+          <tr style="border-top:2px solid #F2DCDB;">
+            <td class="fw-medium" style="color:#6C0820;">Total</td>
+            <td class="text-right fw-medium" style="color:#6C0820;font-size:1rem;">
+              $<%= Number(resumen.totalVentas).toLocaleString('es-MX',{minimumFractionDigits:2}) %>
+            </td>
           </tr>
-          <% } %>
-          <% if (resumen.totalTransferencia > 0) { %>
-          <tr>
-            <td><span class="metodo-badge metodo-badge--transferencia">Transferencia</span></td>
-            <td class="text-right fw-medium">$<%= resumen.totalTransferencia.toLocaleString('es-MX', {minimumFractionDigits:2}) %></td>
-          </tr>
-          <% } %>
-          <% if (resumen.totalCheque > 0) { %>
-          <tr>
-            <td><span class="metodo-badge metodo-badge--cheque">Cheque</span></td>
-            <td class="text-right fw-medium">$<%= resumen.totalCheque.toLocaleString('es-MX', {minimumFractionDigits:2}) %></td>
-          </tr>
-          <% } %>
-          <% if (resumen.totalMixto > 0) { %>
-          <tr>
-            <td><span class="metodo-badge metodo-badge--mixto">Mixto</span></td>
-            <td class="text-right fw-medium">$<%= resumen.totalMixto.toLocaleString('es-MX', {minimumFractionDigits:2}) %></td>
-          </tr>
-          <% } %>
         </tbody>
       </table>
     </div>
   </div>
-  <% } %>
 
   <!-- Confirmar cierre -->
   <div class="turno-form-wrap">
     <form method="POST" action="/turnos/cierre" class="form-card" onsubmit="return confirmarCierre()">
       <input type="hidden" name="turno_id" value="<%= turno.id %>">
-
       <div class="form-section">
         <h2 class="form-section__title">Confirmar cierre</h2>
-
         <div class="cierre-resumen-total">
           <span>Total del turno</span>
-          <strong>$<%= resumen.totalVentas.toLocaleString('es-MX', {minimumFractionDigits:2}) %></strong>
+          <strong>$<%= Number(resumen.totalVentas).toLocaleString('es-MX',{minimumFractionDigits:2}) %></strong>
         </div>
-
-        <div class="form-group form-group--full" style="margin-top: 16px;">
-          <label class="form-label" for="notas">
-            Notas del turno <span class="form-section__optional">(opcional)</span>
-          </label>
-          <textarea
-            id="notas"
-            name="notas"
-            class="form-control"
-            rows="3"
-            placeholder="Observaciones, incidencias, notas para el siguiente turno…"
-            maxlength="500"
-          ></textarea>
+        <div class="form-group form-group--full" style="margin-top:16px;">
+          <label class="form-label" for="notas">Notas del turno <span class="form-section__optional">(opcional)</span></label>
+          <textarea id="notas" name="notas" class="form-control" rows="3"
+            placeholder="Observaciones, incidencias, notas para el siguiente turno…" maxlength="500"></textarea>
         </div>
       </div>
-
       <div class="form-footer">
         <a href="/venta" class="btn btn-ghost">Seguir vendiendo</a>
         <button type="submit" class="btn btn-danger btn-lg">
@@ -179,7 +174,6 @@
           Cerrar Turno
         </button>
       </div>
-
     </form>
   </div>
 

@@ -11,24 +11,108 @@ async function obtenerClientes(token) {
 }
 
 router.get('/', async (req, res) => {
+  const tieneTurno = !!(req.session.turno_id && req.session.caja_id);
+
   try {
-    const [categorias, clientes, pendientes] = await Promise.all([
+    const resultados = await Promise.all([
       obtenerCategorias(req.session.token),
       obtenerClientes(req.session.token),
-      api('/ventas/pendientes', {}, req.session.token).catch(() => []),
+      // Cajas solo si no hay turno (para el modal de apertura)
+      tieneTurno
+        ? Promise.resolve([])
+        : api('/cajas/?solo_activas=true', {}, req.session.token)
+            .then(d => (d?.items || []).filter(c => !c.es_verificador))
+            .catch(() => []),
     ]);
+
+    const [categorias, clientes, cajas] = resultados;
+
+    // Pendientes solo si hay turno — requiere caja_id como query param
+    let pendientes = [];
+    if (tieneTurno) {
+      pendientes = await api(
+        `/ventas/pendientes?caja_id=${req.session.caja_id}`,
+        {}, req.session.token
+      ).catch(() => []);
+    }
 
     res.render('venta/index', {
       title: 'Punto de Venta',
       categorias, clientes,
       pendientes: pendientes || [],
-      permisos: req.session.permisos || {},   // ← ver nota al final
+      permisos: req.session.permisos || {},
+      tieneTurno,
+      cajas,
+      cajeroNombre: req.session.usuario?.nombre_completo || '',
     });
   } catch (err) {
     if (err.status === 401) return res.redirect('/auth/login?error=sesion');
     res.status(500).send('Error al cargar el punto de venta: ' + err.message);
   }
 });
+
+//TRUNOS 
+//-----------------------------
+
+
+router.post('/abrir-turno', async (req, res) => {
+  const { caja_id, fondo_inicial } = req.body;
+  if (!caja_id) return res.status(400).json({ ok: false, error: 'Selecciona una caja.' });
+
+  try {
+    const turno = await api('/turnos/abrir', {
+      method: 'POST',
+      body: JSON.stringify({
+        caja_id,
+        fondo_inicial: parseFloat(fondo_inicial) || 0,
+      }),
+    }, req.session.token);
+
+    req.session.turno_id = turno.id;
+    req.session.caja_id  = caja_id;
+    res.json({ ok: true, turno });
+
+  } catch (err) {
+    // 409 = ya existe turno en esa caja → reconectar en vez de error
+    if (err.status === 409) {
+      try {
+        const turnoActivo = await api(
+          `/turnos/activo?caja_id=${caja_id}`,
+          {}, req.session.token
+        );
+        if (turnoActivo) {
+          req.session.turno_id = turnoActivo.id;
+          req.session.caja_id  = caja_id;
+          return res.json({ ok: true, turno: turnoActivo, reconectado: true });
+        }
+      } catch {}
+    }
+    res.status(err.status || 500).json({
+      ok: false,
+      error: err.message || 'No se pudo abrir el turno.',
+    });
+  }
+});
+
+router.post('/reconectar-turno', async (req, res) => {
+  const { caja_id } = req.body;
+  if (!caja_id) return res.status(400).json({ ok: false });
+
+  try {
+    const turno = await api(
+      `/turnos/activo?caja_id=${caja_id}`,
+      {}, req.session.token
+    );
+    if (!turno) return res.json({ ok: false, sin_turno: true });
+
+    req.session.turno_id = turno.id;
+    req.session.caja_id  = caja_id;
+    res.json({ ok: true, turno });
+  } catch (err) {
+    res.status(err.status || 500).json({ ok: false, error: err.message });
+  }
+});
+
 
 router.get('/buscar', async (req, res) => {
   try {
@@ -58,7 +142,10 @@ router.get('/producto/:id', async (req, res) => {
 /* ── Tickets pendientes ─────────────────── */
 router.post('/pendiente', async (req, res) => {
   try {
-    const venta = await api('/ventas/pendiente', { method: 'POST', body: req.body }, req.session.token);
+    const venta = await api('/ventas/pendiente', {
+      method: 'POST',
+      body: JSON.stringify({ ...req.body, caja_id: req.session.caja_id }),
+    }, req.session.token);
     res.json({ ok: true, venta });
   } catch (err) {
     res.status(err.status || 500).json({ error: err.message || 'Error al guardar ticket.' });
@@ -67,25 +154,22 @@ router.post('/pendiente', async (req, res) => {
 
 router.put('/pendiente/:id', async (req, res) => {
   try {
-    const venta = await api(`/ventas/pendiente/${req.params.id}`, { method: 'PUT', body: req.body }, req.session.token);
+    const venta = await api(`/ventas/pendiente/${req.params.id}`, {
+      method: 'PUT',
+      body: JSON.stringify({ ...req.body, caja_id: req.session.caja_id }),
+    }, req.session.token);
     res.json({ ok: true, venta });
   } catch (err) {
     res.status(err.status || 500).json({ error: err.message || 'Error al actualizar ticket.' });
   }
 });
 
-router.delete('/pendiente/:id', async (req, res) => {
-  try {
-    await api(`/ventas/pendiente/${req.params.id}`, { method: 'DELETE' }, req.session.token);
-    res.json({ ok: true });
-  } catch (err) {
-    res.status(err.status || 500).json({ error: err.message || 'Error al eliminar ticket.' });
-  }
-});
-
 router.post('/pendiente/:id/cobrar', async (req, res) => {
   try {
-    const venta = await api(`/ventas/pendiente/${req.params.id}/cobrar`, { method: 'POST', body: req.body }, req.session.token);
+    const venta = await api(`/ventas/pendiente/${req.params.id}/cobrar`, {
+      method: 'POST',
+      body: JSON.stringify({ ...req.body, caja_id: req.session.caja_id }),
+    }, req.session.token);
     res.json({ ok: true, venta });
   } catch (err) {
     res.status(err.status || 500).json({ error: err.message || 'Error al cobrar ticket.' });
@@ -95,26 +179,24 @@ router.post('/pendiente/:id/cobrar', async (req, res) => {
 /* ── Venta directa (sin pasar por pendiente) ────────────────── */
 router.post('/cobrar', async (req, res) => {
   if (!req.session.caja_id || !req.session.turno_id) {
-    return res.status(409).json({ error: 'No hay un turno abierto en esta caja. Abre turno antes de cobrar.' });
+    return res.status(409).json({ error: 'No hay un turno abierto. Abre turno antes de cobrar.' });
   }
   const { cliente_id, articulos, pagos, notas } = req.body;
-  if (!Array.isArray(articulos) || articulos.length === 0) {
+  if (!Array.isArray(articulos) || articulos.length === 0)
     return res.status(400).json({ error: 'El carrito está vacío.' });
-  }
-  if (!Array.isArray(pagos) || pagos.length === 0) {
+  if (!Array.isArray(pagos) || pagos.length === 0)
     return res.status(400).json({ error: 'Debes especificar al menos un método de pago.' });
-  }
+
   try {
     const venta = await api('/ventas/', {
       method: 'POST',
-      body: {
-        caja_id: req.session.caja_id,
-        turno_id: req.session.turno_id,
+      body: JSON.stringify({
+        caja_id:    req.session.caja_id,   // ← desde sesión, no del body
         cliente_id: cliente_id || null,
         articulos,
         pagos,
         notas: notas || null,
-      },
+      }),
     }, req.session.token);
     res.json({ ok: true, venta });
   } catch (err) {
@@ -124,12 +206,21 @@ router.post('/cobrar', async (req, res) => {
 
 /* ── Movimientos de caja manuales (F7/F8) ───────────────────── */
 router.post('/movimiento-caja', async (req, res) => {
+  if (!req.session.caja_id) {
+    return res.status(409).json({ error: 'No hay turno activo en esta caja.' });
+  }
   try {
-    const movimiento = await api('/movimientos-caja/', { method: 'POST', body: req.body }, req.session.token);
+    const movimiento = await api('/movimientos-caja/', {
+      method: 'POST',
+      body: JSON.stringify({ ...req.body, caja_id: req.session.caja_id }),
+    }, req.session.token);
     res.json({ ok: true, movimiento });
   } catch (err) {
     res.status(err.status || 500).json({ error: err.message || 'No se pudo registrar el movimiento.' });
   }
 });
+
+
+
 
 module.exports = router;
