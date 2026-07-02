@@ -325,6 +325,8 @@ function inicializarTickets() {
   renderTicket();
 }
 
+let toastTimer = null;
+
 function ticketActivo() { return tickets[activeIdx]; }
 
 /* ════════════════════════════════════════
@@ -492,6 +494,9 @@ function renderizarResultados(productos) {
       <div class="pdv-mini-card ${agotado ? 'pdv-mini-card--agotado' : ''}"
         data-id="${p.id}" data-nombre="${nombreSeguro}" data-codigo="${p.codigo_barras || ''}"
         data-precio="${p.precio_venta}" data-mayoreo="${p.precio_mayoreo || ''}"
+        data-precio-promo="${p.precio_promo || ''}"
+        data-porcentaje-promo="${p.porcentaje_promo || ''}"
+        data-cantidad-minima-promo="${p.cantidad_minima_promo || ''}"
         data-imagen="${p.ruta_imagen || ''}" data-stock="${stock}" title="${nombreSeguro}">
         <div class="pdv-mini-card__img">
           ${p.ruta_imagen
@@ -507,13 +512,20 @@ function renderizarResultados(productos) {
   }).join('');
 }
 
+// Delegación de eventos — un solo listener cubre las tarjetas actuales y futuras
 document.getElementById('catalogo-grid').addEventListener('click', function(e) {
   const card = e.target.closest('.pdv-mini-card');
   if (!card || card.classList.contains('pdv-mini-card--agotado')) return;
   agregarProducto({
-    id: card.dataset.id, nombre: card.dataset.nombre, codigo_barras: card.dataset.codigo,
-    precio_venta: card.dataset.precio, precio_mayoreo: card.dataset.mayoreo,
-    ruta_imagen: card.dataset.imagen, cantidad_actual: card.dataset.stock,
+    id: card.dataset.id,
+    nombre: card.dataset.nombre,
+    precio_venta: card.dataset.precio,
+    precio_mayoreo: card.dataset.mayoreo,
+    ruta_imagen: card.dataset.imagen,
+    cantidad_actual: card.dataset.stock,
+    precio_promo: card.dataset.precioPromo,
+    porcentaje_promo: card.dataset.porcentajePromo,
+    cantidad_minima_promo: card.dataset.cantidadMinimaPromo,
   });
 });
 
@@ -537,7 +549,11 @@ function agregarProducto(p) {
   } else {
     t.items.push({
       id: p.id, nombre: p.nombre, codigo: p.codigo_barras || '',
-      precio: parseFloat(p.precio_venta), mayoreo: p.precio_mayoreo ? parseFloat(p.precio_mayoreo) : null,
+      precio: parseFloat(p.precio_venta),
+      mayoreo: p.precio_mayoreo ? parseFloat(p.precio_mayoreo) : null,
+      promo: p.precio_promo ? parseFloat(p.precio_promo) : null,
+      porcentaje_promo: p.porcentaje_promo ? parseFloat(p.porcentaje_promo) : null,
+      cantidad_minima_promo: p.cantidad_minima_promo ? parseInt(p.cantidad_minima_promo) : null,
       imagen: p.ruta_imagen, cantidad: 1, stock, forzado: false,
     });
     selectedRow = t.items.length - 1;
@@ -546,6 +562,7 @@ function agregarProducto(p) {
   renderTabs();
   renderTicket();
 }
+
 
 function cambiarQty(idx, delta) {
   const t = ticketActivo();
@@ -599,11 +616,23 @@ function onClienteChange() {
    PRECIO / RENDER
 ════════════════════════════════════════ */
 function precioAplicado(item, items) {
+  // Promo tiene prioridad absoluta (RF-05.5)
+  if (item.cantidad_minima_promo !== null && item.cantidad >= item.cantidad_minima_promo) {
+    if (item.promo !== null && item.promo !== undefined) {
+      return item.promo; // precio especial
+    }
+    if (item.porcentaje_promo) {
+      return item.precio * (1 - item.porcentaje_promo / 100); // porcentaje
+    }
+  }
   if (item.forzado) return item.mayoreo;
   const sel = document.getElementById('pdv-cliente');
   const esMayorista = sel.options[sel.selectedIndex]?.dataset.mayorista === 'true';
   const subtotalNormal = items.reduce((s, i) => s + i.precio * i.cantidad, 0);
-  return (esMayorista && item.mayoreo && subtotalNormal >= 350 && metodo !== 'tarjeta') ? item.mayoreo : item.precio;
+  const aplicaMayoreo = item.mayoreo &&
+    metodo !== 'tarjeta' &&
+    (esMayorista || subtotalNormal > 350);
+  return aplicaMayoreo ? item.mayoreo : item.precio;
 }
 
 function renderTicket() {
@@ -664,9 +693,8 @@ function actualizarTotal() {
   document.getElementById('pdv-total').textContent = `$${total.toLocaleString('es-MX', {minimumFractionDigits:2})}`;
   document.getElementById('modal-total').textContent = `$${total.toLocaleString('es-MX', {minimumFractionDigits:2})}`;
 
-  // Autollenar "Recibido" con el total si está vacío o en 0
   const recibidoInput = document.getElementById('efectivo-recibido');
-  if (recibidoInput && (recibidoInput.value === '' || parseFloat(recibidoInput.value) === 0)) {
+  if (recibidoInput && !recibidoManual) {
     recibidoInput.value = total.toFixed(2);
   }
   calcularCambio();
@@ -703,12 +731,25 @@ function calcularCambio() {
 function abrirModalCobro() {
   const t = ticketActivo();
   if (t.items.length === 0) return;
+
+  // Efectivo: validar y cobrar directo sin modal
+  if (metodo === 'efectivo') {
+    const recibido = parseFloat(document.getElementById('efectivo-recibido')?.value) || 0;
+    const total = getTotal();
+    if (recibido <= 0) { mostrarMensaje('Ingresa el monto recibido en efectivo.'); return; }
+    if (recibido < total) { mostrarMensaje('El monto recibido es menor al total.'); return; }
+    procesarCobro();
+    return;
+  }
+
+  // Otros métodos: abrir modal de confirmación
   document.getElementById('modal-cliente').textContent = t.clienteNombre;
   document.getElementById('modal-metodo').textContent = metodo.charAt(0).toUpperCase() + metodo.slice(1);
   document.getElementById('modal-wrap-referencia').style.display = ['tarjeta','transferencia','cheque'].includes(metodo) ? 'block' : 'none';
   document.getElementById('modal-wrap-mixto').style.display = metodo === 'mixto' ? 'block' : 'none';
   document.getElementById('modal-cobro').style.display = 'flex';
 }
+
 function cerrarModalCobro(e) { if (e.target === document.getElementById('modal-cobro')) cerrarModal(); }
 function cerrarModal() { document.getElementById('modal-cobro').style.display = 'none'; }
 
@@ -731,21 +772,9 @@ async function procesarCobro() {
   const t = ticketActivo();
   const total = getTotal();
 
-  if (metodo === 'efectivo') {
-    const recibido = parseFloat(document.getElementById('efectivo-recibido')?.value) || 0;
-    if (recibido <= 0) {
-      mostrarMensaje('Ingresa el monto recibido en efectivo.');
-      return;
-    }
-    if (recibido < total) {
-      mostrarMensaje('El monto recibido es menor al total a cobrar.');
-      return;
-    }
-  }
-
   if (metodo === 'mixto') {
-    const ef = parseFloat(document.getElementById('modal-mixto-efectivo')?.value) || 0;
-    const tar = parseFloat(document.getElementById('modal-mixto-tarjeta')?.value) || 0;
+    const ef  = parseFloat(document.getElementById('modal-mixto-efectivo')?.value) || 0;
+    const tar = parseFloat(document.getElementById('modal-mixto-tarjeta')?.value)  || 0;
     if (Math.abs((ef + tar) - total) > 0.01) { mostrarMensaje('El monto ingresado no coincide con el total.'); return; }
   }
 
@@ -754,27 +783,42 @@ async function procesarCobro() {
   try {
     let resp, data;
     if (t.ventaId) {
-      resp = await fetch(`/venta/pendiente/${t.ventaId}/cobrar`, { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({ pagos }) });
+      resp = await fetch(`/venta/pendiente/${t.ventaId}/cobrar`, {
+        method: 'POST', headers: {'Content-Type':'application/json'},
+        body: JSON.stringify({ pagos }),
+      });
     } else {
-      resp = await fetch('/venta/cobrar', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({
-        cliente_id: t.clienteId || null,
-        articulos: t.items.map(i => ({ producto_id: i.id, cantidad: i.cantidad, forzar_mayoreo: !!i.forzado })),
-        pagos,
-      }) });
+      resp = await fetch('/venta/cobrar', {
+        method: 'POST', headers: {'Content-Type':'application/json'},
+        body: JSON.stringify({
+          cliente_id: t.clienteId || null,
+          articulos: t.items.map(i => ({ producto_id: i.id, cantidad: i.cantidad, forzar_mayoreo: !!i.forzado })),
+          pagos,
+        }),
+      });
     }
     data = await resp.json();
     if (!resp.ok || !data.ok) { mostrarMensaje(data.error || 'No se pudo cobrar la venta.'); return; }
 
     lastVentaId = data.venta.id;
-    mostrarMensaje(`Venta registrada — Folio ${data.venta.folio ?? ''}`);
-    cerrarModal();
 
+    // Toast con cambio si fue efectivo
+    if (metodo === 'efectivo') {
+      const recibido = parseFloat(document.getElementById('efectivo-recibido')?.value) || total;
+      const cambio   = recibido - total;
+      mostrarMensaje(`✓ Folio ${data.venta.folio ?? ''} — Recibido: $${recibido.toLocaleString('es-MX',{minimumFractionDigits:2})} | Cambio: $${cambio.toLocaleString('es-MX',{minimumFractionDigits:2})}`);
+    } else {
+      mostrarMensaje(`✓ Venta registrada — Folio ${data.venta.folio ?? ''}`);
+    }
+
+    cerrarModal();
     const idxCerrado = tickets.indexOf(t);
     tickets.splice(idxCerrado, 1);
     if (tickets.length === 0) tickets.push(crearTicketVacio());
     activeIdx = Math.min(idxCerrado, tickets.length - 1);
     selectedRow = -1;
     document.getElementById('efectivo-recibido').value = '';
+    recibidoManual = false;
     renderTabs();
     renderTicket();
   } catch (err) {
@@ -822,15 +866,21 @@ async function confirmarMovimiento() {
 /* ════════════════════════════════════════
    TOAST
 ════════════════════════════════════════ */
-let toastTimer = null;
 function mostrarMensaje(texto) {
   const toast = document.getElementById('pdv-toast');
   clearTimeout(toastTimer);
   toast.textContent = texto;
   toast.classList.add('pdv-toast--visible');
-  toastTimer = setTimeout(() => toast.classList.remove('pdv-toast--visible'), 2500);
+  toastTimer = setTimeout(() => toast.classList.remove('pdv-toast--visible'), 4000); // ← 4s en vez de 2.5s
 }
 
+let recibidoManual = false;
+
+// Agregar listener una sola vez, junto a donde está el input
+document.getElementById('efectivo-recibido')?.addEventListener('input', () => {
+  recibidoManual = true;
+  calcularCambio();
+});
 /* ════════════════════════════════════════
    TECLADO GLOBAL
 ════════════════════════════════════════ */
@@ -952,28 +1002,31 @@ onMetodoChange();
 
   // Al cargar: intentar reconectar si hay caja guardada
   const cajaGuardada = localStorage.getItem('smartventa_caja_id');
-  if (cajaGuardada) {
-    fetch('/venta/reconectar-turno', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ caja_id: cajaGuardada }),
-    })
-    .then(r => r.json())
-    .then(data => {
-      if (data.ok) {
-        window.location.reload(); // turno reconectado → POS directo
-      } else {
-        // No hay turno activo en esa caja → mostrar formulario preseleccionado
-        mostrarFormulario();
-        const sel = document.getElementById('turno-caja');
-        if (sel) sel.value = cajaGuardada;
-      }
-    })
-    .catch(() => mostrarFormulario()); // error de red → mostrar formulario
-  } else {
-    // Primera vez en esta PC → mostrar formulario de inmediato
+
+if (cajaGuardada) {
+  fetch('/venta/reconectar-turno', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ caja_id: cajaGuardada }),
+  })
+  .then(r => r.json())
+  .then(data => {
+    if (data.ok) {
+      window.location.reload();
+    } else {
+      mostrarFormulario();
+      const sel = document.getElementById('turno-caja');
+      if (sel) sel.value = cajaGuardada;
+    }
+  })
+  .catch(() => {
     mostrarFormulario();
-  }
+    const sel = document.getElementById('turno-caja');
+    if (sel) sel.value = cajaGuardada;
+  });
+} else {
+  mostrarFormulario();
+}
 
   async function abrirTurnoDesdeModal() {
     const caja_id       = document.getElementById('turno-caja')?.value;

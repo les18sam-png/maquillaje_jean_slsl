@@ -138,6 +138,7 @@ router.get('/cierre', async (req, res) => {
 // ─────────────────────────────────────────
 // POST /turnos/cierre — cierra el turno
 // ─────────────────────────────────────────
+// Reemplaza el POST /turnos/cierre completo:
 router.post('/cierre', async (req, res) => {
   const { turno_id } = req.body;
 
@@ -148,16 +149,13 @@ router.post('/cierre', async (req, res) => {
       req.session.token,
     );
 
-    // Limpiar turno y caja de sesión — el cajero deberá abrir uno nuevo
     delete req.session.turno_id;
-    res.redirect('/turnos/apertura?toast=cerrado&limpiar_caja=1');
     delete req.session.caja_id;
 
-    res.redirect('/turnos/apertura?toast=cerrado');
+    res.redirect('/venta?toast=cerrado');
   } catch (err) {
     console.error('[Turnos] Error cerrando turno:', err.message);
-    res.redirect(`/turnos/cierre?error=fallo`);
+    res.redirect('/turnos/cierre?error=fallo');
   }
 });
-
 module.exports = router;

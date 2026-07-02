@@ -1816,3 +1816,16 @@ button { font-family: var(--font-body); cursor: pointer; }
 .page-subtitle      { font-size: .875rem; color: #888; }
 
 .table-wrapper { overflow-x: auto; }
+
+
+.sidebar-footer form { margin: 0; width: 100%; }
+.sidebar-footer button.sidebar-logout {
+  background: none;
+  border: none;
+  width: 100%;
+  cursor: pointer;
+  text-align: left;
+  padding: 0;
+  font-family: inherit;
+  font-size: inherit;
+}
