@@ -27,8 +27,8 @@
     </div>
   </div>
 
-  <!-- INFO DEL PRODUCTO SELECCIONADO -->
   <% if (productoSel) { %>
+  <!-- INFO DEL PRODUCTO -->
   <div class="card kardex-info-card">
     <div class="kardex-info-grid">
       <div class="kardex-info-item">
@@ -64,7 +64,60 @@
     </div>
   </div>
 
-  <!-- TABLA DE MOVIMIENTOS -->
+  <!-- FILTROS -->
+  <div class="card">
+    <div class="card-titulo">Filtrar movimientos</div>
+    <form method="GET" action="/inventario/kardex" class="kardex-filtros">
+      <input type="hidden" name="producto_id" value="<%= producto_id %>">
+
+      <div class="form-group">
+        <label>Desde</label>
+        <input type="date" name="fecha_desde" value="<%= filtros.fecha_desde %>">
+      </div>
+      <div class="form-group">
+        <label>Hasta</label>
+        <input type="date" name="fecha_hasta" value="<%= filtros.fecha_hasta %>">
+      </div>
+      <div class="form-group">
+        <label>Tipo</label>
+        <select name="tipo_movimiento">
+          <option value="">Todos</option>
+          <option value="entrada_mercancia" <%= filtros.tipo_movimiento === 'entrada_mercancia' ? 'selected' : '' %>>Entrada mercancía</option>
+          <option value="ajuste_inventario" <%= filtros.tipo_movimiento === 'ajuste_inventario' ? 'selected' : '' %>>Ajuste inventario</option>
+          <option value="venta" <%= filtros.tipo_movimiento === 'venta' ? 'selected' : '' %>>Venta</option>
+          <option value="devolucion" <%= filtros.tipo_movimiento === 'devolucion' ? 'selected' : '' %>>Devolución</option>
+          <option value="cancelacion" <%= filtros.tipo_movimiento === 'cancelacion' ? 'selected' : '' %>>Cancelación</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>Caja</label>
+        <select name="caja_id">
+          <option value="">Todas</option>
+          <% cajas.forEach(c => { %>
+            <option value="<%= c.id %>" <%= filtros.caja_id === c.id ? 'selected' : '' %>><%= c.nombre %></option>
+          <% }) %>
+        </select>
+      </div>
+      <% if (usuarios.length > 0) { %>
+      <div class="form-group">
+        <label>Usuario</label>
+        <select name="usuario_id">
+          <option value="">Todos</option>
+          <% usuarios.forEach(u => { %>
+            <option value="<%= u.id %>" <%= filtros.usuario_id === u.id ? 'selected' : '' %>><%= u.nombre_completo %></option>
+          <% }) %>
+        </select>
+      </div>
+      <% } %>
+
+      <div class="form-group kardex-filtros-btns">
+        <button type="submit" class="btn btn-primary">Filtrar</button>
+        <a href="/inventario/kardex?producto_id=<%= producto_id %>" class="btn btn-ghost">Limpiar</a>
+      </div>
+    </form>
+  </div>
+
+  <!-- TABLA -->
   <div class="card">
     <div class="card-titulo">
       Movimientos
@@ -76,17 +129,18 @@
           <tr>
             <th>Fecha y hora</th>
             <th>Tipo</th>
+            <th>Usuario</th>
+            <th>Caja</th>
             <th>Entrada</th>
             <th>Salida</th>
             <th>Existencia</th>
-            <th>Caja</th>
             <th>Notas</th>
           </tr>
         </thead>
         <tbody>
           <% if (movimientos.length === 0) { %>
             <tr>
-              <td colspan="7" class="text-center text-muted" style="padding:2rem;">
+              <td colspan="8" class="text-center text-muted" style="padding:2rem;">
                 Sin movimientos registrados
               </td>
             </tr>
@@ -97,6 +151,8 @@
                   <%= new Date(m.fecha_hora).toLocaleString('es-MX') %>
                 </td>
                 <td><span class="tipo-badge tipo-<%= m.tipo_movimiento %>"><%= m.tipo_movimiento.replace(/_/g, ' ') %></span></td>
+                <td class="text-muted" style="font-size:.82rem;"><%= m.usuario_nombre || '—' %></td>
+                <td class="text-muted" style="font-size:.82rem;"><%= m.caja_nombre || '—' %></td>
                 <td>
                   <% if (m.cantidad_entrada > 0) { %>
                     <span class="mov-entrada">+<%= m.cantidad_entrada %></span>
@@ -112,7 +168,6 @@
                   <% } %>
                 </td>
                 <td><strong><%= m.existencia_resultante %></strong></td>
-                <td class="text-muted" style="font-size:.82rem;"><%= m.caja_nombre || '—' %></td>
                 <td class="text-muted" style="font-size:.82rem;"><%= m.notas || '—' %></td>
               </tr>
             <% }) %>
@@ -127,7 +182,6 @@
 
 <style>
   .buscar-wrap { position: relative; }
-  /* Permitir que las sugerencias se salgan de la card */
   .card:has(.buscar-wrap) { overflow: visible; }
   .sugerencias-wrap { position: relative; }
   .sugerencias-lista { position: absolute; top: calc(100% + 4px); left: 0; right: 0; background: white; border: 1px solid #ddd; border-radius: 8px; box-shadow: 0 4px 16px rgba(0,0,0,.15); z-index: 1000; max-height: 220px; overflow-y: auto; }
@@ -160,15 +214,17 @@
 
   .mov-entrada { color: #2d7a2d; font-weight: 700; }
   .mov-salida  { color: #c0392b; font-weight: 700; }
-  .form-group-buscador {
-    display: block !important;
-  }
+
+  .form-group-buscador { display: block !important; }
+
+  .kardex-filtros { display: flex; flex-wrap: wrap; gap: 1rem; align-items: flex-end; }
+  .kardex-filtros .form-group { min-width: 150px; }
+  .kardex-filtros-btns { display: flex; flex-direction: row; gap: .5rem; align-items: flex-end; }
 </style>
 
 <script>
 (function() {
   const inputBuscar = document.getElementById('buscarProducto');
-  const inputId     = document.getElementById('productoIdHidden');
   const contenedor  = document.getElementById('sugerencias');
   let timer;
 

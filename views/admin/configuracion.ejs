@@ -17,6 +17,26 @@
     </div>
   </div>
 
+  <!-- Avisos -->
+  <% if (typeof toast !== 'undefined' && toast === 'guardado') { %>
+    <div class="alert alert--success">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>
+      Datos de la sucursal actualizados correctamente.
+    </div>
+  <% } %>
+  <% if (typeof error !== 'undefined' && error === 'sin_permiso') { %>
+    <div class="alert alert--error">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+      No tienes permiso para editar la sucursal.
+    </div>
+  <% } %>
+  <% if (typeof error !== 'undefined' && error === 'fallo') { %>
+    <div class="alert alert--error">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+      No se pudieron guardar los cambios. Intenta de nuevo.
+    </div>
+  <% } %>
+
   <!-- Tabs -->
   <div class="config-tabs">
     <button class="config-tab config-tab--active" onclick="switchConfigTab(this, 'tab-sucursal')">
@@ -43,8 +63,14 @@
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg>
           </div>
           <h3 class="config-card__title">Datos generales</h3>
+          <button type="button" class="btn btn-ghost btn-sm" style="margin-left:auto;" onclick="activarEdicion()" id="btnEditar">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.12 2.12 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+            Editar
+          </button>
         </div>
-        <dl class="config-info-list">
+
+        <!-- MODO VISTA -->
+        <dl class="config-info-list" id="vistaSucursal">
           <div class="config-info-item">
             <dt>Nombre</dt>
             <dd><%= sucursal.nombre || '—' %></dd>
@@ -52,6 +78,10 @@
           <div class="config-info-item">
             <dt>Teléfono</dt>
             <dd><%= sucursal.telefono || '—' %></dd>
+          </div>
+          <div class="config-info-item">
+            <dt>Dirección</dt>
+            <dd><%= sucursal.direccion || '—' %></dd>
           </div>
           <div class="config-info-item">
             <dt>Estado</dt>
@@ -64,10 +94,6 @@
             </dd>
           </div>
           <div class="config-info-item">
-            <dt>Dirección</dt>
-            <dd><%= sucursal.direccion || '—' %></dd>
-          </div>
-          <div class="config-info-item">
             <dt>ID Sucursal</dt>
             <dd><code class="rfc-badge"><%= sucursal.id || '—' %></code></dd>
           </div>
@@ -76,9 +102,30 @@
             <dd><%= sucursal.creado_en ? new Date(sucursal.creado_en).toLocaleDateString('es-MX', { day:'2-digit', month:'long', year:'numeric' }) : '—' %></dd>
           </div>
         </dl>
+
+        <!-- MODO EDICIÓN -->
+        <form method="POST" action="/admin/configuracion" id="formSucursal" style="display:none; padding:16px 20px;">
+          <div class="form-group" style="margin-bottom:14px;">
+            <label class="form-label">Nombre</label>
+            <input type="text" name="nombre" class="form-control" value="<%= sucursal.nombre || '' %>" required>
+          </div>
+          <div class="form-group" style="margin-bottom:14px;">
+            <label class="form-label">Teléfono</label>
+            <input type="text" name="telefono" class="form-control" value="<%= sucursal.telefono || '' %>">
+          </div>
+          <div class="form-group" style="margin-bottom:14px;">
+            <label class="form-label">Dirección</label>
+            <input type="text" name="direccion" class="form-control" value="<%= sucursal.direccion || '' %>">
+          </div>
+          <div style="display:flex; gap:10px; justify-content:flex-end;">
+            <button type="button" class="btn btn-ghost" onclick="cancelarEdicion()">Cancelar</button>
+            <button type="submit" class="btn btn-primary">Guardar cambios</button>
+          </div>
+        </form>
+
         <div class="config-card__footer">
           <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
-          Para modificar estos datos contacta al administrador del sistema.
+          El ID y la fecha de registro no se pueden modificar.
         </div>
       </div>
 
@@ -167,7 +214,7 @@
 
       <div class="config-card__footer">
         <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
-        Las cajas se crean y modifican desde el backend.
+        Las cajas se administran desde la sección Cajas.
       </div>
     </div>
   </div>
@@ -255,7 +302,7 @@
         </dl>
         <div class="config-card__footer">
           <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
-          Para personalizar el ticket contacta al administrador.
+          Los datos del ticket se toman de la sucursal.
         </div>
       </div>
 
@@ -408,6 +455,17 @@ function switchConfigTab(btn, tabId) {
   document.querySelectorAll('.config-tab-content').forEach(c => c.style.display = 'none');
   btn.classList.add('config-tab--active');
   document.getElementById(tabId).style.display = 'block';
+}
+
+function activarEdicion() {
+  document.getElementById('vistaSucursal').style.display = 'none';
+  document.getElementById('formSucursal').style.display = 'block';
+  document.getElementById('btnEditar').style.display = 'none';
+}
+function cancelarEdicion() {
+  document.getElementById('vistaSucursal').style.display = 'flex';
+  document.getElementById('formSucursal').style.display = 'none';
+  document.getElementById('btnEditar').style.display = 'inline-flex';
 }
 </script>
 

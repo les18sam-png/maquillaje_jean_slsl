@@ -103,15 +103,34 @@ router.post('/ajuste', async (req, res) => {
 });
 
 // ─── KARDEX ───────────────────────────────────────────────────────────────────
+// ─── KARDEX ───────────────────────────────────────────────────────────────────
 router.get('/kardex', async (req, res) => {
   try {
-    const { producto_id = '', q = '' } = req.query;
+    const {
+      producto_id = '', q = '',
+      fecha_desde = '', fecha_hasta = '',
+      tipo_movimiento = '', caja_id = '', usuario_id = '',
+    } = req.query;
 
     let movimientos = [];
     let productoSel = null;
 
+    // Listas para los dropdowns de filtro (tolerantes a fallo de permisos)
+    const cajasData = await api('/cajas/?solo_activas=true', {}, req.session.token).catch(() => ({ items: [] }));
+    const usuariosData = await api('/usuarios/', {}, req.session.token).catch(() => ({ items: [] }));
+    const cajas = cajasData.items || [];
+    const usuarios = usuariosData.items || [];
+
     if (producto_id) {
-      const kardexData = await api(`/kardex/${producto_id}`, {}, req.session.token).catch(() => null);
+      const params = new URLSearchParams();
+      if (fecha_desde)     params.append('fecha_desde', fecha_desde);
+      if (fecha_hasta)     params.append('fecha_hasta', fecha_hasta);
+      if (tipo_movimiento) params.append('tipo_movimiento', tipo_movimiento);
+      if (caja_id)         params.append('caja_id', caja_id);
+      if (usuario_id)      params.append('usuario_id', usuario_id);
+      const qs = params.toString() ? `?${params.toString()}` : '';
+
+      const kardexData = await api(`/kardex/${producto_id}${qs}`, {}, req.session.token).catch(() => null);
 
       if (kardexData) {
         const e = kardexData.encabezado;
@@ -128,13 +147,16 @@ router.get('/kardex', async (req, res) => {
       }
     }
 
-    res.render('inventario/kardex', { productoSel, movimientos, producto_id, q });
+    res.render('inventario/kardex', {
+      productoSel, movimientos, producto_id, q,
+      cajas, usuarios,
+      filtros: { fecha_desde, fecha_hasta, tipo_movimiento, caja_id, usuario_id },
+    });
   } catch (err) {
     console.error('Error en GET /inventario/kardex:', err.message);
     res.status(500).send('Error al cargar kardex: ' + err.message);
   }
 });
-
 // ─── API BUSCAR PRODUCTO (para el buscador de kardex) ─────────────────────────
 router.get('/api/buscar', async (req, res) => {
   try {

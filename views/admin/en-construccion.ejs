@@ -1,0 +1,57 @@
+<%- include('../partials/header', { title }) %>
+
+<div class="page-wrapper">
+
+  <nav class="breadcrumb">
+    <a href="/admin" class="breadcrumb__link">Administración</a>
+    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg>
+    <span class="breadcrumb__current">En construcción</span>
+  </nav>
+
+  <div class="construccion">
+    <div class="construccion__icon">
+      <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/></svg>
+    </div>
+    <h1 class="construccion__title">Sección en construcción</h1>
+    <p class="construccion__text">Esta parte del sistema está en desarrollo. Muy pronto estará disponible.</p>
+    <a href="/admin" class="btn btn-primary">Volver a Administración</a>
+  </div>
+
+</div>
+
+<style>
+.construccion {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding: 60px 24px;
+  gap: 12px;
+}
+.construccion__icon {
+  width: 96px;
+  height: 96px;
+  border-radius: 50%;
+  background: #FCE4EE;
+  color: #C8215A;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 8px;
+}
+.construccion__title {
+  font-family: 'Playfair Display', serif;
+  font-size: 1.4rem;
+  color: #6C0820;
+  margin: 0;
+}
+.construccion__text {
+  font-size: .9rem;
+  color: #888;
+  max-width: 380px;
+  margin: 0 0 12px;
+}
+</style>
+
+<%- include('../partials/footer') %>

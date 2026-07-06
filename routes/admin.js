@@ -1,6 +1,6 @@
 // routes/admin.js
 // SmartVenta PDV — Módulo Admin
-// Usuarios migrado a API · Roles y Configuración siguen con Supabase
+// Usuarios y Configuración migrados a API · Roles sigue con Supabase
 
 const express = require('express');
 const router  = express.Router();
@@ -179,30 +179,50 @@ router.get('/roles', async (req, res) => {
 });
 
 /* ─────────────────────────────────────────
-   74 — GET /admin/configuracion — sigue con Supabase
+   GET /admin/configuracion — MIGRADO a API
 ───────────────────────────────────────── */
 router.get('/configuracion', async (req, res) => {
   try {
-    const { data: sucursal } = await supabase
-      .from('sucursales')
-      .select('*')
-      .eq('id', SUCURSAL_ID)
-      .single();
+    const sucursal = await api('/sucursales/actual', {}, req.session.token);
 
-    const { data: cajas } = await supabase
-      .from('cajas')
-      .select('*')
-      .eq('sucursal_id', SUCURSAL_ID)
-      .order('nombre');
+    const cajasData = await api('/cajas/?solo_activas=false', {}, req.session.token).catch(() => ({ items: [] }));
 
     res.render('admin/configuracion', {
       title:    'Configuración',
       sucursal: sucursal || {},
-      cajas:    cajas    || [],
+      cajas:    cajasData.items || [],
+      toast:    req.query.toast || null,
+      error:    req.query.error || null,
     });
   } catch (err) {
+    if (err.status === 401) return res.redirect('/auth/login?error=sesion');
     console.error('Error en GET /admin/configuracion:', err.message);
     res.status(500).send('Error al cargar configuración: ' + err.message);
+  }
+});
+
+/* ─────────────────────────────────────────
+   POST /admin/configuracion — editar sucursal (solo admin)
+───────────────────────────────────────── */
+router.post('/configuracion', async (req, res) => {
+  try {
+    const { nombre, direccion, telefono } = req.body;
+
+    await api('/sucursales/actual', {
+      method: 'PUT',
+      body: JSON.stringify({
+        nombre:    nombre?.trim(),
+        direccion: direccion?.trim(),
+        telefono:  telefono?.trim(),
+      }),
+    }, req.session.token);
+
+    res.redirect('/admin/configuracion?toast=guardado');
+  } catch (err) {
+    if (err.status === 401) return res.redirect('/auth/login?error=sesion');
+    if (err.status === 403) return res.redirect('/admin/configuracion?error=sin_permiso');
+    console.error('Error actualizando sucursal:', err.message);
+    res.redirect('/admin/configuracion?error=fallo');
   }
 });
 
@@ -244,6 +264,13 @@ router.post('/cajas', async (req, res) => {
     const msg = err.status === 409 ? 'limite' : 'fallo';
     res.redirect(`/admin/cajas?error=${msg}`);
   }
+});
+
+/* ─────────────────────────────────────────
+   Página temporal para secciones en desarrollo
+───────────────────────────────────────── */
+router.get('/en-construccion', (req, res) => {
+  res.render('admin/en-construccion', { title: 'En construcción' });
 });
 
 module.exports = router;
