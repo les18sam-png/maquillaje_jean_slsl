@@ -4,6 +4,8 @@
 .pdv-ticket-row--mayoreo { background: #FCE4EE; }
 .pdv-ticket-row--mayoreo:hover { background: #F9D5E5; }
 .pdv-page { display: flex; flex-direction: column; height: calc(100vh - var(--header-h)); overflow: hidden; padding: 0; }
+.pdv-ticket-row--sin-stock { background: #fee2e2 !important; outline: 2px solid #ef4444; outline-offset: -2px; }
+.tag-promo { font-size: .62rem; background: #d1fae5; color: #6C0820; padding: 1px 5px; border-radius: 4px; font-weight: 700; }
 
 .pdv-bar { display: flex; align-items: center; gap: 10px; padding: 10px 16px; background: #fff; border-bottom: 1px solid #F2DCDB; flex-shrink: 0; flex-wrap: wrap; }
 
@@ -71,6 +73,8 @@
 .pdv-ticket__body { flex: 1; overflow-y: auto; }
 .pdv-ticket__empty { display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100%; color: #ddd; gap: 10px; }
 .pdv-ticket__empty p { font-size: .88rem; color: #bbb; }
+.pdv-ticket-row--promo { background: #ecfdf5; }
+.pdv-ticket-row--promo:hover { background: #d1fae5; }
 
 .pdv-ticket-row {
   display: grid; grid-template-columns: 1fr 2fr 0.7fr 1fr 1fr 36px;
@@ -291,6 +295,7 @@ let metodo = 'efectivo';
 let debounceTimer = null;
 let saveTimer = null;
 let lastVentaId = null;
+let cobrando = false;
 
 function nuevoLocalId() { return 'local_' + Date.now() + '_' + Math.random().toString(36).slice(2,8); }
 
@@ -349,28 +354,47 @@ function renderTabs() {
 }
 
 async function guardarTicketEnServidor(t) {
-  if (t.items.length === 0) {
-    if (t.ventaId) {
-      await fetch(`/venta/pendiente/${t.ventaId}`, { method: 'DELETE' });
-      t.ventaId = null;
-    }
-    return;
-  }
-  const payload = {
-    cliente_id: t.clienteId || null,
-    notas: t.notas || null,
-    articulos: t.items.map(i => ({ producto_id: i.id, cantidad: i.cantidad, forzar_mayoreo: !!i.forzado })),
-  };
+  // Evita guardados simultáneos del mismo ticket (race condition → duplicados)
+  if (t._guardando) { t._reguardar = true; return; }
+  t._guardando = true;
+
   try {
+    if (t.items.length === 0) {
+      if (t.ventaId) {
+        try {
+          await fetch(`/venta/pendiente/${t.ventaId}`, { method: 'DELETE' });
+        } catch (err) {
+          console.warn('No se pudo borrar el pendiente (quizá ya no existe):', err);
+        }
+        t.ventaId = null;
+      }
+      return;
+    }
+
+    const payload = {
+      cliente_id: t.clienteId || null,
+      notas: t.notas || null,
+      articulos: t.items.map(i => ({ producto_id: i.id, cantidad: i.cantidad, forzar_mayoreo: !!i.forzado })),
+    };
+
     if (t.ventaId) {
       await fetch(`/venta/pendiente/${t.ventaId}`, { method: 'PUT', headers: {'Content-Type':'application/json'}, body: JSON.stringify(payload) });
     } else {
       const resp = await fetch('/venta/pendiente', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify(payload) });
       const data = await resp.json();
-      if (data.ok) t.ventaId = data.venta.id;
+      if (data.ok && data.venta) t.ventaId = data.venta.id;
     }
     t.dirty = false;
-  } catch (err) { console.error('Error guardando ticket pendiente:', err); }
+  } catch (err) {
+    console.error('Error guardando ticket pendiente:', err);
+  } finally {
+    t._guardando = false;
+    // Si llegó otro cambio mientras guardábamos, reguardar una vez más
+    if (t._reguardar) {
+      t._reguardar = false;
+      guardarTicketEnServidor(t);
+    }
+  }
 }
 
 function marcarDirty() {
@@ -519,6 +543,7 @@ document.getElementById('catalogo-grid').addEventListener('click', function(e) {
   agregarProducto({
     id: card.dataset.id,
     nombre: card.dataset.nombre,
+    codigo_barras: card.dataset.codigo,   // ← FALTABA
     precio_venta: card.dataset.precio,
     precio_mayoreo: card.dataset.mayoreo,
     ruta_imagen: card.dataset.imagen,
@@ -528,7 +553,6 @@ document.getElementById('catalogo-grid').addEventListener('click', function(e) {
     cantidad_minima_promo: card.dataset.cantidadMinimaPromo,
   });
 });
-
 /* ════════════════════════════════════════
    AGREGAR / MODIFICAR PRODUCTOS DEL TICKET ACTIVO
 ════════════════════════════════════════ */
@@ -635,6 +659,35 @@ function precioAplicado(item, items) {
   return aplicaMayoreo ? item.mayoreo : item.precio;
 }
 
+// Devuelve el motivo del precio aplicado: 'promo' | 'forzado' | 'mayoreo_cliente' | 'mayoreo_monto' | 'normal'
+function motivoPrecio(item, items) {
+  // Promo tiene prioridad absoluta (RF-05.5)
+  if (item.cantidad_minima_promo != null && item.cantidad >= item.cantidad_minima_promo) {
+    if (item.promo != null || item.porcentaje_promo) return 'promo';
+  }
+  if (item.forzado) return 'forzado';
+
+  const sel = document.getElementById('pdv-cliente');
+  const esMayorista = sel.options[sel.selectedIndex]?.dataset.mayorista === 'true';
+  const subtotalNormal = items.reduce((s, i) => s + i.precio * i.cantidad, 0);
+
+  if (item.mayoreo && metodo !== 'tarjeta') {
+    if (esMayorista) return 'mayoreo_cliente';
+    if (subtotalNormal > 350) return 'mayoreo_monto';
+  }
+  return 'normal';
+}
+
+function etiquetaMotivo(motivo) {
+  switch (motivo) {
+    case 'promo':           return '<span class="tag-promo">PROMOCIÓN</span>';
+    case 'forzado':         return '<span class="tag-forzado">MAYOREO FORZADO</span>';
+    case 'mayoreo_cliente': return '<span class="tag-mayoreo">MAYOREO CLIENTE</span>';
+    case 'mayoreo_monto':   return '<span class="tag-mayoreo">MAYOREO</span>';
+    default:                return '';
+  }
+}
+
 function renderTicket() {
   const body = document.getElementById('ticket-body');
   const t = ticketActivo();
@@ -655,16 +708,16 @@ function renderTicket() {
   }
 
   body.innerHTML = t.items.map((item, idx) => {
+    const motivo = motivoPrecio(item, t.items);
     const precio = precioAplicado(item, t.items);
     const subtotal = precio * item.cantidad;
     const tieneMayoreo = item.forzado || (item.mayoreo && precio === item.mayoreo);
     return `
-      <div class="pdv-ticket-row ${idx === selectedRow ? 'pdv-ticket-row--selected' : ''} ${tieneMayoreo ? 'pdv-ticket-row--mayoreo' : ''}" onclick="seleccionarFila(${idx})">
+      <div class="pdv-ticket-row ${idx === selectedRow ? 'pdv-ticket-row--selected' : ''} ${motivo === 'promo' ? 'pdv-ticket-row--promo' : (motivo !== 'normal' ? 'pdv-ticket-row--mayoreo' : '')} ${item.sinStock !== undefined ? 'pdv-ticket-row--sin-stock' : ''}" onclick="seleccionarFila(${idx})">
         <div class="pdv-ticket-row__codigo">${item.codigo || '—'}</div>
         <div>
           <div class="pdv-ticket-row__nombre">${item.nombre}</div>
-          ${item.forzado ? '<span class="tag-forzado">MAYOREO FORZADO</span>'
-            : (item.mayoreo && precio === item.mayoreo ? '<span class="tag-mayoreo">MAYOREO</span>' : '')}
+          ${etiquetaMotivo(motivoPrecio(item, t.items))}
         </div>
         <div class="pdv-ticket-row__qty">
           <button class="pdv-qty-btn" onclick="event.stopPropagation(); cambiarQty(${idx}, -1)">−</button>
@@ -778,6 +831,9 @@ async function procesarCobro() {
     if (Math.abs((ef + tar) - total) > 0.01) { mostrarMensaje('El monto ingresado no coincide con el total.'); return; }
   }
 
+  if (cobrando) return;   // ← evita doble cobro si ya hay uno en curso
+  cobrando = true;
+
   const pagos = construirPagos(total);
 
   try {
@@ -798,34 +854,56 @@ async function procesarCobro() {
       });
     }
     data = await resp.json();
-    if (!resp.ok || !data.ok) { mostrarMensaje(data.error || 'No se pudo cobrar la venta.'); return; }
 
-    lastVentaId = data.venta.id;
+    if (!resp.ok || !data.ok) {
+      const det = data?.detalle;
+      if (det && det.error === 'stock_insuficiente') {
+        const idx = t.items.findIndex(i => i && i.id === det.producto_id);
+        if (idx >= 0) {
+          selectedRow = idx;
+          t.items[idx].sinStock = det.existencia;
+          renderTicket();
+        }
+        mostrarMensaje(det.mensaje || 'Un producto no tiene stock suficiente.');
+      } else {
+        mostrarMensaje(data?.error || 'No se pudo cobrar la venta.');
+      }
+      return;
+    }
+
+    // La respuesta puede venir como {venta:{...}} o directa {id, folio} según el flujo
+    const ventaResp = data.venta || data;
+    lastVentaId = ventaResp?.id || null;
+    const folioTxt = ventaResp?.folio ?? '';
 
     // Toast con cambio si fue efectivo
     if (metodo === 'efectivo') {
       const recibido = parseFloat(document.getElementById('efectivo-recibido')?.value) || total;
       const cambio   = recibido - total;
-      mostrarMensaje(`✓ Folio ${data.venta.folio ?? ''} — Recibido: $${recibido.toLocaleString('es-MX',{minimumFractionDigits:2})} | Cambio: $${cambio.toLocaleString('es-MX',{minimumFractionDigits:2})}`);
+      mostrarMensaje(`✓ Folio ${folioTxt} — Recibido: $${recibido.toLocaleString('es-MX',{minimumFractionDigits:2})} | Cambio: $${cambio.toLocaleString('es-MX',{minimumFractionDigits:2})}`);
     } else {
-      mostrarMensaje(`✓ Venta registrada — Folio ${data.venta.folio ?? ''}`);
+      mostrarMensaje(`✓ Venta registrada — Folio ${folioTxt}`);
     }
 
     cerrarModal();
     const idxCerrado = tickets.indexOf(t);
-    tickets.splice(idxCerrado, 1);
+    if (idxCerrado >= 0) tickets.splice(idxCerrado, 1);
     if (tickets.length === 0) tickets.push(crearTicketVacio());
-    activeIdx = Math.min(idxCerrado, tickets.length - 1);
+    activeIdx = Math.min(idxCerrado < 0 ? 0 : idxCerrado, tickets.length - 1);
     selectedRow = -1;
-    document.getElementById('efectivo-recibido').value = '';
+    const inputRec = document.getElementById('efectivo-recibido');
+    if (inputRec) inputRec.value = '';
     recibidoManual = false;
     renderTabs();
     renderTicket();
   } catch (err) {
     mostrarMensaje('Error de conexión al cobrar.');
     console.error(err);
+  } finally {
+    cobrando = false;   // ← siempre se libera, cobre o falle
   }
 }
+
 
 function reimprimirUltimo() {
   if (!lastVentaId) { mostrarMensaje('No hay ninguna venta reciente en esta sesión para reimprimir.'); return; }

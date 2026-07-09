@@ -153,6 +153,7 @@ router.post('/pendiente', async (req, res) => {
 });
 
 router.put('/pendiente/:id', async (req, res) => {
+
   try {
     const venta = await api(`/ventas/pendiente/${req.params.id}`, {
       method: 'PUT',
@@ -163,6 +164,23 @@ router.put('/pendiente/:id', async (req, res) => {
     res.status(err.status || 500).json({ error: err.message || 'Error al actualizar ticket.' });
   }
 });
+
+router.delete('/pendiente/:id', async (req, res) => {
+  try {
+    // El endpoint de FastAPI exige caja_id como query param
+    await api(
+      `/ventas/pendiente/${req.params.id}?caja_id=${req.session.caja_id}`,
+      { method: 'DELETE' },
+      req.session.token
+    );
+    res.json({ ok: true });
+  } catch (err) {
+    // 404 = el ticket ya no existe (ej. ya se cobró) — no es un error real
+    if (err.status === 404) return res.json({ ok: true, ya_no_existe: true });
+    res.status(err.status || 500).json({ error: err.message || 'Error al eliminar ticket.' });
+  }
+});
+
 
 router.post('/pendiente/:id/cobrar', async (req, res) => {
   try {

@@ -56,13 +56,17 @@ async function api(endpoint, opciones = {}, token = null) {
     }
 
     // Otros errores
+    // Otros errores
     if (!resp.ok) {
         const body = await resp.json().catch(() => ({}));
         console.log(`[API] Error ${resp.status} body:`, JSON.stringify(body, null, 2));
         const err = new Error(
-            typeof body.detail === 'string' ? body.detail : JSON.stringify(body.detail) || `Error ${resp.status}`
+            typeof body.detail === 'string'
+                ? body.detail
+                : (body.detail?.mensaje || `Error ${resp.status}`)
         );
         err.status = resp.status;
+        err.detail = body.detail;   // ← conserva el objeto estructurado intacto
         throw err;
     }
 
