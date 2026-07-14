@@ -1,15 +1,49 @@
 <%- include('../partials/header') %>
 
+<style>
+  .tabla th.text-right,
+  .tabla td.text-right { text-align: right; }
+
+  .tabla th.text-center,
+  .tabla td.text-center { text-align: center; }
+</style>
+
+<!-- Modal de devolución -->
+  <div id="modal-devolucion" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,.5); z-index:1000; align-items:center; justify-content:center; padding:20px;">
+    <div style="background:#fff; border-radius:16px; padding:28px; width:100%; max-width:560px; max-height:85vh; overflow-y:auto;" onclick="event.stopPropagation()">
+      <h2 style="font-family:'Playfair Display',serif; color:#6C0820; margin:0 0 6px;">Registrar Devolución</h2>
+      <p class="text-muted" style="margin:0 0 18px;">Indica cuántas unidades de cada producto se devuelven.</p>
+
+      <div id="devolucion-lineas"></div>
+
+      <div style="display:flex; justify-content:space-between; align-items:center; margin:18px 0; padding:12px 16px; background:#F7E7CE; border-radius:10px;">
+        <span style="font-weight:600; color:#6C0820;">Total a reembolsar</span>
+        <strong id="devolucion-total" style="font-size:1.3rem; color:#6C0820;">$0.00</strong>
+      </div>
+
+      <p class="text-muted text-xs" id="devolucion-nota-efectivo" style="display:none; margin-bottom:12px;">
+        El reembolso saldrá de la caja (método efectivo).
+      </p>
+
+      <div style="display:flex; gap:10px;">
+        <button class="btn btn-ghost" onclick="cerrarDevolucion()" style="flex:1;">Cancelar</button>
+        <button class="btn btn-danger" id="btn-confirmar-devolucion" onclick="confirmarDevolucion()" style="flex:1;">Confirmar devolución</button>
+      </div>
+    </div>
+  </div>
+
+
 <main class="contenido">
   <div class="page-header flex-between">
     <div>
       <h1 class="page-title">Detalle de Venta</h1>
-      <p class="page-subtitle">Folio #<%= id %></p>
+      <p class="page-subtitle">Folio #<%= venta.folio %></p>
     </div>
     <div class="flex gap-sm">
-      <button class="btn btn-secondary">Imprimir Ticket</button>
-      <button class="btn btn-danger">Cancelar Venta</button>
-      <a href="/historial" class="btn btn-ghost">Volver</a>
+      <% if (venta.estado === 'completada' && permisos.perm_devoluciones) { %>
+        <button class="btn btn-danger" onclick="abrirDevolucion()">Registrar Devolución</button>
+      <% } %>
+      <a href="/ventas-dia" class="btn btn-ghost">Volver</a>
     </div>
   </div>
 
@@ -19,7 +53,7 @@
         <svg viewBox="0 0 24 24"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6"/></svg>
       </div>
       <div class="stat-info">
-        <div class="stat-value">$0.00</div>
+        <div class="stat-value">$<%= Number(venta.total).toLocaleString('es-MX', {minimumFractionDigits:2}) %></div>
         <div class="stat-label">Total</div>
       </div>
     </div>
@@ -28,7 +62,7 @@
         <svg viewBox="0 0 24 24"><rect x="1" y="4" width="22" height="16" rx="2" ry="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg>
       </div>
       <div class="stat-info">
-        <div class="stat-value">EFECTIVO</div>
+        <div class="stat-value"><%= (venta.metodo_pago_principal || '—').toUpperCase() %></div>
         <div class="stat-label">Método de Pago</div>
       </div>
     </div>
@@ -37,7 +71,7 @@
         <svg viewBox="0 0 24 24"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
       </div>
       <div class="stat-info">
-        <div class="stat-value">—</div>
+        <div class="stat-value"><%= venta.cajero_nombre || '—' %></div>
         <div class="stat-label">Cajero</div>
       </div>
     </div>
@@ -46,12 +80,39 @@
         <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
       </div>
       <div class="stat-info">
-        <div class="stat-value">—</div>
+        <div class="stat-value" style="font-size:.95rem;">
+          <%= new Date(venta.creado_en + 'Z').toLocaleDateString('es-MX', { day:'2-digit', month:'short', year:'numeric', timeZone:'America/Mexico_City' }) %>
+          <%= new Date(venta.creado_en + 'Z').toLocaleTimeString('es-MX', { hour:'2-digit', minute:'2-digit', timeZone:'America/Mexico_City' }) %>
+        </div>
         <div class="stat-label">Fecha</div>
       </div>
     </div>
   </div>
 
+  <!-- Estado + cliente -->
+  <div class="card" style="margin-bottom:16px;">
+    <div class="flex-between" style="flex-wrap:wrap; gap:12px;">
+      <div>
+        <span class="stat-label">Estado:</span>
+        <span class="badge badge--<%= venta.estado === 'completada' ? 'success' : venta.estado === 'cancelada' ? 'danger' : 'warning' %>">
+          <%= venta.estado.charAt(0).toUpperCase() + venta.estado.slice(1) %>
+        </span>
+      </div>
+      <div>
+        <span class="stat-label">Cliente:</span>
+        <strong><%= venta.clientes?.nombre || 'Público general' %></strong>
+        <% if (venta.clientes?.es_mayorista) { %><span class="badge badge--warning">Mayorista</span><% } %>
+      </div>
+      <% if (venta.caja_nombre) { %>
+        <div><span class="stat-label">Caja:</span> <strong><%= venta.caja_nombre %></strong></div>
+      <% } %>
+    </div>
+    <% if (venta.notas) { %>
+      <p style="margin-top:10px;"><span class="stat-label">Notas:</span> <%= venta.notas %></p>
+    <% } %>
+  </div>
+
+  <!-- Productos -->
   <div class="card">
     <div class="card-titulo">Productos</div>
     <div class="tabla-wrap">
@@ -59,22 +120,175 @@
         <thead>
           <tr>
             <th>Producto</th>
-            <th>Cantidad</th>
-            <th>Precio Unitario</th>
-            <th>Descuento</th>
-            <th>Subtotal</th>
+            <th class="text-center">Cantidad</th>
+            <th class="text-center">Devuelto</th>
+            <th class="text-right">Precio Unitario</th>
+            <th class="text-right">Descuento</th>
+            <th class="text-right">Subtotal</th>
           </tr>
         </thead>
         <tbody>
+          <% if (articulos.length === 0) { %>
+            <tr><td colspan="6" class="text-center text-muted" style="padding:2rem;">Sin productos</td></tr>
+          <% } else { %>
+            <% articulos.forEach(a => {
+              const subtotal = (Number(a.precio_unitario) * a.cantidad) - Number(a.descuento || 0);
+            %>
+            <tr>
+              <td>
+                <%= a.productos?.descripcion || 'Producto' %>
+                <% if (a.productos?.codigo_barras) { %>
+                  <span class="text-muted text-xs"><%= a.productos.codigo_barras %></span>
+                <% } %>
+                <% if (a.uso_precio_mayoreo) { %><span class="badge badge--warning">Mayoreo</span><% } %>
+              </td>
+              <td class="text-center"><%= a.cantidad %></td>
+              <td class="text-center">
+                <% if (a.cantidad_devuelta > 0) { %>
+                  <span class="badge badge--danger"><%= a.cantidad_devuelta %></span>
+                <% } else { %>—<% } %>
+              </td>
+              <td class="text-right">$<%= Number(a.precio_unitario).toLocaleString('es-MX', {minimumFractionDigits:2}) %></td>
+              <td class="text-right">$<%= Number(a.descuento || 0).toLocaleString('es-MX', {minimumFractionDigits:2}) %></td>
+              <td class="text-right fw-medium">$<%= subtotal.toLocaleString('es-MX', {minimumFractionDigits:2}) %></td>
+            </tr>
+            <% }) %>
+          <% } %>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- Pagos -->
+  <div class="card" style="margin-top:16px;">
+    <div class="card-titulo">Pagos</div>
+    <div class="tabla-wrap">
+      <table class="tabla">
+        <thead>
           <tr>
-            <td colspan="5" class="text-center text-muted" style="padding:2rem;">
-              Sin productos
-            </td>
+            <th>Método</th>
+            <th class="text-right">Monto</th>
+            <th class="text-right">Cambio</th>
+            <th>Referencia</th>
           </tr>
+        </thead>
+        <tbody>
+          <% if (pagos.length === 0) { %>
+            <tr><td colspan="4" class="text-center text-muted" style="padding:1.5rem;">Sin pagos registrados</td></tr>
+          <% } else { %>
+            <% pagos.forEach(p => { %>
+            <tr>
+              <td><%= p.metodo.charAt(0).toUpperCase() + p.metodo.slice(1) %></td>
+              <td class="text-right">$<%= Number(p.monto).toLocaleString('es-MX', {minimumFractionDigits:2}) %></td>
+              <td class="text-right">$<%= Number(p.cambio || 0).toLocaleString('es-MX', {minimumFractionDigits:2}) %></td>
+              <td><%= p.referencia || '—' %></td>
+            </tr>
+            <% }) %>
+          <% } %>
         </tbody>
       </table>
     </div>
   </div>
 </main>
+
+<script>
+  const VENTA_ID = '<%= venta.id %>';
+  const METODO_VENTA = '<%= venta.metodo_pago_principal %>';
+  // Artículos con lo que aún se puede devolver
+  const ARTICULOS = <%- JSON.stringify(articulos.map(a => ({
+    id: a.id,
+    nombre: a.productos ? a.productos.descripcion : 'Producto',
+    precio_unitario: Number(a.precio_unitario),
+    disponible: a.cantidad - (a.cantidad_devuelta || 0),
+  }))) %>;
+
+  let devolviendo = false;
+
+  function abrirDevolucion() {
+    const cont = document.getElementById('devolucion-lineas');
+    const devolvibles = ARTICULOS.filter(a => a.disponible > 0);
+
+    if (devolvibles.length === 0) {
+      alert('Esta venta ya no tiene unidades disponibles para devolver.');
+      return;
+    }
+
+    cont.innerHTML = devolvibles.map(a => `
+      <div style="display:flex; align-items:center; justify-content:space-between; gap:12px; padding:10px 0; border-bottom:1px solid #F2DCDB;">
+        <div style="flex:1; min-width:0;">
+          <div style="font-weight:600; color:#3D5D91;">${a.nombre}</div>
+          <div class="text-muted text-xs">$${a.precio_unitario.toLocaleString('es-MX',{minimumFractionDigits:2})} c/u · máx ${a.disponible}</div>
+        </div>
+        <input type="number" min="0" max="${a.disponible}" value="0"
+          data-id="${a.id}" data-precio="${a.precio_unitario}"
+          class="form-control devolucion-input" style="width:80px;"
+          oninput="recalcularDevolucion()">
+      </div>
+    `).join('');
+
+    document.getElementById('devolucion-nota-efectivo').style.display =
+      METODO_VENTA === 'efectivo' ? 'block' : 'none';
+
+    recalcularDevolucion();
+    document.getElementById('modal-devolucion').style.display = 'flex';
+  }
+
+  function recalcularDevolucion() {
+    let total = 0;
+    document.querySelectorAll('.devolucion-input').forEach(inp => {
+      const max = parseInt(inp.max);
+      let val = parseInt(inp.value) || 0;
+      if (val > max) { val = max; inp.value = max; }
+      if (val < 0) { val = 0; inp.value = 0; }
+      total += val * parseFloat(inp.dataset.precio);
+    });
+    document.getElementById('devolucion-total').textContent =
+      '$' + total.toLocaleString('es-MX', {minimumFractionDigits:2});
+  }
+
+  function cerrarDevolucion() {
+    document.getElementById('modal-devolucion').style.display = 'none';
+  }
+
+  async function confirmarDevolucion() {
+    if (devolviendo) return;
+
+    const articulos = [];
+    document.querySelectorAll('.devolucion-input').forEach(inp => {
+      const cant = parseInt(inp.value) || 0;
+      if (cant > 0) articulos.push({ venta_articulo_id: inp.dataset.id, cantidad: cant });
+    });
+
+    if (articulos.length === 0) {
+      alert('Indica al menos una unidad a devolver.');
+      return;
+    }
+
+    if (!confirm('¿Confirmar la devolución? Esta acción no se puede deshacer.')) return;
+
+    devolviendo = true;
+    document.getElementById('btn-confirmar-devolucion').disabled = true;
+
+    try {
+      const resp = await fetch(`/ventas-dia/${VENTA_ID}/devolucion`, {
+        method: 'POST', headers: {'Content-Type':'application/json'},
+        body: JSON.stringify({ articulos }),
+      });
+      const data = await resp.json();
+      if (!resp.ok || !data.ok) {
+        alert(data.error || 'No se pudo registrar la devolución.');
+        return;
+      }
+      alert('Devolución registrada correctamente.');
+      window.location.reload();
+    } catch (err) {
+      alert('Error de conexión al registrar la devolución.');
+      console.error(err);
+    } finally {
+      devolviendo = false;
+      document.getElementById('btn-confirmar-devolucion').disabled = false;
+    }
+  }
+</script>
 
 <%- include('../partials/footer') %>

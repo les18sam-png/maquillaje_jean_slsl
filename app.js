@@ -59,9 +59,12 @@ app.use('/productos', productos);
 const inventario = require('./routes/inventario');
 app.use('/inventario', inventario);
 
-// ⏳ Pendiente de migrar — sigue con Supabase
+// Verificador viejo (Supabase directo) — pendiente de migrar
 const verificador = require('./routes/verificador');
 app.use('/verificador', verificador);
+
+// Verificador nuevo (migrado a API)
+app.use('/verificador-precios', require('./routes/verificador-precios'));
 
 const venta = require('./routes/venta');
 app.use('/venta', venta);
@@ -69,8 +72,8 @@ app.use('/venta', venta);
 const turnos = require('./routes/turnos');
 app.use('/turnos', turnos);
 
-const historial = require('./routes/historial');
-app.use('/historial', historial);
+
+app.use('/ventas-dia', require('./routes/historial'));
 
 const clientes = require('./routes/clientes');
 app.use('/clientes', clientes);
@@ -80,6 +83,10 @@ app.use('/admin', admin);
 
 const reportes = require('./routes/reportes');
 app.use('/reportes', reportes);
+
+app.use('/impresion', require('./routes/impresion'));
+
+app.use('/auditoria', require('./routes/auditoria'));
 
 // ── Levantar servidor ──────────────────────
 const server = app.listen(PORT, () => {

@@ -1,263 +1,176 @@
-// routes/clientes.js
-// SmartVenta PDV — Módulo Clientes
-// SOLO FRONTEND: todas las llamadas a Supabase las conecta el backend
-
 const express = require('express');
 const router  = express.Router();
-const { supabase } = require('../db/database');
+const { api } = require('../db/api');
 
-/* ─────────────────────────────────────────
-   CONSTANTES
-───────────────────────────────────────── */
-/*
-const SUCURSAL_ID = process.env.SUCURSAL_ID;
-const POR_PAGINA  = 20;
+const POR_PAGINA = 20;
 
-/* ─────────────────────────────────────────
-   56 — GET /clientes
-   Listado con búsqueda + filtros + paginación
-───────────────────────────────────────── */
+// ─────────────────────────────────────────
+// GET /clientes
+// ─────────────────────────────────────────
 router.get('/', async (req, res) => {
   try {
-    const busqueda = req.query.q        || '';
-    const tipo     = req.query.tipo     || '';   // 'normal' | 'mayorista'
-    const orden    = req.query.orden    || 'nombre_asc';
+    const busqueda = req.query.q      || '';
+    const tipo     = req.query.tipo   || '';
+    const orden    = req.query.orden  || 'nombre_asc';
     const pagina   = parseInt(req.query.pagina) || 1;
-    const desde    = (pagina - 1) * POR_PAGINA;
 
-    // ── Construir query base ──────────────────
-    let query = supabase
-      .from('clientes')
-      .select('*', { count: 'exact' });
+    const params = new URLSearchParams();
+    if (busqueda) params.append('busqueda', busqueda);
+    if (tipo === 'mayorista') params.append('es_mayorista', 'true');
+    if (tipo === 'normal')    params.append('es_mayorista', 'false');
+    params.append('orden', orden);
+    params.append('pagina', pagina);
+    params.append('por_pagina', POR_PAGINA);
 
-    if (busqueda) {
-      query = query.or(
-        `nombre.ilike.%${busqueda}%,` +
-        `correo.ilike.%${busqueda}%,` +
-        `telefono.ilike.%${busqueda}%,` +
-        `rfc.ilike.%${busqueda}%`
-      );
-    }
-
-    if (tipo === 'mayorista') query = query.eq('es_mayorista', true);
-    if (tipo === 'normal')    query = query.eq('es_mayorista', false);
-
-    // Ordenamiento
-    switch (orden) {
-      case 'nombre_desc':  query = query.order('nombre',     { ascending: false }); break;
-      case 'reciente':     query = query.order('creado_en',  { ascending: false }); break;
-      case 'antiguo':      query = query.order('creado_en',  { ascending: true  }); break;
-      default:             query = query.order('nombre',     { ascending: true  }); break;
-    }
-
-    query = query.range(desde, desde + POR_PAGINA - 1);
-
-    const { data: clientes, count, error } = await query;
-    if (error) throw error;
-
-    const totalPaginas = Math.ceil((count || 0) / POR_PAGINA);
+    const data = await api(`/clientes/?${params}`, {}, req.session.token);
 
     res.render('clientes/index', {
-      title:        'Clientes',
-      clientes:     clientes || [],
-      busqueda,
-      tipo,
-      orden,
-      pagina,
-      totalPaginas,
-      totalClientes: count || 0,
+      title: 'Clientes',
+      clientes:      data?.items       || [],
+      totalClientes: data?.total       || 0,
+      totalPaginas:  Math.ceil((data?.total || 0) / POR_PAGINA),
+      busqueda, tipo, orden, pagina,
+      toast: req.query.toast || null,
     });
   } catch (err) {
+    if (err.status === 401) return res.redirect('/auth/login?error=sesion');
     console.error('Error en GET /clientes:', err.message);
-    res.status(500).render('error', { mensaje: 'No se pudo cargar la lista de clientes.' });
+    res.status(500).send('No se pudo cargar la lista de clientes.');
   }
 });
 
-/* ─────────────────────────────────────────
-   58 — GET /clientes/nuevo
-   Formulario de alta
-───────────────────────────────────────── */
+// ─────────────────────────────────────────
+// GET /clientes/nuevo
+// ─────────────────────────────────────────
 router.get('/nuevo', (req, res) => {
   res.render('clientes/form', {
-    title:   'Nuevo Cliente',
+    title: 'Nuevo Cliente',
     cliente: null,
     modoEdicion: false,
+    error: req.query.error || null,
   });
 });
 
-/* ─────────────────────────────────────────
-   58 — POST /clientes/nuevo
-   Crear cliente
-───────────────────────────────────────── */
+// ─────────────────────────────────────────
+// POST /clientes/nuevo
+// ─────────────────────────────────────────
 router.post('/nuevo', async (req, res) => {
   try {
-    const {
-      nombre, correo, telefono, rfc,
-      es_mayorista, direccion, notas,
-    } = req.body;
+    const { nombre, correo, telefono, es_mayorista, notas } = req.body;
 
-    const { error } = await supabase
-      .from('clientes')
-      .insert([{
+    await api('/clientes/', {
+      method: 'POST',
+      body: JSON.stringify({
         nombre:       nombre?.trim(),
         correo:       correo?.trim()   || null,
         telefono:     telefono?.trim() || null,
-        rfc:          rfc?.trim()      || null,
         es_mayorista: es_mayorista === 'on' || es_mayorista === 'true',
-        direccion:    direccion?.trim() || null,
         notas:        notas?.trim()    || null,
-      }]);
-
-    if (error) throw error;
+      }),
+    }, req.session.token);
 
     res.redirect('/clientes?toast=creado');
   } catch (err) {
+    if (err.status === 401) return res.redirect('/auth/login?error=sesion');
     console.error('Error creando cliente:', err.message);
     res.render('clientes/form', {
-      title:       'Nuevo Cliente',
-      cliente:     req.body,
+      title: 'Nuevo Cliente',
+      cliente: req.body,
       modoEdicion: false,
-      error:       'No se pudo guardar el cliente. Verifica los datos.',
+      error: 'No se pudo guardar el cliente.',
     });
   }
 });
 
-/* ─────────────────────────────────────────
-   59 — GET /clientes/:id
-   Detalle / perfil del cliente
-───────────────────────────────────────── */
-router.get('/:id', async (req, res) => {
-  try {
-    const { id } = req.params;
-
-    // Cliente
-    const { data: cliente, error: errCliente } = await supabase
-      .from('clientes')
-      .select('*')
-      .eq('id', id)
-      .single();
-
-    if (errCliente || !cliente) {
-      return res.status(404).render('error', { mensaje: 'Cliente no encontrado.' });
-    }
-
-    // Últimas 10 ventas del cliente
-    const { data: ventas, error: errVentas } = await supabase
-      .from('ventas')
-      .select('id, folio, total, metodo_pago, creado_en, estado')
-      .eq('cliente_id', id)
-      .order('creado_en', { ascending: false })
-      .limit(10);
-
-    // Estadísticas rápidas
-    const { data: stats } = await supabase
-      .from('ventas')
-      .select('total')
-      .eq('cliente_id', id)
-      .eq('estado', 'completada');
-
-    const totalGastado   = (stats || []).reduce((s, v) => s + (v.total || 0), 0);
-    const totalCompras   = (stats || []).length;
-    const ticketPromedio = totalCompras > 0 ? totalGastado / totalCompras : 0;
-
-    res.render('clientes/detalle', {
-      title:          `Cliente — ${cliente.nombre}`,
-      cliente,
-      ventas:         ventas || [],
-      totalGastado,
-      totalCompras,
-      ticketPromedio,
-    });
-  } catch (err) {
-    console.error('Error en GET /clientes/:id:', err.message);
-    res.status(500).render('error', { mensaje: 'Error al cargar el cliente.' });
-  }
-});
-
-/* ─────────────────────────────────────────
-   58 — GET /clientes/:id/editar
-   Formulario de edición
-───────────────────────────────────────── */
+// ─────────────────────────────────────────
+// GET /clientes/:id/editar
+// ─────────────────────────────────────────
 router.get('/:id/editar', async (req, res) => {
   try {
-    const { data: cliente, error } = await supabase
-      .from('clientes')
-      .select('*')
-      .eq('id', req.params.id)
-      .single();
-
-    if (error || !cliente) {
-      return res.status(404).render('error', { mensaje: 'Cliente no encontrado.' });
-    }
-
+    const cliente = await api(`/clientes/${req.params.id}`, {}, req.session.token);
     res.render('clientes/form', {
-      title:       `Editar — ${cliente.nombre}`,
+      title: `Editar — ${cliente.nombre}`,
       cliente,
       modoEdicion: true,
+      error: req.query.error || null,
     });
   } catch (err) {
+    if (err.status === 401) return res.redirect('/auth/login?error=sesion');
+    if (err.status === 404) return res.status(404).send('Cliente no encontrado.');
     console.error('Error en GET /clientes/:id/editar:', err.message);
-    res.status(500).render('error', { mensaje: 'Error al cargar el formulario.' });
+    res.status(500).send('Error al cargar el formulario.');
   }
 });
 
-/* ─────────────────────────────────────────
-   58 — POST /clientes/:id/editar
-   Actualizar cliente
-───────────────────────────────────────── */
+// ─────────────────────────────────────────
+// POST /clientes/:id/editar
+// ─────────────────────────────────────────
 router.post('/:id/editar', async (req, res) => {
   try {
-    const { id } = req.params;
-    const {
-      nombre, correo, telefono, rfc,
-      es_mayorista, direccion, notas,
-    } = req.body;
+    const { nombre, correo, telefono, es_mayorista, notas } = req.body;
 
-    const { error } = await supabase
-      .from('clientes')
-      .update({
+    await api(`/clientes/${req.params.id}`, {
+      method: 'PUT',
+      body: JSON.stringify({
         nombre:       nombre?.trim(),
         correo:       correo?.trim()    || null,
         telefono:     telefono?.trim()  || null,
-        rfc:          rfc?.trim()       || null,
         es_mayorista: es_mayorista === 'on' || es_mayorista === 'true',
-        direccion:    direccion?.trim() || null,
         notas:        notas?.trim()     || null,
-      })
-      .eq('id', id);
+      }),
+    }, req.session.token);
 
-    if (error) throw error;
-
-    res.redirect(`/clientes/${id}?toast=actualizado`);
+    res.redirect(`/clientes/${req.params.id}?toast=actualizado`);
   } catch (err) {
+    if (err.status === 401) return res.redirect('/auth/login?error=sesion');
     console.error('Error actualizando cliente:', err.message);
-    const cliente = { id: req.params.id, ...req.body };
-    res.render('clientes/form', {
-      title:       'Editar Cliente',
-      cliente,
-      modoEdicion: true,
-      error:       'No se pudo guardar los cambios.',
-    });
+    res.redirect(`/clientes/${req.params.id}/editar?error=fallo`);
   }
 });
 
-/* ─────────────────────────────────────────
-   POST /clientes/:id/eliminar
-───────────────────────────────────────── */
+// ─────────────────────────────────────────
+// GET /clientes/:id
+// ─────────────────────────────────────────
+router.get('/:id', async (req, res) => {
+  try {
+    const [cliente, ventasData] = await Promise.all([
+      api(`/clientes/${req.params.id}`, {}, req.session.token),
+      api(`/ventas/cliente/${req.params.id}?limite=10`, {}, req.session.token)
+        .catch(() => ({ items: [], total: 0, total_gastado: 0 })),
+    ]);
+
+    const ventas         = ventasData?.items        || [];
+    const totalCompras   = ventasData?.total         || 0;
+    const totalGastado   = ventasData?.total_gastado || 0;
+    const ticketPromedio = totalCompras > 0 ? totalGastado / totalCompras : 0;
+
+    res.render('clientes/detalle', {
+      title: `Cliente — ${cliente.nombre}`,
+      cliente, ventas,
+      totalGastado, totalCompras, ticketPromedio,
+      toast: req.query.toast || null,
+      query: req.query, 
+    });
+  } catch (err) {
+    if (err.status === 401) return res.redirect('/auth/login?error=sesion');
+    if (err.status === 404) return res.status(404).send('Cliente no encontrado.');
+    console.error('Error en GET /clientes/:id:', err.message);
+    res.status(500).send('Error al cargar el cliente.');
+  }
+});
+
+// ─────────────────────────────────────────
+// POST /clientes/:id/eliminar
+// ─────────────────────────────────────────
 router.post('/:id/eliminar', async (req, res) => {
   try {
-    const { error } = await supabase
-      .from('clientes')
-      .delete()
-      .eq('id', req.params.id);
-
-    if (error) throw error;
-
+    await api(`/clientes/${req.params.id}`, { method: 'DELETE' }, req.session.token);
     res.redirect('/clientes?toast=eliminado');
   } catch (err) {
+    if (err.status === 401) return res.redirect('/auth/login?error=sesion');
+    if (err.status === 409) return res.redirect(`/clientes/${req.params.id}?error=tiene-ventas`);
     console.error('Error eliminando cliente:', err.message);
     res.redirect(`/clientes/${req.params.id}?error=no-se-pudo-eliminar`);
   }
 });
-
 module.exports = router;

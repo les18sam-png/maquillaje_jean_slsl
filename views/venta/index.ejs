@@ -1,157 +1,187 @@
 <%- include('../partials/header', { title }) %>
 
 <style>
-.pdv-ticket-row--mayoreo { background: #FCE4EE; }
-.pdv-ticket-row--mayoreo:hover { background: #F9D5E5; }
-.pdv-page { display: flex; flex-direction: column; height: calc(100vh - var(--header-h)); overflow: hidden; padding: 0; }
-.pdv-ticket-row--sin-stock { background: #fee2e2 !important; outline: 2px solid #ef4444; outline-offset: -2px; }
-.tag-promo { font-size: .62rem; background: #d1fae5; color: #6C0820; padding: 1px 5px; border-radius: 4px; font-weight: 700; }
+/* ═══════════════════════════════════════════
+   PDV — Punto de Venta   |   venta/index.ejs
+═══════════════════════════════════════════ */
 
-.pdv-bar { display: flex; align-items: center; gap: 10px; padding: 10px 16px; background: #fff; border-bottom: 1px solid #F2DCDB; flex-shrink: 0; flex-wrap: wrap; }
+/* ── Layout ──────────────────────────────── */
+.pdv-page { display:flex; flex-direction:column; height:calc(100vh - var(--header-h)); overflow:hidden; padding:0; }
+.pdv-body { display:grid; grid-template-columns:1fr 340px; flex:1; overflow:hidden; }
 
-.pdv-search-box { position: relative; flex: 1; min-width: 260px; }
-.pdv-search-box svg { position: absolute; left: 10px; top: 50%; transform: translateY(-50%); color: #aaa; pointer-events: none; }
-.pdv-search-input { width: 100%; padding: 8px 12px 8px 32px; border: 1.5px solid #E0C8C8; border-radius: 8px; font-size: .9rem; font-family: 'DM Sans', sans-serif; }
-.pdv-search-input:focus { outline: none; border-color: #B5294E; box-shadow: 0 0 0 3px rgba(181,41,78,.1); }
+/* ── Barra superior ──────────────────────── */
+.pdv-bar { display:flex; align-items:center; gap:10px; padding:10px 16px; background:#fff; border-bottom:1px solid #F2DCDB; flex-shrink:0; flex-wrap:wrap; }
+.pdv-search-box { position:relative; flex:1; min-width:260px; }
+.pdv-search-box svg { position:absolute; left:10px; top:50%; transform:translateY(-50%); color:#aaa; pointer-events:none; }
+.pdv-search-input { width:100%; padding:8px 12px 8px 32px; border:1.5px solid #E0C8C8; border-radius:8px; font-size:.9rem; font-family:'DM Sans',sans-serif; }
+.pdv-search-input:focus { outline:none; border-color:#B5294E; box-shadow:0 0 0 3px rgba(181,41,78,.1); }
+.pdv-search-hint { position:absolute; top:calc(100% + 6px); left:0; font-size:.85rem; font-weight:500; color:#6C0820; background:#FCE4EE; border:1px solid #F4A0C0; padding:8px 14px; border-radius:8px; box-shadow:0 3px 10px rgba(0,0,0,.10); display:none; z-index:5; white-space:nowrap; }
+.pdv-search-hint--visible { display:block; }
+.pdv-bar__cliente { display:flex; align-items:center; gap:6px; flex-shrink:0; }
+.pdv-bar__cliente label { font-size:.78rem; font-weight:600; color:#6C0820; white-space:nowrap; }
+.pdv-bar__cliente select { padding:7px 10px; border:1.5px solid #E0C8C8; border-radius:8px; font-size:.82rem; font-family:'DM Sans',sans-serif; max-width:200px; }
 
-.pdv-search-hint {
-  position: absolute; top: calc(100% + 6px); left: 0;
-  font-size: .85rem; font-weight: 500; color: #6C0820;
-  background: #FCE4EE; border: 1px solid #F4A0C0;
-  padding: 8px 14px; border-radius: 8px; box-shadow: 0 3px 10px rgba(0,0,0,.10);
-  display: none; z-index: 5; white-space: nowrap;
-}
-.pdv-search-hint--visible { display: block; }
+/* ── Acciones rápidas ────────────────────── */
+.pdv-acciones-bar { display:flex; gap:6px; padding:8px 16px; background:#fff; border-bottom:1px solid #F2DCDB; flex-shrink:0; flex-wrap:wrap; }
+.pdv-accion-btn { display:flex; align-items:center; gap:5px; padding:6px 12px; border:1.5px solid #E0C8C8; border-radius:7px; background:#fff; color:#6C0820; font-size:.78rem; font-weight:600; cursor:pointer; transition:background .15s; text-decoration:none; }
+.pdv-accion-btn:hover { background:#FCE4EE; }
+.pdv-accion-btn--mayoreo.activo { background:#6C0820; color:#fff; }
+.pdv-accion-btn kbd { font-size:.65rem; background:#F2DCDB; color:#6C0820; padding:1px 5px; border-radius:4px; }
 
-.pdv-bar__cliente { display: flex; align-items: center; gap: 6px; flex-shrink: 0; }
-.pdv-bar__cliente label { font-size: .78rem; font-weight: 600; color: #6C0820; white-space: nowrap; }
-.pdv-bar__cliente select { padding: 7px 10px; border: 1.5px solid #E0C8C8; border-radius: 8px; font-size: .82rem; font-family: 'DM Sans', sans-serif; max-width: 200px; }
+/* ── Pestañas ────────────────────────────── */
+.pdv-tabs { display:flex; align-items:center; gap:4px; padding:6px 16px 0; background:#fff; flex-shrink:0; overflow-x:auto; }
+.pdv-tab { display:flex; align-items:center; gap:6px; padding:7px 14px; border-radius:8px 8px 0 0; background:#FAF5F5; color:#888; font-size:.8rem; font-weight:600; cursor:pointer; white-space:nowrap; border:1px solid #F2DCDB; border-bottom:none; flex-shrink:0; }
+.pdv-tab--activa { background:#6C0820; color:#fff; border-color:#6C0820; }
+.pdv-tab__close { display:flex; opacity:.6; }
+.pdv-tab__close:hover { opacity:1; }
+.pdv-tab-nueva { display:flex; align-items:center; justify-content:center; width:30px; height:30px; border-radius:6px; background:#FCE4EE; color:#6C0820; cursor:pointer; flex-shrink:0; }
+.pdv-tab-nueva:hover { background:#F9B8D2; }
 
-.pdv-acciones-bar {
-  display: flex; gap: 6px; padding: 8px 16px; background: #fff;
-  border-bottom: 1px solid #F2DCDB; flex-shrink: 0; flex-wrap: wrap;
-}
-.pdv-accion-btn {
-  display: flex; align-items: center; gap: 5px;
-  padding: 6px 12px; border: 1.5px solid #E0C8C8; border-radius: 7px;
-  background: #fff; color: #6C0820; font-size: .78rem; font-weight: 600;
-  cursor: pointer; transition: background .15s;
-}
-.pdv-accion-btn:hover { background: #FCE4EE; }
-.pdv-accion-btn--danger { color: #ef4444; border-color: #fca5a5; }
-.pdv-accion-btn--danger:hover { background: #fee2e2; }
-.pdv-accion-btn--mayoreo.activo { background: #6C0820; color: #fff; }
-.pdv-accion-btn kbd {
-  font-size: .65rem; background: #F2DCDB; color: #6C0820; padding: 1px 5px; border-radius: 4px;
-}
+/* ── Ticket ──────────────────────────────── */
+.pdv-ticket { display:flex; flex-direction:column; border-right:1px solid #F2DCDB; overflow:hidden; }
+.pdv-ticket__header { display:grid; grid-template-columns:1fr 2fr 0.7fr 1fr 1fr 36px; padding:8px 12px; background:#6C0820; color:#fff; font-size:.72rem; font-weight:600; letter-spacing:.04em; text-transform:uppercase; flex-shrink:0; }
+.pdv-ticket__body { flex:1; overflow-y:auto; }
+.pdv-ticket__empty { display:flex; flex-direction:column; align-items:center; justify-content:center; height:100%; color:#ddd; gap:10px; }
+.pdv-ticket__empty p { font-size:.88rem; color:#bbb; }
 
-.pdv-tabs { display: flex; align-items: center; gap: 4px; padding: 6px 16px 0; background: #fff; flex-shrink: 0; overflow-x: auto; }
-.pdv-tab {
-  display: flex; align-items: center; gap: 6px; padding: 7px 14px;
-  border-radius: 8px 8px 0 0; background: #FAF5F5; color: #888;
-  font-size: .8rem; font-weight: 600; cursor: pointer; white-space: nowrap;
-  border: 1px solid #F2DCDB; border-bottom: none; flex-shrink: 0;
-}
-.pdv-tab--activa { background: #6C0820; color: #fff; border-color: #6C0820; }
-.pdv-tab__close { display: flex; opacity: .6; }
-.pdv-tab__close:hover { opacity: 1; }
-.pdv-tab-nueva {
-  display: flex; align-items: center; justify-content: center;
-  width: 30px; height: 30px; border-radius: 6px; background: #FCE4EE;
-  color: #6C0820; cursor: pointer; flex-shrink: 0;
-}
-.pdv-tab-nueva:hover { background: #F9B8D2; }
+/* Filas del ticket */
+.pdv-ticket-row { display:grid; grid-template-columns:1fr 2fr 0.7fr 1fr 1fr 36px; padding:8px 12px; border-bottom:1px solid #F7E7CE; align-items:center; transition:background .12s; cursor:pointer; }
+.pdv-ticket-row:hover             { background:#FDF5F5; }
+.pdv-ticket-row--selected         { background:#FCE4EE; outline:2px solid #B5294E; outline-offset:-2px; }
+.pdv-ticket-row--mayoreo          { background:#FCE4EE; }
+.pdv-ticket-row--mayoreo:hover    { background:#F9D5E5; }
+.pdv-ticket-row--promo            { background:#ecfdf5; }
+.pdv-ticket-row--promo:hover      { background:#d1fae5; }
+.pdv-ticket-row--sin-stock        { background:#fee2e2 !important; outline:2px solid #ef4444; outline-offset:-2px; }
+.pdv-ticket-row__codigo   { font-size:.68rem; color:#aaa; font-family:monospace; }
+.pdv-ticket-row__nombre   { font-size:.85rem; font-weight:500; color:#3D5D91; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; padding-right:8px; }
+.pdv-ticket-row__qty      { display:flex; align-items:center; gap:4px; }
+.pdv-qty-btn { width:22px; height:22px; border:none; border-radius:4px; background:#F2DCDB; color:#6C0820; cursor:pointer; display:flex; align-items:center; justify-content:center; font-size:.85rem; font-weight:700; transition:background .12s; flex-shrink:0; }
+.pdv-qty-btn:hover        { background:#FFB7C5; }
+.pdv-qty-num              { width:26px; text-align:center; font-size:.85rem; font-weight:700; color:#333; }
+.pdv-ticket-row__precio   { font-size:.8rem; color:#555; text-align:right; padding-right:4px; }
+.pdv-ticket-row__subtotal { font-size:.85rem; font-weight:700; color:#B5294E; text-align:right; padding-right:4px; }
+.pdv-ticket-row__del { background:none; border:none; color:#ddd; cursor:pointer; display:flex; align-items:center; justify-content:center; transition:color .12s; padding:4px; }
+.pdv-ticket-row__del:hover { color:#ef4444; }
 
-.pdv-body { display: grid; grid-template-columns: 1fr 340px; flex: 1; overflow: hidden; gap: 0; }
+/* Tags de precio */
+.tag-mayoreo { font-size:.62rem; background:#F2DCDB; color:#6C0820; padding:1px 5px; border-radius:4px; font-weight:700; }
+.tag-forzado { font-size:.62rem; background:#6C0820; color:#fff;    padding:1px 5px; border-radius:4px; font-weight:700; }
+.tag-promo   { font-size:.62rem; background:#d1fae5; color:#065f46; padding:1px 5px; border-radius:4px; font-weight:700; }
 
-.pdv-ticket { display: flex; flex-direction: column; border-right: 1px solid #F2DCDB; overflow: hidden; }
-.pdv-ticket__header {
-  display: grid; grid-template-columns: 1fr 2fr 0.7fr 1fr 1fr 36px;
-  gap: 0; padding: 8px 12px; background: #6C0820; color: #fff;
-  font-size: .72rem; font-weight: 600; letter-spacing: .04em; text-transform: uppercase; flex-shrink: 0;
-}
-.pdv-ticket__body { flex: 1; overflow-y: auto; }
-.pdv-ticket__empty { display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100%; color: #ddd; gap: 10px; }
-.pdv-ticket__empty p { font-size: .88rem; color: #bbb; }
-.pdv-ticket-row--promo { background: #ecfdf5; }
-.pdv-ticket-row--promo:hover { background: #d1fae5; }
+/* ── Footer del ticket ───────────────────── */
+.pdv-footer { border-top:2px solid #F2DCDB; background:#fff; padding:12px 16px; flex-shrink:0; }
+.pdv-footer__totales { display:flex; align-items:center; justify-content:space-between; gap:12px; }
+.pdv-total-label { font-size:.8rem; color:#888; }
+.pdv-total-monto { font-family:'Playfair Display',serif; font-size:1.6rem; font-weight:700; color:#6C0820; }
+.pdv-btn-cobrar { padding:12px 28px; background:linear-gradient(135deg,#B5294E,#6C0820); color:#fff; border:none; border-radius:10px; font-size:1rem; font-weight:700; cursor:pointer; display:flex; align-items:center; gap:8px; transition:opacity .18s; white-space:nowrap; }
+.pdv-btn-cobrar:disabled          { opacity:.4; cursor:default; }
+.pdv-btn-cobrar:not(:disabled):hover { opacity:.9; }
 
-.pdv-ticket-row {
-  display: grid; grid-template-columns: 1fr 2fr 0.7fr 1fr 1fr 36px;
-  gap: 0; padding: 8px 12px; border-bottom: 1px solid #F7E7CE; align-items: center;
-  transition: background .12s; cursor: pointer;
-}
-.pdv-ticket-row:hover { background: #FDF5F5; }
-.pdv-ticket-row--selected { background: #FCE4EE; outline: 2px solid #B5294E; outline-offset: -2px; }
-.pdv-ticket-row__codigo { font-size: .68rem; color: #aaa; font-family: monospace; }
-.pdv-ticket-row__nombre { font-size: .85rem; font-weight: 500; color: #3D5D91; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; padding-right: 8px; }
-.pdv-ticket-row__qty { display: flex; align-items: center; gap: 4px; }
-.pdv-qty-btn { width: 22px; height: 22px; border: none; border-radius: 4px; background: #F2DCDB; color: #6C0820; cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: .85rem; font-weight: 700; transition: background .12s; flex-shrink: 0; }
-.pdv-qty-btn:hover { background: #FFB7C5; }
-.pdv-qty-num { width: 26px; text-align: center; font-size: .85rem; font-weight: 700; color: #333; }
-.pdv-ticket-row__precio { font-size: .8rem; color: #555; text-align: right; padding-right: 4px; }
-.pdv-ticket-row__subtotal { font-size: .85rem; font-weight: 700; color: #B5294E; text-align: right; padding-right: 4px; }
-.pdv-ticket-row__del { background: none; border: none; color: #ddd; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: color .12s; padding: 4px; }
-.pdv-ticket-row__del:hover { color: #ef4444; }
-.tag-mayoreo { font-size: .62rem; background: #F2DCDB; color: #6C0820; padding: 1px 5px; border-radius: 4px; font-weight: 700; }
-.tag-forzado { font-size: .62rem; background: #6C0820; color: #fff; padding: 1px 5px; border-radius: 4px; font-weight: 700; }
+/* ── Catálogo ────────────────────────────── */
+.pdv-catalogo { display:flex; flex-direction:column; overflow:hidden; background:#FAF5F5; min-height:0; }
+.pdv-catalogo__filtro select { width:100%; padding:6px 10px; border:1.5px solid #E0C8C8; border-radius:7px; font-size:.8rem; background:#fff; }
+.pdv-catalogo__filtro { padding:8px 10px; border-bottom:1px solid #F2DCDB; flex-shrink:0; }
+.pdv-catalogo__grid { flex:1; min-height:0; overflow-y:auto; padding:8px; display:grid; grid-template-columns:repeat(auto-fill,minmax(96px,1fr)); grid-auto-rows:130px; gap:8px; align-content:start; }
+.pdv-catalogo__placeholder { grid-column:1/-1; display:flex; align-items:center; justify-content:center; padding:30px 10px; text-align:center; color:#bbb; font-size:.8rem; }
+.pdv-mini-card { background:#fff; border-radius:8px; box-shadow:0 1px 3px rgba(60,40,50,.07); overflow:hidden; cursor:pointer; transition:box-shadow .15s,transform .15s; border:2px solid transparent; display:flex; flex-direction:column; min-width:0; height:130px; }
+.pdv-mini-card:hover          { box-shadow:0 3px 10px rgba(108,8,32,.12); transform:translateY(-1px); border-color:#FFB7C5; }
+.pdv-mini-card--agotado       { opacity:.5; cursor:default; pointer-events:none; }
+.pdv-mini-card__img           { height:72px; flex-shrink:0; background:#F2DCDB; overflow:hidden; position:relative; }
+.pdv-mini-card__img img       { width:100%; height:100%; object-fit:cover; }
+.pdv-mini-card__img-placeholder { width:100%; height:100%; display:flex; align-items:center; justify-content:center; color:#C88; }
+.pdv-mini-card__agotado       { position:absolute; inset:0; background:rgba(0,0,0,.4); display:flex; align-items:center; justify-content:center; color:#fff; font-size:.65rem; font-weight:700; }
+.pdv-mini-card__info          { padding:5px 6px 7px; flex:1; }
+.pdv-mini-card__nombre        { font-size:.7rem; font-weight:600; color:#3D5D91; line-height:1.2; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden; margin-bottom:2px; }
+.pdv-mini-card__precio        { font-size:.78rem; font-weight:700; color:#B5294E; }
 
-.pdv-footer { border-top: 2px solid #F2DCDB; background: #fff; padding: 12px 16px; flex-shrink: 0; }
-.pdv-footer__metodos { display: flex; gap: 6px; margin-bottom: 10px; flex-wrap: wrap; }
-.pdv-metodo { display: flex; align-items: center; gap: 5px; padding: 5px 10px; border: 1.5px solid #E0C8C8; border-radius: 6px; font-size: .75rem; font-weight: 500; color: #666; cursor: pointer; transition: all .15s; background: #fff; }
-.pdv-metodo input { position: absolute; opacity: 0; width: 0; height: 0; }
-.pdv-metodo--active { border-color: #6C0820; background: #F2DCDB; color: #6C0820; font-weight: 700; }
-.pdv-footer__totales { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
-.pdv-total-label { font-size: .8rem; color: #888; }
-.pdv-total-monto { font-family: 'Playfair Display', serif; font-size: 1.6rem; font-weight: 700; color: #6C0820; }
-.pdv-btn-cobrar { padding: 12px 28px; background: linear-gradient(135deg, #B5294E, #6C0820); color: #fff; border: none; border-radius: 10px; font-size: 1rem; font-weight: 700; cursor: pointer; display: flex; align-items: center; gap: 8px; transition: opacity .18s; white-space: nowrap; }
-.pdv-btn-cobrar:disabled { opacity: .4; cursor: default; }
-.pdv-btn-cobrar:not(:disabled):hover { opacity: .9; }
-.pdv-efectivo-wrap { display: flex; align-items: center; gap: 8px; margin-top: 8px; }
-.pdv-efectivo-wrap label { font-size: .78rem; color: #888; white-space: nowrap; }
-.pdv-efectivo-input { width: 110px; padding: 6px 10px; border: 1.5px solid #E0C8C8; border-radius: 6px; font-size: .88rem; }
-.pdv-cambio { font-size: .85rem; font-weight: 700; color: #065f46; background: #d1fae5; padding: 4px 10px; border-radius: 6px; }
+/* ── Modal genérico — usado por movimientos de caja ── */
+.pdv-modal-overlay { position:fixed; inset:0; background:rgba(0,0,0,.5); z-index:1000; display:flex; align-items:center; justify-content:center; padding:20px; }
+.pdv-modal         { background:#fff; border-radius:16px; padding:28px; width:100%; max-width:460px; box-shadow:0 20px 60px rgba(0,0,0,.3); }
+.pdv-modal__title  { font-family:'Playfair Display',serif; font-size:1.2rem; color:#6C0820; margin:0 0 20px; }
+.pdv-modal__acciones { display:flex; gap:10px; margin-top:20px; }
 
-.pdv-catalogo { display: flex; flex-direction: column; overflow: hidden; background: #FAF5F5; min-height: 0; }
-.pdv-catalogo__filtro { padding: 8px 10px; border-bottom: 1px solid #F2DCDB; flex-shrink: 0; }
-.pdv-catalogo__filtro select { width: 100%; padding: 6px 10px; border: 1.5px solid #E0C8C8; border-radius: 7px; font-size: .8rem; background: #fff; }
-.pdv-catalogo__grid { flex: 1; min-height: 0; overflow-y: auto; padding: 8px; display: grid; grid-template-columns: repeat(auto-fill, minmax(96px, 1fr)); grid-auto-rows: 130px; gap: 8px; align-content: start; }
-.pdv-mini-card { background: #fff; border-radius: 8px; box-shadow: 0 1px 3px rgba(60,40,50,.07); overflow: hidden; cursor: pointer; transition: box-shadow .15s, transform .15s; border: 2px solid transparent; display: flex; flex-direction: column; min-width: 0; height: 130px; }
-.pdv-mini-card:hover { box-shadow: 0 3px 10px rgba(108,8,32,.12); transform: translateY(-1px); border-color: #FFB7C5; }
-.pdv-mini-card--agotado { opacity: .5; cursor: default; pointer-events: none; }
-.pdv-mini-card__img { height: 72px; flex-shrink: 0; background: #F2DCDB; overflow: hidden; position: relative; }
-.pdv-mini-card__img img { width: 100%; height: 100%; object-fit: cover; }
-.pdv-mini-card__img-placeholder { width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; color: #C88; }
-.pdv-mini-card__agotado { position: absolute; inset: 0; background: rgba(0,0,0,.4); display: flex; align-items: center; justify-content: center; color: #fff; font-size: .65rem; font-weight: 700; }
-.pdv-catalogo__placeholder { grid-column: 1 / -1; display: flex; align-items: center; justify-content: center; padding: 30px 10px; text-align: center; color: #bbb; font-size: .8rem; }
-.pdv-mini-card__info { padding: 5px 6px 7px; flex: 1; }
-.pdv-mini-card__nombre { font-size: .7rem; font-weight: 600; color: #3D5D91; line-height: 1.2; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; margin-bottom: 2px; }
-.pdv-mini-card__precio { font-size: .78rem; font-weight: 700; color: #B5294E; }
+/* ── Modal cobro rediseñado ──────────────── */
+.cobro-modal { background:#fff; border-radius:16px; width:100%; max-width:680px; box-shadow:0 24px 80px rgba(0,0,0,.35); overflow:hidden; display:flex; flex-direction:column; }
 
-.pdv-modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,.5); z-index: 1000; display: flex; align-items: center; justify-content: center; padding: 20px; }
-.pdv-modal { background: #fff; border-radius: 16px; padding: 28px; width: 100%; max-width: 460px; box-shadow: 0 20px 60px rgba(0,0,0,.3); }
-.pdv-modal__title { font-family: 'Playfair Display', serif; font-size: 1.2rem; color: #6C0820; margin: 0 0 20px; }
-.pdv-modal__total { display: flex; justify-content: space-between; align-items: center; padding: 12px 16px; background: #F7E7CE; border-radius: 10px; margin-bottom: 16px; }
-.pdv-modal__total span { font-size: .88rem; color: #6C0820; font-weight: 600; }
-.pdv-modal__total strong { font-family: 'Playfair Display', serif; font-size: 1.4rem; color: #6C0820; }
-.pdv-modal__acciones { display: flex; gap: 10px; margin-top: 20px; }
+.cobro-header { background:linear-gradient(135deg,#6C0820,#B5294E); padding:24px 32px; display:flex; align-items:center; justify-content:space-between; }
+.cobro-header__label { color:rgba(255,255,255,.7); font-size:.85rem; display:block; }
+.cobro-header__total { font-family:'Playfair Display',serif; font-size:2.8rem; font-weight:700; color:#fff; line-height:1; display:block; }
+.cobro-header__meta  { display:flex; flex-direction:column; align-items:flex-end; gap:6px; }
+.cobro-header__meta span { font-size:.82rem; color:rgba(255,255,255,.8); background:rgba(255,255,255,.15); padding:3px 10px; border-radius:12px; }
 
-.pdv-toast {
-  position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%) translateY(20px);
-  background: #6C0820; color: #fff; padding: 12px 22px; border-radius: 10px;
-  font-size: .88rem; font-weight: 600; box-shadow: 0 6px 20px rgba(0,0,0,.25);
-  opacity: 0; pointer-events: none; transition: opacity .2s, transform .2s; z-index: 2000; white-space: nowrap;
-}
-.pdv-toast--visible { opacity: 1; transform: translateX(-50%) translateY(0); }
+.cobro-metodos { display:flex; border-bottom:2px solid #F2DCDB; }
+.cobro-metodo { flex:1; display:flex; flex-direction:column; align-items:center; gap:6px; padding:16px 8px; border:none; border-right:1px solid #F2DCDB; background:#FAF5F5; color:#888; cursor:pointer; transition:background .15s,color .15s; font-size:.78rem; font-weight:600; font-family:'DM Sans',sans-serif; }
+.cobro-metodo:last-child { border-right:none; }
+.cobro-metodo:hover      { background:#FCE4EE; color:#6C0820; }
+.cobro-metodo--activo    { background:#fff; color:#6C0820; border-bottom:3px solid #B5294E; }
+
+.cobro-panel { padding:28px 32px; min-height:180px; display:flex; flex-direction:column; gap:16px; }
+.cobro-campo-grande label { font-size:.82rem; font-weight:600; color:#888; text-transform:uppercase; letter-spacing:.06em; display:block; margin-bottom:8px; }
+
+.cobro-input-wrap { display:flex; align-items:center; border:2px solid #E0C8C8; border-radius:10px; overflow:hidden; transition:border-color .18s; }
+.cobro-input-wrap:focus-within { border-color:#B5294E; }
+.cobro-input-wrap span { padding:12px 16px; background:#FCE4EE; color:#6C0820; font-size:1.2rem; font-weight:700; border-right:2px solid #E0C8C8; flex-shrink:0; }
+.cobro-input-wrap--sm span { padding:8px 10px; font-size:.9rem; }
+.cobro-input-monto { flex:1; border:none; padding:12px 16px; font-size:1.6rem; font-family:'Playfair Display',serif; color:#6C0820; font-weight:700; outline:none; width:100%; }
+.cobro-input-wrap--sm .cobro-input-monto { font-size:1rem; padding:8px 10px; }
+
+.cobro-cambio-display { display:flex; align-items:center; justify-content:space-between; background:#d1fae5; border-radius:10px; padding:14px 20px; }
+.cobro-cambio-display span   { font-size:.88rem; color:#065f46; font-weight:600; }
+.cobro-cambio-display strong { font-size:1.5rem; color:#065f46; font-family:'Playfair Display',serif; }
+.cobro-cambio-display--negativo { background:#fee2e2; }
+.cobro-cambio-display--negativo span,
+.cobro-cambio-display--negativo strong { color:#991b1b; }
+
+.cobro-referencia label { font-size:.82rem; font-weight:600; color:#888; display:block; margin-bottom:6px; }
+.cobro-input-ref { width:100%; padding:10px 14px; border:1.5px solid #E0C8C8; border-radius:8px; font-size:.9rem; font-family:'DM Sans',sans-serif; }
+.cobro-input-ref:focus { outline:none; border-color:#B5294E; }
+
+.cobro-mixto-grid { display:flex; flex-direction:column; gap:10px; }
+.cobro-mixto-fila { display:grid; grid-template-columns:140px 1fr; align-items:center; gap:12px; }
+.cobro-mixto-fila label { font-size:.85rem; font-weight:600; color:#555; }
+.cobro-mixto-restante { display:flex; align-items:center; justify-content:space-between; padding:12px 16px; background:#F7E7CE; border-radius:8px; margin-top:4px; }
+.cobro-mixto-restante span   { font-size:.9rem; font-weight:700; color:#6C0820; }
+.cobro-mixto-restante strong { font-size:1.3rem; font-family:'Playfair Display',serif; color:#6C0820; }
+
+.cobro-acciones { display:flex; border-top:2px solid #F2DCDB; }
+.cobro-btn { flex:1; display:flex; align-items:center; justify-content:center; gap:10px; padding:18px 12px; border:none; border-right:1px solid #F2DCDB; background:#fff; cursor:pointer; transition:background .15s; font-family:'DM Sans',sans-serif; }
+.cobro-btn:last-child { border-right:none; }
+.cobro-btn > div { display:flex; flex-direction:column; align-items:flex-start; gap:2px; }
+.cobro-btn__kbd { font-size:.68rem; font-weight:700; color:#888; text-transform:uppercase; letter-spacing:.06em; }
+.cobro-btn--imprimir    { color:#6C0820; }
+.cobro-btn--imprimir > div span:last-child  { font-size:.9rem; font-weight:700; }
+.cobro-btn--imprimir:hover    { background:#FCE4EE; }
+.cobro-btn--sin-imprimir { color:#065f46; }
+.cobro-btn--sin-imprimir > div span:last-child { font-size:.9rem; font-weight:700; }
+.cobro-btn--sin-imprimir:hover { background:#d1fae5; }
+.cobro-btn--cancelar    { color:#888; }
+.cobro-btn--cancelar > div span:last-child  { font-size:.9rem; font-weight:700; }
+.cobro-btn--cancelar:hover    { background:#fee2e2; color:#991b1b; }
+
+/* ── Toast ───────────────────────────────── */
+.pdv-toast { position:fixed; bottom:24px; left:50%; transform:translateX(-50%) translateY(20px); background:#6C0820; color:#fff; padding:12px 22px; border-radius:10px; font-size:.88rem; font-weight:600; box-shadow:0 6px 20px rgba(0,0,0,.25); opacity:0; pointer-events:none; transition:opacity .2s,transform .2s; z-index:2000; white-space:nowrap; }
+.pdv-toast--visible { opacity:1; transform:translateX(-50%) translateY(0); }
+
+/* ── Overlay turno ───────────────────────── */
+@keyframes spin { to { transform:rotate(360deg); } }
 </style>
 
+<!-- ══════════════════════════════════════
+     LAYOUT PRINCIPAL
+══════════════════════════════════════ -->
 <div class="pdv-page">
 
+  <!-- Barra superior: buscador + cliente + cerrar turno -->
   <div class="pdv-bar">
     <div class="pdv-search-box">
       <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-      <input type="text" id="pdv-search" class="pdv-search-input" placeholder="Buscar por nombre o escanear código de barras…" autocomplete="off" autofocus>
-      <div class="pdv-search-hint" id="pdv-search-hint">Coloca el símbolo % para buscar en todas las categorías</div>
+      <input type="text" id="pdv-search" class="pdv-search-input"
+             placeholder="Buscar por nombre o escanear código de barras…"
+             autocomplete="off" autofocus>
+      <div class="pdv-search-hint" id="pdv-search-hint">
+        Coloca el símbolo % para buscar en todas las categorías
+      </div>
     </div>
     <div class="pdv-bar__cliente">
       <label for="pdv-cliente">Cliente:</label>
@@ -164,29 +194,31 @@
         <% }) %>
       </select>
     </div>
-
     <a href="/turnos/cierre" class="pdv-accion-btn" style="border-color:#fca5a5;color:#b91c1c;flex-shrink:0;">
       <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="8" y1="12" x2="16" y2="12"/></svg>
       Cerrar Turno
     </a>
-    
   </div>
 
+  <!-- Acciones rápidas (atajos de teclado) -->
   <div class="pdv-acciones-bar">
     <button class="pdv-accion-btn" onclick="vaciarTicketActivo()"><kbd>F4</kbd> Eliminar</button>
     <button class="pdv-accion-btn" onclick="aparcarTicketActivo()"><kbd>F6</kbd> Pendiente</button>
     <button class="pdv-accion-btn pdv-accion-btn--mayoreo" id="btn-forzar-mayoreo" onclick="toggleForzarMayoreo()"><kbd>F11</kbd> Mayoreo</button>
     <button class="pdv-accion-btn" onclick="abrirModalMovimiento('entrada')"><kbd>F7</kbd> Entradas</button>
     <button class="pdv-accion-btn" onclick="abrirModalMovimiento('salida')"><kbd>F8</kbd> Salidas</button>
-    <a href="/verificador" class="pdv-accion-btn" target="_blank"><kbd>F9</kbd> Verificador</a>
+    <button class="pdv-accion-btn" onclick="abrirVerificador()"><kbd>F9</kbd> Verificador</button>
     <button class="pdv-accion-btn" onclick="reimprimirUltimo()">Reimprimir Último Ticket</button>
-    <a href="/historial" class="pdv-accion-btn">Ventas del día y Devoluciones</a>
+    <a href="/ventas-dia" class="pdv-accion-btn">Ventas del día y Devoluciones</a>
   </div>
 
+  <!-- Pestañas de tickets en paralelo -->
   <div class="pdv-tabs" id="pdv-tabs"></div>
 
+  <!-- Cuerpo: ticket activo | catálogo -->
   <div class="pdv-body">
 
+    <!-- Izquierda: ticket -->
     <div class="pdv-ticket">
       <div class="pdv-ticket__header">
         <span>Código</span><span>Producto</span>
@@ -196,72 +228,165 @@
         <span></span>
       </div>
       <div class="pdv-ticket__body" id="ticket-body"></div>
-
       <div class="pdv-footer">
-        <div class="pdv-footer__metodos" id="metodos-pago">
-          <label class="pdv-metodo pdv-metodo--active" id="metodo-efectivo">
-            <input type="radio" name="metodo" value="efectivo" checked onchange="onMetodoChange()">Efectivo
-          </label>
-          <label class="pdv-metodo" id="metodo-tarjeta"><input type="radio" name="metodo" value="tarjeta" onchange="onMetodoChange()">Tarjeta</label>
-          <label class="pdv-metodo" id="metodo-transferencia"><input type="radio" name="metodo" value="transferencia" onchange="onMetodoChange()">Transferencia</label>
-          <label class="pdv-metodo" id="metodo-cheque"><input type="radio" name="metodo" value="cheque" onchange="onMetodoChange()">Cheque</label>
-          <label class="pdv-metodo" id="metodo-mixto"><input type="radio" name="metodo" value="mixto" onchange="onMetodoChange()">Mixto</label>
-        </div>
-        <div class="pdv-efectivo-wrap" id="wrap-efectivo">
-          <label>Recibido:</label>
-          <input type="number" id="efectivo-recibido" class="pdv-efectivo-input" placeholder="0.00" min="0" step="0.01" oninput="calcularCambio()">
-          <div class="pdv-cambio" id="cambio-display" style="display:none">Cambio: $0.00</div>
-        </div>
         <div class="pdv-footer__totales">
-          <div><div class="pdv-total-label">Total</div><div class="pdv-total-monto" id="pdv-total">$0.00</div></div>
+          <div>
+            <div class="pdv-total-label">Total</div>
+            <div class="pdv-total-monto" id="pdv-total">$0.00</div>
+          </div>
           <button class="pdv-btn-cobrar" id="btn-cobrar" onclick="abrirModalCobro()" disabled>
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
-            Cobrar
+            Cobrar  <small style="font-size:.68rem;opacity:.7">F12</small>
           </button>
         </div>
       </div>
     </div>
 
+    <!-- Derecha: catálogo -->
     <div class="pdv-catalogo">
       <div class="pdv-catalogo__filtro">
         <select id="filtro-categoria" onchange="dispararBusqueda()">
           <option value="">Todas las categorías</option>
-          <% categorias.forEach(cat => { %><option value="<%= cat.id %>"><%= cat.nombre %></option><% }) %>
+          <% categorias.forEach(cat => { %>
+            <option value="<%= cat.id %>"><%= cat.nombre %></option>
+          <% }) %>
         </select>
       </div>
       <div class="pdv-catalogo__grid" id="catalogo-grid">
-        <div class="pdv-catalogo__placeholder"><p>Busca un producto por nombre/código o selecciona una categoría.</p></div>
+        <div class="pdv-catalogo__placeholder">
+          <p>Busca un producto por nombre/código o selecciona una categoría.</p>
+        </div>
       </div>
     </div>
+
   </div>
 </div>
 
-<!-- Modal cobro -->
-<div class="pdv-modal-overlay" id="modal-cobro" style="display:none" onclick="cerrarModalCobro(event)">
-  <div class="pdv-modal" onclick="event.stopPropagation()">
-    <h2 class="pdv-modal__title">Confirmar cobro</h2>
-    <div class="pdv-modal__total"><span>Total a cobrar</span><strong id="modal-total">$0.00</strong></div>
-    <div class="form-group"><label class="form-label">Cliente</label><span id="modal-cliente" style="font-size:.88rem; color:#3D5D91; font-weight:600;">Público general</span></div>
-    <div class="form-group" style="margin-top:12px;"><label class="form-label">Método de pago</label><span id="modal-metodo" style="font-size:.88rem; color:#3D5D91; font-weight:600;"></span></div>
-    <div class="form-group" id="modal-wrap-referencia" style="display:none; margin-top:12px;">
-      <label class="form-label" for="modal-referencia">Referencia</label>
-      <input type="text" id="modal-referencia" class="form-control" placeholder="Últimos 4 dígitos, folio…">
-    </div>
-    <div class="form-group" id="modal-wrap-mixto" style="display:none; margin-top:12px;">
-      <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px;">
-        <div class="form-group"><label class="form-label">Efectivo</label><input type="number" id="modal-mixto-efectivo" class="form-control" placeholder="0.00" min="0" step="0.01"></div>
-        <div class="form-group"><label class="form-label">Tarjeta</label><input type="number" id="modal-mixto-tarjeta" class="form-control" placeholder="0.00" min="0" step="0.01"></div>
+<!-- ══════════════════════════════════════
+     MODAL COBRO
+══════════════════════════════════════ -->
+<div class="pdv-modal-overlay" id="modal-cobro" style="display:none">
+  <div class="cobro-modal">
+
+    <div class="cobro-header">
+      <div>
+        <span class="cobro-header__label">Total a cobrar</span>
+        <span class="cobro-header__total" id="cobro-total">$0.00</span>
+      </div>
+      <div class="cobro-header__meta">
+        <span id="cobro-num-articulos">0 artículos</span>
+        <span id="cobro-cliente-label">Público general</span>
       </div>
     </div>
-    <div class="pdv-modal__acciones">
-      <button class="btn btn-ghost" onclick="cerrarModal()">Cancelar</button>
-      <button class="btn btn-primary btn-lg" onclick="procesarCobro()" style="flex:1">Confirmar cobro</button>
+
+    <div class="cobro-metodos">
+      <button class="cobro-metodo cobro-metodo--activo" id="cmet-efectivo" onclick="seleccionarMetodoCobro('efectivo')">
+        <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="2" y="6" width="20" height="12" rx="2"/><path d="M22 10H2"/><circle cx="12" cy="14" r="2"/></svg>
+        <span>Efectivo</span>
+      </button>
+      <button class="cobro-metodo" id="cmet-tarjeta" onclick="seleccionarMetodoCobro('tarjeta')">
+        <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="1" y="4" width="22" height="16" rx="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg>
+        <span>Tarjeta</span>
+      </button>
+      <button class="cobro-metodo" id="cmet-transferencia" onclick="seleccionarMetodoCobro('transferencia')">
+        <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><polyline points="17 1 21 5 17 9"/><path d="M3 11V9a4 4 0 014-4h14"/><polyline points="7 23 3 19 7 15"/><path d="M21 13v2a4 4 0 01-4 4H3"/></svg>
+        <span>Transferencia</span>
+      </button>
+      <button class="cobro-metodo" id="cmet-cheque" onclick="seleccionarMetodoCobro('cheque')">
+        <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+        <span>Cheque</span>
+      </button>
+      <button class="cobro-metodo" id="cmet-mixto" onclick="seleccionarMetodoCobro('mixto')">
+        <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/></svg>
+        <span>Mixto</span>
+      </button>
     </div>
+
+    <div class="cobro-panel">
+
+      <!-- Efectivo / Tarjeta / Transferencia / Cheque -->
+      <div id="cobro-panel-simple">
+        <div class="cobro-campo-grande">
+          <label id="cobro-pago-label">Pagó con</label>
+          <div class="cobro-input-wrap">
+            <span>$</span>
+            <input type="number" id="cobro-pago-con" class="cobro-input-monto"
+                   placeholder="0.00" min="0" step="0.01" oninput="actualizarCambioModal()">
+          </div>
+        </div>
+        <div class="cobro-cambio-display" id="cobro-cambio-display" style="display:none">
+          <span>Su cambio</span>
+          <strong id="cobro-cambio-monto">$0.00</strong>
+        </div>
+        <div class="cobro-referencia" id="cobro-referencia-wrap" style="display:none">
+          <label>Referencia / últimos 4 dígitos</label>
+          <input type="text" id="cobro-referencia" class="cobro-input-ref" placeholder="Opcional">
+        </div>
+      </div>
+
+      <!-- Mixto -->
+      <div id="cobro-panel-mixto" style="display:none">
+        <div class="cobro-mixto-grid">
+          <div class="cobro-mixto-fila">
+            <label>Efectivo</label>
+            <div class="cobro-input-wrap cobro-input-wrap--sm">
+              <span>$</span>
+              <input type="number" id="cobro-mix-efectivo" class="cobro-input-monto" placeholder="0.00" min="0" step="0.01" oninput="actualizarRestante()">
+            </div>
+          </div>
+          <div class="cobro-mixto-fila">
+            <label>Tarjeta</label>
+            <div class="cobro-input-wrap cobro-input-wrap--sm">
+              <span>$</span>
+              <input type="number" id="cobro-mix-tarjeta" class="cobro-input-monto" placeholder="0.00" min="0" step="0.01" oninput="actualizarRestante()">
+            </div>
+          </div>
+          <div class="cobro-mixto-fila">
+            <label>Transferencia</label>
+            <div class="cobro-input-wrap cobro-input-wrap--sm">
+              <span>$</span>
+              <input type="number" id="cobro-mix-transferencia" class="cobro-input-monto" placeholder="0.00" min="0" step="0.01" oninput="actualizarRestante()">
+            </div>
+          </div>
+          <div class="cobro-mixto-fila">
+            <label>Cheque</label>
+            <div class="cobro-input-wrap cobro-input-wrap--sm">
+              <span>$</span>
+              <input type="number" id="cobro-mix-cheque" class="cobro-input-monto" placeholder="0.00" min="0" step="0.01" oninput="actualizarRestante()">
+            </div>
+          </div>
+          <div class="cobro-mixto-restante">
+            <span>Restante</span>
+            <strong id="cobro-restante-monto">$0.00</strong>
+          </div>
+        </div>
+      </div>
+
+    </div>
+
+    <div class="cobro-acciones">
+      <button class="cobro-btn cobro-btn--imprimir" onclick="procesarCobro(true)">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 01-2-2v-5a2 2 0 012-2h16a2 2 0 012 2v5a2 2 0 01-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>
+        <div><span class="cobro-btn__kbd">F1</span><span>Cobrar e Imprimir</span></div>
+      </button>
+      <button class="cobro-btn cobro-btn--sin-imprimir" onclick="procesarCobro(false)">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>
+        <div><span class="cobro-btn__kbd">F2</span><span>Cobrar sin imprimir</span></div>
+      </button>
+      <button class="cobro-btn cobro-btn--cancelar" onclick="cerrarModal()">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+        <div><span class="cobro-btn__kbd">ESC</span><span>Cancelar</span></div>
+      </button>
+    </div>
+
   </div>
 </div>
 
-<!-- Modal movimiento de caja (F7/F8) -->
-<div class="pdv-modal-overlay" id="modal-movimiento" style="display:none" onclick="if(event.target===this) cerrarModalMovimiento()">
+<!-- ══════════════════════════════════════
+     MODAL MOVIMIENTOS DE CAJA (F7 / F8)
+══════════════════════════════════════ -->
+<div class="pdv-modal-overlay" id="modal-movimiento" style="display:none"
+     onclick="if(event.target===this) cerrarModalMovimiento()">
   <div class="pdv-modal" onclick="event.stopPropagation()">
     <h2 class="pdv-modal__title" id="modal-movimiento-titulo">Entrada de efectivo</h2>
     <div class="form-group">
@@ -279,122 +404,106 @@
   </div>
 </div>
 
+<!-- Modal verificador de precios (RF-01.4) -->
+<div id="modal-verificador" style="display:none; position:fixed; inset:0; background:rgba(42,15,26,.65); backdrop-filter:blur(4px); z-index:1500; align-items:center; justify-content:center; padding:20px;">
+  <div style="background:#fff; border-radius:18px; width:100%; max-width:520px; max-height:85vh; overflow:hidden; display:flex; flex-direction:column; box-shadow:0 28px 80px rgba(0,0,0,.4);">
+
+    <div style="background:linear-gradient(135deg,#6C0820,#B5294E); padding:18px 22px; display:flex; align-items:center; justify-content:space-between; flex-shrink:0;">
+      <div style="font-family:'Playfair Display',serif; font-size:1.1rem; font-weight:700; color:#fff; display:flex; align-items:center; gap:8px;">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 8v4l3 3"/></svg>
+        Verificador de Precios
+      </div>
+      <button onclick="cerrarVerificador()" style="background:rgba(255,255,255,.15); border:none; border-radius:8px; color:#fff; padding:4px 10px; cursor:pointer; font-size:.8rem;">✕ Cerrar</button>
+    </div>
+
+    <div style="padding:12px 14px; border-bottom:1px solid #F2DCDB; flex-shrink:0;">
+      <div style="display:flex; gap:8px;">
+        <div style="position:relative; flex:1;">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="position:absolute; left:10px; top:50%; transform:translateY(-50%); color:#aaa; pointer-events:none;"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+          <input type="text" id="ver-buscar" placeholder="Buscar por nombre o escanear código…" autocomplete="off"
+            style="width:100%; padding:9px 12px 9px 32px; border:1.5px solid #E0C8C8; border-radius:8px; font-size:.9rem; font-family:'DM Sans',sans-serif; outline:none;">
+        </div>
+        <select id="ver-categoria" style="padding:9px 10px; border:1.5px solid #E0C8C8; border-radius:8px; font-size:.82rem; font-family:'DM Sans',sans-serif; background:#fff; max-width:150px;">
+          <option value="">Todas</option>
+          <% categorias.forEach(c => { %>
+            <option value="<%= c.id %>"><%= c.nombre %></option>
+          <% }) %>
+        </select>
+      </div>
+    </div>
+
+    <div id="ver-resultados" style="flex:1; overflow-y:auto; padding:10px 14px; display:flex; flex-direction:column; gap:6px;">
+      <div id="ver-placeholder" style="display:flex; flex-direction:column; align-items:center; justify-content:center; height:200px; color:#ccc; gap:10px; text-align:center;">
+        <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+        <p style="font-size:.85rem; color:#bbb;">Busca un producto o escanea su código de barras</p>
+      </div>
+    </div>
+
+    <div style="padding:10px 16px; border-top:1px solid #F2DCDB; flex-shrink:0;">
+      <span style="font-size:.72rem; color:#bbb;">Solo consulta — no genera venta</span>
+    </div>
+
+  </div>
+</div>
+
 <div class="pdv-toast" id="pdv-toast"></div>
 
 <script>
 /* ════════════════════════════════════════
-   ESTADO — múltiples tickets en paralelo
+   CONSTANTES DE SESIÓN
 ════════════════════════════════════════ */
 const PENDIENTES_INICIALES = <%- JSON.stringify(pendientes) %>;
-const PERMISOS = <%- JSON.stringify(permisos) %>;
+const PERMISOS             = <%- JSON.stringify(permisos) %>;
 
-let tickets = [];        // [{localId, ventaId, clienteId, clienteNombre, items:[], notas, mayoreoForzado, dirty}]
-let activeIdx = -1;
-let selectedRow = -1;
-let metodo = 'efectivo';
+/* ════════════════════════════════════════
+   ESTADO GLOBAL
+════════════════════════════════════════ */
+let tickets     = [];          // array de tickets abiertos en paralelo
+let activeIdx   = -1;          // índice del ticket activo
+let selectedRow = -1;          // fila seleccionada en el ticket activo
+let metodoCobro = 'efectivo';  // método de pago seleccionado en el modal
+let cobrando    = false;       // bandera anti doble cobro
+let lastVentaId = localStorage.getItem('smartventa_last_venta') || null;// id de la última venta completada (para reimprimir)
 let debounceTimer = null;
-let saveTimer = null;
-let lastVentaId = null;
-let cobrando = false;
+let saveTimer     = null;
+let toastTimer    = null;
+let tipoMovimientoActual = 'entrada';
 
-function nuevoLocalId() { return 'local_' + Date.now() + '_' + Math.random().toString(36).slice(2,8); }
+/* ════════════════════════════════════════
+   TICKETS — INICIALIZACIÓN Y GESTIÓN
+════════════════════════════════════════ */
+const nuevoLocalId = () => 'local_' + Date.now() + '_' + Math.random().toString(36).slice(2, 8);
 
 function crearTicketVacio() {
-  return { localId: nuevoLocalId(), ventaId: null, clienteId: '', clienteNombre: 'Público general', items: [], notas: '', mayoreoForzado: false, dirty: false };
+  return {
+    localId: nuevoLocalId(), ventaId: null,
+    clienteId: '', clienteNombre: 'Público general',
+    items: [], notas: '', dirty: false,
+    _guardando: false, _reguardar: false,
+  };
 }
 
-/* Cargar tickets pendientes guardados en el servidor */
+function ticketActivo() { return tickets[activeIdx]; }
+
 function inicializarTickets() {
   tickets = PENDIENTES_INICIALES.map(v => ({
-    localId: nuevoLocalId(),
-    ventaId: v.id,
-    clienteId: v.cliente_id || '',
-    clienteNombre: 'Público general',
+    localId: nuevoLocalId(), ventaId: v.id,
+    clienteId: v.cliente_id || '', clienteNombre: 'Público general',
     items: (v.venta_articulos || []).map(va => ({
       id: va.producto_id,
-      nombre: va.productos?.descripcion || 'Producto',
-      codigo: va.productos?.codigo_barras || '',
-      precio: Number(va.precio_unitario),
-      mayoreo: null,
-      cantidad: va.cantidad,
-      stock: Infinity,            // viene del servidor, validación final ocurre en el RPC al cobrar
-      forzado: va.uso_precio_mayoreo && v.motivo_mayoreo === 'manual',
+      nombre:   va.productos?.descripcion  || 'Producto',
+      codigo:   va.productos?.codigo_barras || '',
+      precio:   Number(va.precio_unitario),
+      mayoreo:  null, promo: null, porcentaje_promo: null, cantidad_minima_promo: null,
+      cantidad: va.cantidad, stock: Infinity,
+      forzado:  va.uso_precio_mayoreo && v.motivo_mayoreo === 'manual',
     })),
-    notas: v.notas || '',
-    mayoreoForzado: false,
-    dirty: false,
+    notas: v.notas || '', dirty: false, _guardando: false, _reguardar: false,
   }));
   if (tickets.length === 0) tickets.push(crearTicketVacio());
   activeIdx = 0;
   renderTabs();
   renderTicket();
-}
-
-let toastTimer = null;
-
-function ticketActivo() { return tickets[activeIdx]; }
-
-/* ════════════════════════════════════════
-   PESTAÑAS
-════════════════════════════════════════ */
-function renderTabs() {
-  const cont = document.getElementById('pdv-tabs');
-  cont.innerHTML = tickets.map((t, idx) => `
-    <div class="pdv-tab ${idx === activeIdx ? 'pdv-tab--activa' : ''}" onclick="cambiarTab(${idx})">
-      <span>Ticket ${idx + 1}${t.items.length ? ' (' + t.items.length + ')' : ''}</span>
-      <span class="pdv-tab__close" onclick="event.stopPropagation(); cerrarTab(${idx})">
-        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
-      </span>
-    </div>
-  `).join('') + `
-    <div class="pdv-tab-nueva" onclick="nuevaTab()" title="Nuevo ticket">
-      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-    </div>
-  `;
-}
-
-async function guardarTicketEnServidor(t) {
-  // Evita guardados simultáneos del mismo ticket (race condition → duplicados)
-  if (t._guardando) { t._reguardar = true; return; }
-  t._guardando = true;
-
-  try {
-    if (t.items.length === 0) {
-      if (t.ventaId) {
-        try {
-          await fetch(`/venta/pendiente/${t.ventaId}`, { method: 'DELETE' });
-        } catch (err) {
-          console.warn('No se pudo borrar el pendiente (quizá ya no existe):', err);
-        }
-        t.ventaId = null;
-      }
-      return;
-    }
-
-    const payload = {
-      cliente_id: t.clienteId || null,
-      notas: t.notas || null,
-      articulos: t.items.map(i => ({ producto_id: i.id, cantidad: i.cantidad, forzar_mayoreo: !!i.forzado })),
-    };
-
-    if (t.ventaId) {
-      await fetch(`/venta/pendiente/${t.ventaId}`, { method: 'PUT', headers: {'Content-Type':'application/json'}, body: JSON.stringify(payload) });
-    } else {
-      const resp = await fetch('/venta/pendiente', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify(payload) });
-      const data = await resp.json();
-      if (data.ok && data.venta) t.ventaId = data.venta.id;
-    }
-    t.dirty = false;
-  } catch (err) {
-    console.error('Error guardando ticket pendiente:', err);
-  } finally {
-    t._guardando = false;
-    // Si llegó otro cambio mientras guardábamos, reguardar una vez más
-    if (t._reguardar) {
-      t._reguardar = false;
-      guardarTicketEnServidor(t);
-    }
-  }
 }
 
 function marcarDirty() {
@@ -404,50 +513,95 @@ function marcarDirty() {
   saveTimer = setTimeout(() => guardarTicketEnServidor(t), 800);
 }
 
+/* ════════════════════════════════════════
+   PESTAÑAS
+════════════════════════════════════════ */
+function renderTabs() {
+  document.getElementById('pdv-tabs').innerHTML =
+    tickets.map((t, idx) => `
+      <div class="pdv-tab ${idx === activeIdx ? 'pdv-tab--activa' : ''}" onclick="cambiarTab(${idx})">
+        <span>Ticket ${idx + 1}${t.items.length ? ` (${t.items.length})` : ''}</span>
+        <span class="pdv-tab__close" onclick="event.stopPropagation(); cerrarTab(${idx})">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+            <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+          </svg>
+        </span>
+      </div>`).join('')
+    + `<div class="pdv-tab-nueva" onclick="nuevaTab()" title="Nuevo ticket">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+          <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
+        </svg>
+       </div>`;
+}
+
 async function cambiarTab(idx) {
   if (idx === activeIdx) return;
   const actual = ticketActivo();
-  if (actual && actual.dirty) await guardarTicketEnServidor(actual);
-  activeIdx = idx;
-  selectedRow = -1;
-  renderTabs();
-  renderTicket();
+  if (actual?.dirty) await guardarTicketEnServidor(actual);
+  activeIdx = idx; selectedRow = -1;
+  renderTabs(); renderTicket();
 }
 
-function nuevaTab() {
-  tickets.push(crearTicketVacio());
-  cambiarTab(tickets.length - 1);
-}
+function nuevaTab() { tickets.push(crearTicketVacio()); cambiarTab(tickets.length - 1); }
 
 async function cerrarTab(idx) {
   const t = tickets[idx];
-  if (t.ventaId) {
-    try { await fetch(`/venta/pendiente/${t.ventaId}`, { method: 'DELETE' }); } catch {}
-  }
+  if (t.ventaId) try { await fetch(`/venta/pendiente/${t.ventaId}`, { method: 'DELETE' }); } catch {}
   tickets.splice(idx, 1);
   if (tickets.length === 0) tickets.push(crearTicketVacio());
   activeIdx = Math.min(activeIdx, tickets.length - 1);
-  renderTabs();
-  renderTicket();
+  renderTabs(); renderTicket();
+}
+
+/* ════════════════════════════════════════
+   GUARDADO DE TICKETS PENDIENTES
+════════════════════════════════════════ */
+async function guardarTicketEnServidor(t) {
+  if (t._guardando) { t._reguardar = true; return; }
+  t._guardando = true;
+  try {
+    if (t.items.length === 0) {
+      if (t.ventaId) {
+        try { await fetch(`/venta/pendiente/${t.ventaId}`, { method: 'DELETE' }); } catch {}
+        t.ventaId = null;
+      }
+      return;
+    }
+    const payload = {
+      cliente_id: t.clienteId || null,
+      notas: t.notas || null,
+      articulos: t.items.map(i => ({ producto_id: i.id, cantidad: i.cantidad, forzar_mayoreo: !!i.forzado })),
+    };
+    if (t.ventaId) {
+      await fetch(`/venta/pendiente/${t.ventaId}`, {
+        method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload),
+      });
+    } else {
+      const resp = await fetch('/venta/pendiente', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload),
+      });
+      const data = await resp.json();
+      if (data.ok && data.venta) t.ventaId = data.venta.id;
+    }
+    t.dirty = false;
+  } catch (err) { console.error('Error guardando ticket pendiente:', err); }
+  finally {
+    t._guardando = false;
+    if (t._reguardar) { t._reguardar = false; guardarTicketEnServidor(t); }
+  }
 }
 
 function aparcarTicketActivo() {
   const t = ticketActivo();
   if (t.items.length === 0) { mostrarMensaje('El ticket está vacío.'); return; }
-  guardarTicketEnServidor(t).then(() => {
-    mostrarMensaje('Ticket guardado como pendiente.');
-    nuevaTab();
-  });
+  guardarTicketEnServidor(t).then(() => { mostrarMensaje('Ticket guardado como pendiente.'); nuevaTab(); });
 }
 
 function vaciarTicketActivo() {
   const t = ticketActivo();
   if (t.items.length === 0) return;
   if (!confirm('¿Vaciar todos los productos de este ticket?')) return;
-  t.items = [];
-  marcarDirty();
-  renderTabs();
-  renderTicket();
+  t.items = []; marcarDirty(); renderTabs(); renderTicket();
 }
 
 /* ════════════════════════════════════════
@@ -457,23 +611,23 @@ function pareceCodigoBarras(texto) { return !texto.includes(' ') && texto.length
 
 const inputBusqueda = document.getElementById('pdv-search');
 const hintBusqueda  = document.getElementById('pdv-search-hint');
-inputBusqueda.addEventListener('focus', () => hintBusqueda.classList.add('pdv-search-hint--visible'));
-inputBusqueda.addEventListener('blur', () => hintBusqueda.classList.remove('pdv-search-hint--visible'));
-inputBusqueda.addEventListener('input', dispararBusqueda);
-inputBusqueda.addEventListener('keydown', function(e) {
+inputBusqueda.addEventListener('focus',  () => hintBusqueda.classList.add('pdv-search-hint--visible'));
+inputBusqueda.addEventListener('blur',   () => hintBusqueda.classList.remove('pdv-search-hint--visible'));
+inputBusqueda.addEventListener('input',  dispararBusqueda);
+inputBusqueda.addEventListener('keydown', e => {
   if (e.key === 'Enter') { e.preventDefault(); clearTimeout(debounceTimer); buscarCatalogo(); }
 });
 
 function dispararBusqueda() { clearTimeout(debounceTimer); debounceTimer = setTimeout(buscarCatalogo, 300); }
 
 async function buscarCatalogo() {
-  const qCrudo = document.getElementById('pdv-search').value.trim();
-  let categoria = document.getElementById('filtro-categoria').value;
-  const grid = document.getElementById('catalogo-grid');
+  const qCrudo   = document.getElementById('pdv-search').value.trim();
+  let   categoria = document.getElementById('filtro-categoria').value;
+  const grid     = document.getElementById('catalogo-grid');
 
   const buscarEnTodas = qCrudo.includes('%');
-  const q = qCrudo.replace(/%/g, '').trim();
-  const esCodigo = pareceCodigoBarras(q);
+  const q             = qCrudo.replace(/%/g, '').trim();
+  const esCodigo      = pareceCodigoBarras(q);
   if (buscarEnTodas || esCodigo) categoria = '';
 
   if (!q && !categoria) {
@@ -484,10 +638,10 @@ async function buscarCatalogo() {
 
   try {
     const params = new URLSearchParams();
-    if (q) params.append('q', q);
+    if (q)        params.append('q', q);
     if (categoria) params.append('categoria', categoria);
-    const resp = await fetch(`/venta/buscar?${params}`);
-    if (!resp.ok) throw new Error('Error al buscar');
+    const resp     = await fetch(`/venta/buscar?${params}`);
+    if (!resp.ok) throw new Error();
     const productos = await resp.json();
 
     if (esCodigo) {
@@ -500,67 +654,141 @@ async function buscarCatalogo() {
       }
     }
     renderizarResultados(productos);
-  } catch (err) {
+  } catch {
     grid.innerHTML = '<div class="pdv-catalogo__placeholder"><p>Error al buscar productos.</p></div>';
-    console.error(err);
   }
 }
 
 function renderizarResultados(productos) {
   const grid = document.getElementById('catalogo-grid');
-  if (productos.length === 0) { grid.innerHTML = '<div class="pdv-catalogo__placeholder"><p>Sin resultados.</p></div>'; return; }
-
+  if (!productos.length) { grid.innerHTML = '<div class="pdv-catalogo__placeholder"><p>Sin resultados.</p></div>'; return; }
   grid.innerHTML = productos.map(p => {
-    const stock = p.cantidad_actual ?? 0;
+    const stock   = p.cantidad_actual ?? 0;
     const agotado = stock <= 0;
-    const nombreSeguro = String(p.nombre).replace(/"/g, '&quot;');
+    const n       = String(p.nombre).replace(/"/g, '&quot;');
     return `
       <div class="pdv-mini-card ${agotado ? 'pdv-mini-card--agotado' : ''}"
-        data-id="${p.id}" data-nombre="${nombreSeguro}" data-codigo="${p.codigo_barras || ''}"
-        data-precio="${p.precio_venta}" data-mayoreo="${p.precio_mayoreo || ''}"
-        data-precio-promo="${p.precio_promo || ''}"
-        data-porcentaje-promo="${p.porcentaje_promo || ''}"
-        data-cantidad-minima-promo="${p.cantidad_minima_promo || ''}"
-        data-imagen="${p.ruta_imagen || ''}" data-stock="${stock}" title="${nombreSeguro}">
+           data-id="${p.id}" data-nombre="${n}" data-codigo="${p.codigo_barras || ''}"
+           data-precio="${p.precio_venta}" data-mayoreo="${p.precio_mayoreo || ''}"
+           data-precio-promo="${p.precio_promo || ''}" data-porcentaje-promo="${p.porcentaje_promo || ''}"
+           data-cantidad-minima-promo="${p.cantidad_minima_promo || ''}"
+           data-imagen="${p.ruta_imagen || ''}" data-stock="${stock}" title="${n}">
         <div class="pdv-mini-card__img">
           ${p.ruta_imagen
-            ? `<img src="/uploads/productos/${p.ruta_imagen}" alt="${nombreSeguro}" loading="lazy">`
-            : `<div class="pdv-mini-card__img-placeholder"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg></div>`}
+            ? `<img src="/uploads/productos/${p.ruta_imagen}" alt="${n}" loading="lazy">`
+            : `<div class="pdv-mini-card__img-placeholder">
+                 <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                   <rect x="3" y="3" width="18" height="18" rx="2"/>
+                   <circle cx="8.5" cy="8.5" r="1.5"/>
+                   <polyline points="21 15 16 10 5 21"/>
+                 </svg>
+               </div>`}
           ${agotado ? '<div class="pdv-mini-card__agotado">Agotado</div>' : ''}
         </div>
         <div class="pdv-mini-card__info">
-          <p class="pdv-mini-card__nombre">${nombreSeguro}</p>
-          <p class="pdv-mini-card__precio">$${Number(p.precio_venta).toLocaleString('es-MX', {minimumFractionDigits:2})}</p>
+          <p class="pdv-mini-card__nombre">${n}</p>
+          <p class="pdv-mini-card__precio">$${Number(p.precio_venta).toLocaleString('es-MX', { minimumFractionDigits: 2 })}</p>
         </div>
       </div>`;
   }).join('');
 }
 
-// Delegación de eventos — un solo listener cubre las tarjetas actuales y futuras
-document.getElementById('catalogo-grid').addEventListener('click', function(e) {
+document.getElementById('catalogo-grid').addEventListener('click', e => {
   const card = e.target.closest('.pdv-mini-card');
   if (!card || card.classList.contains('pdv-mini-card--agotado')) return;
   agregarProducto({
-    id: card.dataset.id,
-    nombre: card.dataset.nombre,
-    codigo_barras: card.dataset.codigo,   // ← FALTABA
-    precio_venta: card.dataset.precio,
-    precio_mayoreo: card.dataset.mayoreo,
-    ruta_imagen: card.dataset.imagen,
+    id: card.dataset.id, nombre: card.dataset.nombre,
+    codigo_barras: card.dataset.codigo, precio_venta: card.dataset.precio,
+    precio_mayoreo: card.dataset.mayoreo, ruta_imagen: card.dataset.imagen,
     cantidad_actual: card.dataset.stock,
     precio_promo: card.dataset.precioPromo,
     porcentaje_promo: card.dataset.porcentajePromo,
     cantidad_minima_promo: card.dataset.cantidadMinimaPromo,
   });
 });
+
 /* ════════════════════════════════════════
-   AGREGAR / MODIFICAR PRODUCTOS DEL TICKET ACTIVO
+   VERIFICADOR DE PRECIOS (F9)
+════════════════════════════════════════ */
+let verDebounce = null;
+
+function abrirVerificador() {
+  document.getElementById('modal-verificador').style.display = 'flex';
+  const inp = document.getElementById('ver-buscar');
+  inp.value = '';
+  document.getElementById('ver-resultados').innerHTML =
+    document.getElementById('ver-placeholder').outerHTML;
+  setTimeout(() => inp.focus(), 100);
+  inp.addEventListener('input', _verDisparar);
+  document.getElementById('ver-categoria').addEventListener('change', _verDisparar);
+}
+
+function cerrarVerificador() {
+  document.getElementById('modal-verificador').style.display = 'none';
+  document.getElementById('ver-buscar').removeEventListener('input', _verDisparar);
+  document.getElementById('ver-categoria').removeEventListener('change', _verDisparar);
+}
+
+function _verDisparar() { clearTimeout(verDebounce); verDebounce = setTimeout(_verBuscar, 280); }
+
+async function _verBuscar() {
+  const q        = document.getElementById('ver-buscar').value.trim();
+  const categoria = document.getElementById('ver-categoria').value;
+  const cont     = document.getElementById('ver-resultados');
+
+  if (!q && !categoria) {
+    cont.innerHTML = document.getElementById('ver-placeholder')?.outerHTML ||
+      '<div style="text-align:center;color:#bbb;padding:40px;font-size:.85rem;">Busca un producto o escanea su código de barras</div>';
+    return;
+  }
+  cont.innerHTML = '<div style="text-align:center;color:#bbb;padding:40px;font-size:.85rem;">Buscando…</div>';
+
+  try {
+    const params = new URLSearchParams();
+    if (q)        params.append('q', q);
+    if (categoria) params.append('categoria', categoria);
+    const resp = await fetch(`/venta/buscar?${params}`);
+    if (!resp.ok) throw new Error();
+    const productos = await resp.json();
+
+    if (!productos.length) {
+      cont.innerHTML = '<div style="text-align:center;color:#bbb;padding:40px;font-size:.85rem;">Sin resultados.</div>';
+      return;
+    }
+
+    cont.innerHTML = productos.map(p => {
+      const nombre = String(p.nombre || p.descripcion || '').replace(/</g, '&lt;');
+      const img = p.ruta_imagen
+        ? `<img src="/uploads/productos/${p.ruta_imagen}" style="width:100%;height:100%;object-fit:cover;" loading="lazy">`
+        : `<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#C88" stroke-width="1.5"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>`;
+      const mayoreo = p.precio_mayoreo
+        ? `<span style="font-size:.75rem;font-weight:600;color:#B5294E;background:#FCE4EE;padding:2px 8px;border-radius:10px;">Mayoreo $${Number(p.precio_mayoreo).toLocaleString('es-MX',{minimumFractionDigits:2})}</span>`
+        : `<span style="font-size:.72rem;color:#ccc;">Sin precio mayoreo</span>`;
+      return `
+        <div style="display:grid;grid-template-columns:56px 1fr auto;align-items:center;gap:12px;padding:12px;border-radius:10px;border:1.5px solid #F2DCDB;">
+          <div style="width:56px;height:56px;border-radius:8px;background:#F2DCDB;overflow:hidden;display:flex;align-items:center;justify-content:center;">${img}</div>
+          <div style="min-width:0;">
+            <div style="font-size:.88rem;font-weight:600;color:#3D5D91;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${nombre}</div>
+            ${p.codigo_barras ? `<div style="font-size:.7rem;color:#aaa;font-family:monospace;">${p.codigo_barras}</div>` : ''}
+          </div>
+          <div style="display:flex;flex-direction:column;align-items:flex-end;gap:4px;flex-shrink:0;">
+            <span style="font-family:'Playfair Display',serif;font-size:1.15rem;font-weight:700;color:#6C0820;">$${Number(p.precio_venta).toLocaleString('es-MX',{minimumFractionDigits:2})}</span>
+            ${mayoreo}
+          </div>
+        </div>`;
+    }).join('');
+  } catch {
+    cont.innerHTML = '<div style="text-align:center;color:#bbb;padding:40px;font-size:.85rem;">Error al buscar. Intenta de nuevo.</div>';
+  }
+}
+
+/* ════════════════════════════════════════
+   PRODUCTOS DEL TICKET
 ════════════════════════════════════════ */
 function agregarProducto(p) {
   const stock = Number(p.cantidad_actual ?? 0);
   if (stock <= 0) return;
-  const t = ticketActivo();
-
+  const t     = ticketActivo();
   const existe = t.items.findIndex(i => i.id === p.id);
   if (existe >= 0) {
     if (t.items[existe].cantidad + 1 > t.items[existe].stock) {
@@ -573,23 +801,20 @@ function agregarProducto(p) {
   } else {
     t.items.push({
       id: p.id, nombre: p.nombre, codigo: p.codigo_barras || '',
-      precio: parseFloat(p.precio_venta),
-      mayoreo: p.precio_mayoreo ? parseFloat(p.precio_mayoreo) : null,
-      promo: p.precio_promo ? parseFloat(p.precio_promo) : null,
-      porcentaje_promo: p.porcentaje_promo ? parseFloat(p.porcentaje_promo) : null,
-      cantidad_minima_promo: p.cantidad_minima_promo ? parseInt(p.cantidad_minima_promo) : null,
+      precio:   parseFloat(p.precio_venta),
+      mayoreo:  p.precio_mayoreo           ? parseFloat(p.precio_mayoreo)           : null,
+      promo:    p.precio_promo             ? parseFloat(p.precio_promo)             : null,
+      porcentaje_promo:      p.porcentaje_promo      ? parseFloat(p.porcentaje_promo)      : null,
+      cantidad_minima_promo: p.cantidad_minima_promo ? parseInt(p.cantidad_minima_promo)   : null,
       imagen: p.ruta_imagen, cantidad: 1, stock, forzado: false,
     });
     selectedRow = t.items.length - 1;
   }
-  marcarDirty();
-  renderTabs();
-  renderTicket();
+  marcarDirty(); renderTabs(); renderTicket();
 }
 
-
 function cambiarQty(idx, delta) {
-  const t = ticketActivo();
+  const t    = ticketActivo();
   const nueva = t.items[idx].cantidad + delta;
   if (delta > 0 && nueva > t.items[idx].stock) {
     mostrarMensaje(`Solo hay ${t.items[idx].stock} unidades disponibles de "${t.items[idx].nombre}"`);
@@ -597,18 +822,14 @@ function cambiarQty(idx, delta) {
   }
   if (nueva <= 0) { eliminarItem(idx); return; }
   t.items[idx].cantidad = nueva;
-  marcarDirty();
-  renderTabs();
-  renderTicket();
+  marcarDirty(); renderTabs(); renderTicket();
 }
 
 function eliminarItem(idx) {
   const t = ticketActivo();
   t.items.splice(idx, 1);
   if (selectedRow >= t.items.length) selectedRow = t.items.length - 1;
-  marcarDirty();
-  renderTabs();
-  renderTicket();
+  marcarDirty(); renderTabs(); renderTicket();
 }
 
 function seleccionarFila(idx) { selectedRow = idx; renderTicket(); }
@@ -616,11 +837,10 @@ function seleccionarFila(idx) { selectedRow = idx; renderTicket(); }
 function toggleForzarMayoreo() {
   if (!PERMISOS.perm_descuentos) { mostrarMensaje('No tienes permiso para forzar precio de mayoreo.'); return; }
   const t = ticketActivo();
-  if (selectedRow < 0 || !t.items[selectedRow]) { mostrarMensaje('Selecciona un producto del ticket primero.'); return; }
-  if (!t.items[selectedRow].mayoreo) { mostrarMensaje('Este producto no tiene precio de mayoreo configurado.'); return; }
+  if (selectedRow < 0 || !t.items[selectedRow])  { mostrarMensaje('Selecciona un producto del ticket primero.'); return; }
+  if (!t.items[selectedRow].mayoreo)              { mostrarMensaje('Este producto no tiene precio de mayoreo configurado.'); return; }
   t.items[selectedRow].forzado = !t.items[selectedRow].forzado;
-  marcarDirty();
-  renderTicket();
+  marcarDirty(); renderTicket();
 }
 
 /* ════════════════════════════════════════
@@ -629,77 +849,76 @@ function toggleForzarMayoreo() {
 function onClienteChange() {
   const sel = document.getElementById('pdv-cliente');
   const opt = sel.options[sel.selectedIndex];
-  const t = ticketActivo();
-  t.clienteId = sel.value;
+  const t   = ticketActivo();
+  t.clienteId     = sel.value;
   t.clienteNombre = opt.dataset.nombre || 'Público general';
-  marcarDirty();
-  renderTicket();
+  marcarDirty(); renderTicket();
 }
 
 /* ════════════════════════════════════════
-   PRECIO / RENDER
+   CÁLCULO DE PRECIOS
 ════════════════════════════════════════ */
-function precioAplicado(item, items) {
-  // Promo tiene prioridad absoluta (RF-05.5)
-  if (item.cantidad_minima_promo !== null && item.cantidad >= item.cantidad_minima_promo) {
-    if (item.promo !== null && item.promo !== undefined) {
-      return item.promo; // precio especial
-    }
-    if (item.porcentaje_promo) {
-      return item.precio * (1 - item.porcentaje_promo / 100); // porcentaje
-    }
-  }
-  if (item.forzado) return item.mayoreo;
+function esMayoristaActual() {
   const sel = document.getElementById('pdv-cliente');
-  const esMayorista = sel.options[sel.selectedIndex]?.dataset.mayorista === 'true';
-  const subtotalNormal = items.reduce((s, i) => s + i.precio * i.cantidad, 0);
-  const aplicaMayoreo = item.mayoreo &&
-    metodo !== 'tarjeta' &&
-    (esMayorista || subtotalNormal > 350);
-  return aplicaMayoreo ? item.mayoreo : item.precio;
+  return sel.options[sel.selectedIndex]?.dataset.mayorista === 'true';
 }
 
-// Devuelve el motivo del precio aplicado: 'promo' | 'forzado' | 'mayoreo_cliente' | 'mayoreo_monto' | 'normal'
-function motivoPrecio(item, items) {
-  // Promo tiene prioridad absoluta (RF-05.5)
+function aplicaMayoreoItem(item) {
+  if (!item.mayoreo)                return false;
+  if (metodoCobro === 'tarjeta')    return false;   // RF-05.3
+  if (esMayoristaActual())          return true;    // RF-05.2
+  return item.mayoreo * item.cantidad > 350;        // RF-05.1 (por línea)
+}
+
+function precioAplicado(item) {
+  // Promoción tiene prioridad (RF-09)
+  if (item.cantidad_minima_promo != null && item.cantidad >= item.cantidad_minima_promo) {
+    if (item.promo != null)     return item.promo;
+    if (item.porcentaje_promo)  return item.precio * (1 - item.porcentaje_promo / 100);
+  }
+  if (item.forzado)            return item.mayoreo;  // F11: override manual
+  return aplicaMayoreoItem(item) ? item.mayoreo : item.precio;
+}
+
+function motivoPrecio(item) {
   if (item.cantidad_minima_promo != null && item.cantidad >= item.cantidad_minima_promo) {
     if (item.promo != null || item.porcentaje_promo) return 'promo';
   }
-  if (item.forzado) return 'forzado';
-
-  const sel = document.getElementById('pdv-cliente');
-  const esMayorista = sel.options[sel.selectedIndex]?.dataset.mayorista === 'true';
-  const subtotalNormal = items.reduce((s, i) => s + i.precio * i.cantidad, 0);
-
-  if (item.mayoreo && metodo !== 'tarjeta') {
-    if (esMayorista) return 'mayoreo_cliente';
-    if (subtotalNormal > 350) return 'mayoreo_monto';
-  }
+  if (item.forzado)            return 'forzado';
+  if (aplicaMayoreoItem(item)) return esMayoristaActual() ? 'mayoreo_cliente' : 'mayoreo_monto';
   return 'normal';
 }
 
 function etiquetaMotivo(motivo) {
-  switch (motivo) {
-    case 'promo':           return '<span class="tag-promo">PROMOCIÓN</span>';
-    case 'forzado':         return '<span class="tag-forzado">MAYOREO FORZADO</span>';
-    case 'mayoreo_cliente': return '<span class="tag-mayoreo">MAYOREO CLIENTE</span>';
-    case 'mayoreo_monto':   return '<span class="tag-mayoreo">MAYOREO</span>';
-    default:                return '';
-  }
+  return {
+    promo:           '<span class="tag-promo">PROMOCIÓN</span>',
+    forzado:         '<span class="tag-forzado">MAYOREO FORZADO</span>',
+    mayoreo_cliente: '<span class="tag-mayoreo">MAYOREO CLIENTE</span>',
+    mayoreo_monto:   '<span class="tag-mayoreo">MAYOREO</span>',
+  }[motivo] || '';
 }
 
+/* ════════════════════════════════════════
+   RENDER TICKET
+════════════════════════════════════════ */
 function renderTicket() {
   const body = document.getElementById('ticket-body');
-  const t = ticketActivo();
-  document.getElementById('btn-forzar-mayoreo').classList.toggle('activo', selectedRow >= 0 && t.items[selectedRow]?.forzado);
+  const t    = ticketActivo();
 
+  // Actualizar estado del botón F11
+  document.getElementById('btn-forzar-mayoreo').classList.toggle('activo', selectedRow >= 0 && !!t.items[selectedRow]?.forzado);
+
+  // Sincronizar selector de cliente con el ticket activo
   const selCliente = document.getElementById('pdv-cliente');
   if (selCliente.value !== t.clienteId) selCliente.value = t.clienteId || '';
 
   if (t.items.length === 0) {
     body.innerHTML = `
-      <div class="pdv-ticket__empty" id="ticket-empty">
-        <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/><path d="M1 1h4l2.68 13.39a2 2 0 002 1.61h9.72a2 2 0 002-1.61L23 6H6"/></svg>
+      <div class="pdv-ticket__empty">
+        <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+          <circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/>
+          <path d="M1 1h4l2.68 13.39a2 2 0 002 1.61h9.72a2 2 0 002-1.61L23 6H6"/>
+        </svg>
         <p>Escanea o selecciona un producto</p>
       </div>`;
     document.getElementById('btn-cobrar').disabled = true;
@@ -708,26 +927,30 @@ function renderTicket() {
   }
 
   body.innerHTML = t.items.map((item, idx) => {
-    const motivo = motivoPrecio(item, t.items);
-    const precio = precioAplicado(item, t.items);
+    const motivo   = motivoPrecio(item);
+    const precio   = precioAplicado(item);
     const subtotal = precio * item.cantidad;
-    const tieneMayoreo = item.forzado || (item.mayoreo && precio === item.mayoreo);
+    const claseMotivo = motivo === 'promo' ? 'pdv-ticket-row--promo'
+                      : motivo !== 'normal' ? 'pdv-ticket-row--mayoreo' : '';
     return `
-      <div class="pdv-ticket-row ${idx === selectedRow ? 'pdv-ticket-row--selected' : ''} ${motivo === 'promo' ? 'pdv-ticket-row--promo' : (motivo !== 'normal' ? 'pdv-ticket-row--mayoreo' : '')} ${item.sinStock !== undefined ? 'pdv-ticket-row--sin-stock' : ''}" onclick="seleccionarFila(${idx})">
+      <div class="pdv-ticket-row ${idx === selectedRow ? 'pdv-ticket-row--selected' : ''} ${claseMotivo} ${item.sinStock !== undefined ? 'pdv-ticket-row--sin-stock' : ''}"
+           onclick="seleccionarFila(${idx})">
         <div class="pdv-ticket-row__codigo">${item.codigo || '—'}</div>
         <div>
           <div class="pdv-ticket-row__nombre">${item.nombre}</div>
-          ${etiquetaMotivo(motivoPrecio(item, t.items))}
+          ${etiquetaMotivo(motivo)}
         </div>
         <div class="pdv-ticket-row__qty">
           <button class="pdv-qty-btn" onclick="event.stopPropagation(); cambiarQty(${idx}, -1)">−</button>
           <span class="pdv-qty-num">${item.cantidad}</span>
           <button class="pdv-qty-btn" onclick="event.stopPropagation(); cambiarQty(${idx}, 1)">+</button>
         </div>
-        <div class="pdv-ticket-row__precio">$${precio.toLocaleString('es-MX', {minimumFractionDigits:2})}</div>
-        <div class="pdv-ticket-row__subtotal">$${subtotal.toLocaleString('es-MX', {minimumFractionDigits:2})}</div>
+        <div class="pdv-ticket-row__precio">$${precio.toLocaleString('es-MX', { minimumFractionDigits: 2 })}</div>
+        <div class="pdv-ticket-row__subtotal">$${subtotal.toLocaleString('es-MX', { minimumFractionDigits: 2 })}</div>
         <button class="pdv-ticket-row__del" onclick="event.stopPropagation(); eliminarItem(${idx})" title="Quitar">
-          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+            <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+          </svg>
         </button>
       </div>`;
   }).join('');
@@ -737,45 +960,12 @@ function renderTicket() {
 }
 
 function getTotal() {
-  const t = ticketActivo();
-  return t.items.reduce((s, i) => s + precioAplicado(i, t.items) * i.cantidad, 0);
+  return ticketActivo().items.reduce((s, i) => s + precioAplicado(i) * i.cantidad, 0);
 }
 
 function actualizarTotal() {
-  const total = getTotal();
-  document.getElementById('pdv-total').textContent = `$${total.toLocaleString('es-MX', {minimumFractionDigits:2})}`;
-  document.getElementById('modal-total').textContent = `$${total.toLocaleString('es-MX', {minimumFractionDigits:2})}`;
-
-  const recibidoInput = document.getElementById('efectivo-recibido');
-  if (recibidoInput && !recibidoManual) {
-    recibidoInput.value = total.toFixed(2);
-  }
-  calcularCambio();
-}
-/* ════════════════════════════════════════
-   MÉTODO DE PAGO / CAMBIO
-════════════════════════════════════════ */
-function onMetodoChange() {
-  metodo = document.querySelector('input[name="metodo"]:checked').value;
-  document.querySelectorAll('.pdv-metodo').forEach(el => el.classList.remove('pdv-metodo--active'));
-  document.getElementById(`metodo-${metodo}`)?.classList.add('pdv-metodo--active');
-  document.getElementById('wrap-efectivo').style.display = metodo === 'efectivo' ? 'flex' : 'none';
-  renderTicket();
-}
-
-function calcularCambio() {
-  const total = getTotal();
-  const recibido = parseFloat(document.getElementById('efectivo-recibido')?.value) || 0;
-  const display = document.getElementById('cambio-display');
-  if (recibido > 0 && metodo === 'efectivo') {
-    const cambio = recibido - total;
-    display.style.display = 'block';
-    display.textContent = `Cambio: $${Math.max(0, cambio).toLocaleString('es-MX', {minimumFractionDigits:2})}`;
-    display.style.background = cambio < 0 ? '#fee2e2' : '#d1fae5';
-    display.style.color = cambio < 0 ? '#991b1b' : '#065f46';
-  } else {
-    display.style.display = 'none';
-  }
+  document.getElementById('pdv-total').textContent =
+    `$${getTotal().toLocaleString('es-MX', { minimumFractionDigits: 2 })}`;
 }
 
 /* ════════════════════════════════════════
@@ -785,70 +975,138 @@ function abrirModalCobro() {
   const t = ticketActivo();
   if (t.items.length === 0) return;
 
-  // Efectivo: validar y cobrar directo sin modal
-  if (metodo === 'efectivo') {
-    const recibido = parseFloat(document.getElementById('efectivo-recibido')?.value) || 0;
-    const total = getTotal();
-    if (recibido <= 0) { mostrarMensaje('Ingresa el monto recibido en efectivo.'); return; }
-    if (recibido < total) { mostrarMensaje('El monto recibido es menor al total.'); return; }
-    procesarCobro();
-    return;
-  }
+  const total = getTotal();
+  document.getElementById('cobro-total').textContent =
+    `$${total.toLocaleString('es-MX', { minimumFractionDigits: 2 })}`;
+  document.getElementById('cobro-num-articulos').textContent =
+    `${t.items.reduce((s, i) => s + i.cantidad, 0)} artículo(s)`;
+  document.getElementById('cobro-cliente-label').textContent =
+    t.clienteNombre || 'Público general';
 
-  // Otros métodos: abrir modal de confirmación
-  document.getElementById('modal-cliente').textContent = t.clienteNombre;
-  document.getElementById('modal-metodo').textContent = metodo.charAt(0).toUpperCase() + metodo.slice(1);
-  document.getElementById('modal-wrap-referencia').style.display = ['tarjeta','transferencia','cheque'].includes(metodo) ? 'block' : 'none';
-  document.getElementById('modal-wrap-mixto').style.display = metodo === 'mixto' ? 'block' : 'none';
+  // Limpiar campos del modal
+  document.getElementById('cobro-pago-con').value   = total.toFixed(2);
+  document.getElementById('cobro-referencia').value = '';
+  ['cobro-mix-efectivo', 'cobro-mix-tarjeta', 'cobro-mix-transferencia', 'cobro-mix-cheque']
+    .forEach(id => { document.getElementById(id).value = ''; });
+  document.getElementById('cobro-restante-monto').textContent =
+    `$${total.toLocaleString('es-MX', { minimumFractionDigits: 2 })}`;
+
+  seleccionarMetodoCobro('efectivo');
   document.getElementById('modal-cobro').style.display = 'flex';
+  setTimeout(() => document.getElementById('cobro-pago-con').focus(), 100);
 }
 
-function cerrarModalCobro(e) { if (e.target === document.getElementById('modal-cobro')) cerrarModal(); }
-function cerrarModal() { document.getElementById('modal-cobro').style.display = 'none'; }
+function seleccionarMetodoCobro(met) {
+  metodoCobro = met;
+
+  // Resaltar botón activo
+  document.querySelectorAll('.cobro-metodo').forEach(b => b.classList.remove('cobro-metodo--activo'));
+  document.getElementById(`cmet-${met}`)?.classList.add('cobro-metodo--activo');
+
+  const esMixto = met === 'mixto';
+  document.getElementById('cobro-panel-simple').style.display = esMixto ? 'none'  : 'block';
+  document.getElementById('cobro-panel-mixto').style.display  = esMixto ? 'block' : 'none';
+
+  if (!esMixto) {
+    document.getElementById('cobro-pago-label').textContent    = met === 'efectivo' ? 'Pagó con' : 'Monto';
+    document.getElementById('cobro-cambio-display').style.display  = 'none';
+    document.getElementById('cobro-referencia-wrap').style.display =
+      ['tarjeta', 'transferencia', 'cheque'].includes(met) ? 'block' : 'none';
+    setTimeout(() => document.getElementById('cobro-pago-con').focus(), 50);
+  } else {
+    actualizarRestante();
+  }
+
+  // Si es tarjeta, re-render ticket para mostrar precios sin mayoreo (RF-05.3)
+  renderTicket();
+}
+
+function actualizarCambioModal() {
+  if (metodoCobro !== 'efectivo') return;
+  const total    = getTotal();
+  const recibido = parseFloat(document.getElementById('cobro-pago-con').value) || 0;
+  const display  = document.getElementById('cobro-cambio-display');
+  if (recibido > 0) {
+    const cambio = recibido - total;
+    display.style.display = 'flex';
+    document.getElementById('cobro-cambio-monto').textContent =
+      `$${Math.max(0, cambio).toLocaleString('es-MX', { minimumFractionDigits: 2 })}`;
+    display.classList.toggle('cobro-cambio-display--negativo', cambio < 0);
+  } else {
+    display.style.display = 'none';
+  }
+}
+
+function actualizarRestante() {
+  const total    = getTotal();
+  const ef       = parseFloat(document.getElementById('cobro-mix-efectivo').value)      || 0;
+  const tar      = parseFloat(document.getElementById('cobro-mix-tarjeta').value)       || 0;
+  const tra      = parseFloat(document.getElementById('cobro-mix-transferencia').value) || 0;
+  const che      = parseFloat(document.getElementById('cobro-mix-cheque').value)        || 0;
+  const restante = total - ef - tar - tra - che;
+  document.getElementById('cobro-restante-monto').textContent =
+    `$${Math.max(0, restante).toLocaleString('es-MX', { minimumFractionDigits: 2 })}`;
+}
+
+function cerrarModal() {
+  document.getElementById('modal-cobro').style.display = 'none';
+  // Si se canceló con tarjeta, restaurar precios del ticket
+  if (metodoCobro === 'tarjeta') { metodoCobro = 'efectivo'; renderTicket(); }
+}
 
 function construirPagos(total) {
-  if (metodo === 'mixto') {
-    const ef = parseFloat(document.getElementById('modal-mixto-efectivo')?.value) || 0;
-    const tar = parseFloat(document.getElementById('modal-mixto-tarjeta')?.value) || 0;
+  if (metodoCobro === 'mixto') {
     const pagos = [];
-    if (ef > 0) pagos.push({ metodo: 'efectivo', monto: ef });
-    if (tar > 0) pagos.push({ metodo: 'tarjeta', monto: tar });
+    const ef  = parseFloat(document.getElementById('cobro-mix-efectivo').value)      || 0;
+    const tar = parseFloat(document.getElementById('cobro-mix-tarjeta').value)       || 0;
+    const tra = parseFloat(document.getElementById('cobro-mix-transferencia').value) || 0;
+    const che = parseFloat(document.getElementById('cobro-mix-cheque').value)        || 0;
+    if (ef)  pagos.push({ metodo: 'efectivo',      monto: ef,  recibido: ef });
+    if (tar) pagos.push({ metodo: 'tarjeta',       monto: tar });
+    if (tra) pagos.push({ metodo: 'transferencia', monto: tra });
+    if (che) pagos.push({ metodo: 'cheque',        monto: che });
     return pagos;
   }
-  const pago = { metodo, monto: total };
-  if (metodo === 'efectivo') pago.recibido = parseFloat(document.getElementById('efectivo-recibido')?.value) || total;
-  if (['tarjeta','transferencia','cheque'].includes(metodo)) pago.referencia = document.getElementById('modal-referencia')?.value || null;
+  const monto = parseFloat(document.getElementById('cobro-pago-con').value) || total;
+  const pago  = { metodo: metodoCobro, monto };
+  if (metodoCobro === 'efectivo') pago.recibido = monto;
+  if (['tarjeta', 'transferencia', 'cheque'].includes(metodoCobro)) {
+    pago.referencia = document.getElementById('cobro-referencia').value || null;
+  }
   return [pago];
 }
 
-async function procesarCobro() {
-  const t = ticketActivo();
+async function procesarCobro(imprimir = false) {
+  if (cobrando) return;
+  const t     = ticketActivo();
   const total = getTotal();
-
-  if (metodo === 'mixto') {
-    const ef  = parseFloat(document.getElementById('modal-mixto-efectivo')?.value) || 0;
-    const tar = parseFloat(document.getElementById('modal-mixto-tarjeta')?.value)  || 0;
-    if (Math.abs((ef + tar) - total) > 0.01) { mostrarMensaje('El monto ingresado no coincide con el total.'); return; }
-  }
-
-  if (cobrando) return;   // ← evita doble cobro si ya hay uno en curso
-  cobrando = true;
-
   const pagos = construirPagos(total);
 
+  // Validaciones
+  if (metodoCobro === 'mixto') {
+    const suma = pagos.reduce((s, p) => s + p.monto, 0);
+    if (Math.abs(suma - total) > 0.01) {
+      mostrarMensaje(`Faltan $${(total - suma).toFixed(2)} por cubrir.`); return;
+    }
+  } else if (metodoCobro === 'efectivo') {
+    const recibido = parseFloat(document.getElementById('cobro-pago-con').value) || 0;
+    if (recibido < total) { mostrarMensaje('El monto recibido es menor al total.'); return; }
+  }
+
+  cobrando = true;
   try {
     let resp, data;
     if (t.ventaId) {
       resp = await fetch(`/venta/pendiente/${t.ventaId}/cobrar`, {
-        method: 'POST', headers: {'Content-Type':'application/json'},
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ pagos }),
       });
     } else {
       resp = await fetch('/venta/cobrar', {
-        method: 'POST', headers: {'Content-Type':'application/json'},
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           cliente_id: t.clienteId || null,
-          articulos: t.items.map(i => ({ producto_id: i.id, cantidad: i.cantidad, forzar_mayoreo: !!i.forzado })),
+          articulos:  t.items.map(i => ({ producto_id: i.id, cantidad: i.cantidad, forzar_mayoreo: !!i.forzado })),
           pagos,
         }),
       });
@@ -857,13 +1115,9 @@ async function procesarCobro() {
 
     if (!resp.ok || !data.ok) {
       const det = data?.detalle;
-      if (det && det.error === 'stock_insuficiente') {
-        const idx = t.items.findIndex(i => i && i.id === det.producto_id);
-        if (idx >= 0) {
-          selectedRow = idx;
-          t.items[idx].sinStock = det.existencia;
-          renderTicket();
-        }
+      if (det?.error === 'stock_insuficiente') {
+        const idx = t.items.findIndex(i => i?.id === det.producto_id);
+        if (idx >= 0) { selectedRow = idx; t.items[idx].sinStock = det.existencia; renderTicket(); }
         mostrarMensaje(det.mensaje || 'Un producto no tiene stock suficiente.');
       } else {
         mostrarMensaje(data?.error || 'No se pudo cobrar la venta.');
@@ -871,74 +1125,80 @@ async function procesarCobro() {
       return;
     }
 
-    // La respuesta puede venir como {venta:{...}} o directa {id, folio} según el flujo
     const ventaResp = data.venta || data;
     lastVentaId = ventaResp?.id || null;
-    const folioTxt = ventaResp?.folio ?? '';
+if (lastVentaId) localStorage.setItem('smartventa_last_venta', lastVentaId);
+    const folioTxt  = ventaResp?.folio ?? '';
 
-    // Toast con cambio si fue efectivo
-    if (metodo === 'efectivo') {
-      const recibido = parseFloat(document.getElementById('efectivo-recibido')?.value) || total;
-      const cambio   = recibido - total;
-      mostrarMensaje(`✓ Folio ${folioTxt} — Recibido: $${recibido.toLocaleString('es-MX',{minimumFractionDigits:2})} | Cambio: $${cambio.toLocaleString('es-MX',{minimumFractionDigits:2})}`);
+    // Imprimir si se solicitó (F1)
+    if (imprimir && lastVentaId) {
+      try {
+        const impResp = await fetch(`/impresion/ticket/${lastVentaId}`, { method: 'POST' });
+        const impData = await impResp.json();
+        mostrarMensaje(impData.ok
+          ? `✓ Folio #${folioTxt} — Ticket impreso`
+          : `Venta registrada, error al imprimir: ${impData.error}`);
+      } catch {
+        mostrarMensaje(`Venta registrada (Folio #${folioTxt}), sin conexión con la impresora.`);
+      }
     } else {
-      mostrarMensaje(`✓ Venta registrada — Folio ${folioTxt}`);
+      mostrarMensaje(`✓ Venta registrada — Folio #${folioTxt}`);
     }
 
     cerrarModal();
     const idxCerrado = tickets.indexOf(t);
     if (idxCerrado >= 0) tickets.splice(idxCerrado, 1);
     if (tickets.length === 0) tickets.push(crearTicketVacio());
-    activeIdx = Math.min(idxCerrado < 0 ? 0 : idxCerrado, tickets.length - 1);
+    activeIdx   = Math.min(idxCerrado < 0 ? 0 : idxCerrado, tickets.length - 1);
     selectedRow = -1;
-    const inputRec = document.getElementById('efectivo-recibido');
-    if (inputRec) inputRec.value = '';
-    recibidoManual = false;
-    renderTabs();
-    renderTicket();
+    metodoCobro = 'efectivo';
+    renderTabs(); renderTicket();
   } catch (err) {
     mostrarMensaje('Error de conexión al cobrar.');
     console.error(err);
   } finally {
-    cobrando = false;   // ← siempre se libera, cobre o falle
+    cobrando = false;
   }
 }
 
-
 function reimprimirUltimo() {
   if (!lastVentaId) { mostrarMensaje('No hay ninguna venta reciente en esta sesión para reimprimir.'); return; }
-  mostrarMensaje('Reimpresión pendiente de implementar — folio interno: ' + lastVentaId);
+  fetch(`/impresion/ticket/${lastVentaId}`, { method: 'POST' })
+    .then(r => r.json())
+    .then(d => mostrarMensaje(d.ok ? 'Ticket reimpreso correctamente.' : 'Error al reimprimir: ' + d.error))
+    .catch(() => mostrarMensaje('No se pudo conectar con la impresora.'));
 }
 
 /* ════════════════════════════════════════
-   MOVIMIENTOS DE CAJA (F7/F8)
+   MOVIMIENTOS DE CAJA (F7 / F8)
 ════════════════════════════════════════ */
-let tipoMovimientoActual = 'entrada';
 function abrirModalMovimiento(tipo) {
   tipoMovimientoActual = tipo;
-  document.getElementById('modal-movimiento-titulo').textContent = tipo === 'entrada' ? 'Entrada de efectivo' : 'Salida de efectivo';
+  document.getElementById('modal-movimiento-titulo').textContent =
+    tipo === 'entrada' ? 'Entrada de efectivo' : 'Salida de efectivo';
   document.getElementById('movimiento-monto').value = '';
   document.getElementById('movimiento-notas').value = '';
   document.getElementById('modal-movimiento').style.display = 'flex';
 }
+
 function cerrarModalMovimiento() { document.getElementById('modal-movimiento').style.display = 'none'; }
 
 async function confirmarMovimiento() {
   const monto = parseFloat(document.getElementById('movimiento-monto').value);
   if (!monto || monto <= 0) { mostrarMensaje('Ingresa un monto válido.'); return; }
-  const notas = document.getElementById('movimiento-notas').value || null;
   try {
     const resp = await fetch('/venta/movimiento-caja', {
-      method: 'POST', headers: {'Content-Type':'application/json'},
-      body: JSON.stringify({ tipo_movimiento: tipoMovimientoActual, monto, notas }),
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        tipo_movimiento: tipoMovimientoActual, monto,
+        notas: document.getElementById('movimiento-notas').value || null,
+      }),
     });
     const data = await resp.json();
     if (!resp.ok || !data.ok) { mostrarMensaje(data.error || 'No se pudo registrar el movimiento.'); return; }
     mostrarMensaje(`${tipoMovimientoActual === 'entrada' ? 'Entrada' : 'Salida'} registrada correctamente.`);
     cerrarModalMovimiento();
-  } catch (err) {
-    mostrarMensaje('Error de conexión.');
-  }
+  } catch { mostrarMensaje('Error de conexión.'); }
 }
 
 /* ════════════════════════════════════════
@@ -949,42 +1209,50 @@ function mostrarMensaje(texto) {
   clearTimeout(toastTimer);
   toast.textContent = texto;
   toast.classList.add('pdv-toast--visible');
-  toastTimer = setTimeout(() => toast.classList.remove('pdv-toast--visible'), 4000); // ← 4s en vez de 2.5s
+  toastTimer = setTimeout(() => toast.classList.remove('pdv-toast--visible'), 4000);
 }
 
-let recibidoManual = false;
-
-// Agregar listener una sola vez, junto a donde está el input
-document.getElementById('efectivo-recibido')?.addEventListener('input', () => {
-  recibidoManual = true;
-  calcularCambio();
-});
 /* ════════════════════════════════════════
    TECLADO GLOBAL
 ════════════════════════════════════════ */
-document.addEventListener('keydown', function(e) {
+document.addEventListener('keydown', e => {
   const activo = document.activeElement;
-  if (activo && ['INPUT','TEXTAREA','SELECT'].includes(activo.tagName)) return;
+  if (activo && ['INPUT', 'TEXTAREA', 'SELECT'].includes(activo.tagName)) return;
 
+  const modalCobroAbierto = document.getElementById('modal-cobro').style.display !== 'none';
+
+  // Atajos dentro del modal de cobro
+  if (modalCobroAbierto) {
+    if      (e.key === 'F1')     { e.preventDefault(); procesarCobro(true);  }
+    else if (e.key === 'F2')     { e.preventDefault(); procesarCobro(false); }
+    else if (e.key === 'Escape') { e.preventDefault(); cerrarModal(); }
+    return;
+  }
+
+  // Atajos generales del POS
   const t = ticketActivo();
-  if (e.key === 'F4') { e.preventDefault(); vaciarTicketActivo(); }
-  else if (e.key === 'F6') { e.preventDefault(); aparcarTicketActivo(); }
-  else if (e.key === 'F7') { e.preventDefault(); abrirModalMovimiento('entrada'); }
-  else if (e.key === 'F8') { e.preventDefault(); abrirModalMovimiento('salida'); }
+  if      (e.key === 'F4')  { e.preventDefault(); vaciarTicketActivo(); }
+  else if (e.key === 'F6')  { e.preventDefault(); aparcarTicketActivo(); }
+  else if (e.key === 'F7')  { e.preventDefault(); abrirModalMovimiento('entrada'); }
+  else if (e.key === 'F8')  { e.preventDefault(); abrirModalMovimiento('salida');  }
+  else if (e.key === 'F9') { e.preventDefault(); abrirVerificador(); }
   else if (e.key === 'F11') { e.preventDefault(); toggleForzarMayoreo(); }
   else if (e.key === 'F12') { e.preventDefault(); if (!document.getElementById('btn-cobrar').disabled) abrirModalCobro(); }
   else if (t.items.length === 0) return;
-  else if (e.key === 'ArrowDown') { e.preventDefault(); selectedRow = selectedRow < 0 ? 0 : Math.min(selectedRow + 1, t.items.length - 1); renderTicket(); }
-  else if (e.key === 'ArrowUp') { e.preventDefault(); selectedRow = selectedRow < 0 ? t.items.length - 1 : Math.max(selectedRow - 1, 0); renderTicket(); }
-  else if (e.key === '+' || e.key === '=') { e.preventDefault(); if (selectedRow >= 0) cambiarQty(selectedRow, 1); }
+  else if (e.key === 'ArrowDown') { e.preventDefault(); selectedRow = Math.min((selectedRow < 0 ? -1 : selectedRow) + 1, t.items.length - 1); renderTicket(); }
+  else if (e.key === 'ArrowUp')   { e.preventDefault(); selectedRow = Math.max(selectedRow - 1, 0); renderTicket(); }
+  else if (e.key === '+' || e.key === '=') { e.preventDefault(); if (selectedRow >= 0) cambiarQty(selectedRow,  1); }
   else if (e.key === '-' || e.key === '_') { e.preventDefault(); if (selectedRow >= 0) cambiarQty(selectedRow, -1); }
 });
 
 /* Init */
 inicializarTickets();
-onMetodoChange();
 </script>
 
+<!-- ══════════════════════════════════════
+     OVERLAY APERTURA DE TURNO
+     (se muestra si el usuario no tiene turno abierto)
+══════════════════════════════════════ -->
 <% if (!tieneTurno) { %>
 <div id="turno-overlay" style="position:fixed;inset:0;background:rgba(74,5,23,.72);backdrop-filter:blur(3px);z-index:9000;display:flex;align-items:center;justify-content:center;padding:20px;">
   <div style="background:#fff;border-radius:20px;padding:32px 28px;width:100%;max-width:400px;box-shadow:0 28px 80px rgba(0,0,0,.4);">
@@ -996,7 +1264,6 @@ onMetodoChange();
       <span style="font-family:'Playfair Display',serif;font-size:1.1rem;font-weight:700;color:#6C0820;">SmartVenta</span>
     </div>
 
-    <!-- Estado: conectando (visible por defecto) -->
     <div id="turno-conectando">
       <h2 style="font-family:'Playfair Display',serif;font-size:1.4rem;color:#1a1a2e;margin:0 0 8px;">Verificando turno…</h2>
       <p style="font-size:.85rem;color:#aaa;margin:0 0 24px;">Detectando caja de esta terminal</p>
@@ -1005,7 +1272,6 @@ onMetodoChange();
       </div>
     </div>
 
-    <!-- Estado: formulario (oculto hasta que falle la reconexión) -->
     <div id="turno-formulario" style="display:none;">
       <h2 style="font-family:'Playfair Display',serif;font-size:1.4rem;color:#1a1a2e;margin:0 0 4px;">Apertura de Turno</h2>
       <p style="font-size:.85rem;color:#888;margin:0 0 16px;">Hola, <strong><%= cajeroNombre %></strong> — elige tu caja para comenzar</p>
@@ -1039,14 +1305,14 @@ onMetodoChange();
         <div class="input-money-wrap">
           <span class="input-money-prefix">$</span>
           <input type="number" id="turno-fondo" class="form-control form-control--money"
-            placeholder="0.00" min="0" step="0.01" value="0">
+                 placeholder="0.00" min="0" step="0.01" value="0">
         </div>
       </div>
 
       <button id="turno-btn" onclick="abrirTurnoDesdeModal()"
-        class="btn btn-primary btn-lg w-full"
-        style="margin-top:22px;justify-content:center;"
-        <%= cajas.length === 0 ? 'disabled' : '' %>>
+              class="btn btn-primary btn-lg w-full"
+              style="margin-top:22px;justify-content:center;"
+              <%= cajas.length === 0 ? 'disabled' : '' %>>
         <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
         Abrir Turno
       </button>
@@ -1059,52 +1325,43 @@ onMetodoChange();
   </div>
 </div>
 
-<style>
-  @keyframes spin { to { transform: rotate(360deg); } }
-</style>
-
 <script>
   function mostrarFormulario() {
     document.getElementById('turno-conectando').style.display = 'none';
     document.getElementById('turno-formulario').style.display = 'block';
-    // Reloj
     function tick() {
       const el = document.getElementById('turno-reloj');
       if (el) el.textContent = new Date().toLocaleString('es-MX', {
-        weekday:'long', day:'2-digit', month:'long',
-        year:'numeric', hour:'2-digit', minute:'2-digit', second:'2-digit'
+        weekday:'long', day:'2-digit', month:'long', year:'numeric',
+        hour:'2-digit', minute:'2-digit', second:'2-digit',
       });
     }
     tick(); setInterval(tick, 1000);
   }
 
-  // Al cargar: intentar reconectar si hay caja guardada
   const cajaGuardada = localStorage.getItem('smartventa_caja_id');
-
-if (cajaGuardada) {
-  fetch('/venta/reconectar-turno', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ caja_id: cajaGuardada }),
-  })
-  .then(r => r.json())
-  .then(data => {
-    if (data.ok) {
-      window.location.reload();
-    } else {
+  if (cajaGuardada) {
+    fetch('/venta/reconectar-turno', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ caja_id: cajaGuardada }),
+    })
+    .then(r => r.json())
+    .then(data => {
+      if (data.ok) { window.location.reload(); }
+      else {
+        mostrarFormulario();
+        const sel = document.getElementById('turno-caja');
+        if (sel) sel.value = cajaGuardada;
+      }
+    })
+    .catch(() => {
       mostrarFormulario();
       const sel = document.getElementById('turno-caja');
       if (sel) sel.value = cajaGuardada;
-    }
-  })
-  .catch(() => {
+    });
+  } else {
     mostrarFormulario();
-    const sel = document.getElementById('turno-caja');
-    if (sel) sel.value = cajaGuardada;
-  });
-} else {
-  mostrarFormulario();
-}
+  }
 
   async function abrirTurnoDesdeModal() {
     const caja_id       = document.getElementById('turno-caja')?.value;
@@ -1117,30 +1374,27 @@ if (cajaGuardada) {
       errDiv.style.display = 'block'; return;
     }
 
-    btn.disabled = true;
+    btn.disabled    = true;
     btn.textContent = 'Abriendo turno…';
     errDiv.style.display = 'none';
 
     try {
       const resp = await fetch('/venta/abrir-turno', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ caja_id, fondo_inicial }),
       });
       const data = await resp.json();
-
       if (!resp.ok || !data.ok) {
-        errDiv.textContent = data.error || 'No se pudo abrir el turno.';
+        errDiv.textContent   = data.error || 'No se pudo abrir el turno.';
         errDiv.style.display = 'block';
         btn.disabled = false;
         btn.innerHTML = '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg> Abrir Turno';
         return;
       }
-
       localStorage.setItem('smartventa_caja_id', caja_id);
       window.location.reload();
     } catch {
-      errDiv.textContent = 'Error de conexión. Intenta de nuevo.';
+      errDiv.textContent   = 'Error de conexión. Intenta de nuevo.';
       errDiv.style.display = 'block';
       btn.disabled = false;
       btn.innerHTML = '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg> Abrir Turno';
@@ -1148,6 +1402,7 @@ if (cajaGuardada) {
   }
 </script>
 <% } %>
+
 <% if (typeof query !== 'undefined' && query?.limpiar_caja) { %>
 <script>localStorage.removeItem('smartventa_caja_id');</script>
 <% } %>

@@ -1,0 +1,281 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Verificador de Precios — SmartVenta</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Playfair+Display:wght@600;700&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { margin:0; padding:0; box-sizing:border-box; }
+    body { font-family:'DM Sans',sans-serif; background:#2A0F1A; min-height:100vh;
+           display:flex; align-items:center; justify-content:center; padding:20px; }
+  </style>
+</head>
+<body>
+<style>
+/* ── Verificador de precios ──────────────
+   Ventana flotante centrada, independiente
+   del layout del POS (RF-01.4)
+──────────────────────────────────────── */
+.ver-overlay {
+  position: fixed; inset: 0;
+  background: rgba(74, 5, 23, .55);
+  backdrop-filter: blur(4px);
+  display: flex; align-items: center; justify-content: center;
+  padding: 20px; z-index: 10;
+}
+
+.ver-ventana {
+  background: #fff;
+  border-radius: 18px;
+  width: 100%; max-width: 520px;
+  box-shadow: 0 28px 80px rgba(0,0,0,.35);
+  overflow: hidden;
+  display: flex; flex-direction: column;
+  max-height: 90vh;
+}
+
+/* Header */
+.ver-header {
+  background: linear-gradient(135deg, #6C0820, #B5294E);
+  padding: 18px 22px;
+  display: flex; align-items: center; justify-content: space-between;
+}
+.ver-header__titulo {
+  font-family: 'Playfair Display', serif;
+  font-size: 1.1rem; font-weight: 700; color: #fff;
+  display: flex; align-items: center; gap: 8px;
+}
+.ver-header__titulo svg { opacity: .8; }
+.ver-header__badge {
+  font-size: .72rem; font-weight: 600; color: rgba(255,255,255,.7);
+  background: rgba(255,255,255,.15); padding: 3px 10px; border-radius: 12px;
+}
+
+/* Buscador */
+.ver-search { padding: 14px 16px; border-bottom: 1px solid #F2DCDB; flex-shrink: 0; }
+.ver-search-row { display: flex; gap: 8px; }
+.ver-search-box { position: relative; flex: 1; }
+.ver-search-box svg { position: absolute; left: 10px; top: 50%; transform: translateY(-50%); color: #aaa; pointer-events: none; }
+.ver-search-input {
+  width: 100%; padding: 9px 12px 9px 32px;
+  border: 1.5px solid #E0C8C8; border-radius: 8px;
+  font-size: .9rem; font-family: 'DM Sans', sans-serif;
+}
+.ver-search-input:focus { outline: none; border-color: #B5294E; box-shadow: 0 0 0 3px rgba(181,41,78,.1); }
+.ver-cat-select {
+  padding: 9px 10px; border: 1.5px solid #E0C8C8; border-radius: 8px;
+  font-size: .82rem; font-family: 'DM Sans', sans-serif;
+  background: #fff; color: #555; max-width: 150px;
+}
+.ver-cat-select:focus { outline: none; border-color: #B5294E; }
+
+/* Resultados */
+.ver-resultados {
+  flex: 1; overflow-y: auto; padding: 10px 14px;
+  display: flex; flex-direction: column; gap: 6px;
+}
+
+.ver-placeholder {
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  height: 200px; color: #ccc; gap: 10px; text-align: center;
+}
+.ver-placeholder p { font-size: .85rem; color: #bbb; }
+
+.ver-card {
+  display: grid; grid-template-columns: 56px 1fr auto;
+  align-items: center; gap: 12px;
+  padding: 12px; border-radius: 10px;
+  border: 1.5px solid #F2DCDB; background: #fff;
+  transition: border-color .15s, box-shadow .15s;
+  cursor: default;
+}
+.ver-card:hover { border-color: #FFB7C5; box-shadow: 0 2px 8px rgba(108,8,32,.08); }
+
+.ver-card__img {
+  width: 56px; height: 56px; border-radius: 8px;
+  background: #F2DCDB; overflow: hidden; flex-shrink: 0;
+  display: flex; align-items: center; justify-content: center;
+}
+.ver-card__img img { width: 100%; height: 100%; object-fit: cover; }
+.ver-card__img svg { color: #C88; }
+
+.ver-card__info { min-width: 0; }
+.ver-card__nombre {
+  font-size: .88rem; font-weight: 600; color: #3D5D91;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  margin-bottom: 2px;
+}
+.ver-card__codigo { font-size: .7rem; color: #aaa; font-family: monospace; }
+
+.ver-card__precios { display: flex; flex-direction: column; align-items: flex-end; gap: 4px; flex-shrink: 0; }
+.ver-precio-venta {
+  font-family: 'Playfair Display', serif;
+  font-size: 1.15rem; font-weight: 700; color: #6C0820;
+}
+.ver-precio-mayoreo {
+  font-size: .75rem; font-weight: 600;
+  color: #B5294E; background: #FCE4EE;
+  padding: 2px 8px; border-radius: 10px; white-space: nowrap;
+}
+.ver-sin-mayoreo { font-size: .72rem; color: #ccc; }
+
+/* Footer */
+.ver-footer {
+  padding: 10px 16px; border-top: 1px solid #F2DCDB;
+  display: flex; align-items: center; justify-content: space-between;
+  flex-shrink: 0;
+}
+.ver-footer__hint { font-size: .72rem; color: #bbb; }
+.ver-btn-cerrar {
+  display: flex; align-items: center; gap: 5px;
+  padding: 6px 14px; border: 1.5px solid #E0C8C8; border-radius: 7px;
+  background: #fff; color: #888; font-size: .78rem; font-weight: 600;
+  cursor: pointer; transition: background .15s;
+}
+.ver-btn-cerrar:hover { background: #fee2e2; color: #991b1b; border-color: #fca5a5; }
+</style>
+
+<div class="ver-overlay">
+  <div class="ver-ventana">
+
+    <!-- Header -->
+    <div class="ver-header">
+      <div class="ver-header__titulo">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <circle cx="12" cy="12" r="10"/><path d="M12 8v4l3 3"/>
+        </svg>
+        Verificador de Precios
+      </div>
+      <span class="ver-header__badge">RF-01.4</span>
+    </div>
+
+    <!-- Buscador + categoría -->
+    <div class="ver-search">
+      <div class="ver-search-row">
+        <div class="ver-search-box">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
+          </svg>
+          <input type="text" id="ver-buscar" class="ver-search-input"
+                 placeholder="Buscar por nombre o escanear código…"
+                 autocomplete="off" autofocus>
+        </div>
+        <select id="ver-categoria" class="ver-cat-select">
+          <option value="">Todas</option>
+          <% categorias.forEach(c => { %>
+            <option value="<%= c.id %>"><%= c.nombre %></option>
+          <% }) %>
+        </select>
+      </div>
+    </div>
+
+    <!-- Resultados -->
+    <div class="ver-resultados" id="ver-resultados">
+      <div class="ver-placeholder" id="ver-placeholder">
+        <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.2">
+          <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
+        </svg>
+        <p>Busca un producto o escanea su código de barras</p>
+      </div>
+    </div>
+
+    <!-- Footer -->
+    <div class="ver-footer">
+      <span class="ver-footer__hint">Solo consulta — no genera venta</span>
+      <button class="ver-btn-cerrar" onclick="window.close()">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+        </svg>
+        Cerrar ventana
+      </button>
+    </div>
+
+  </div>
+</div>
+
+<script>
+let debounce = null;
+
+const inputBuscar  = document.getElementById('ver-buscar');
+const selCategoria = document.getElementById('ver-categoria');
+const contenedor   = document.getElementById('ver-resultados');
+const placeholder  = document.getElementById('ver-placeholder');
+
+inputBuscar.addEventListener('input', disparar);
+selCategoria.addEventListener('change', disparar);
+
+function disparar() {
+  clearTimeout(debounce);
+  debounce = setTimeout(buscar, 280);
+}
+
+async function buscar() {
+  const q         = inputBuscar.value.trim();
+  const categoria = selCategoria.value;
+
+  if (!q && !categoria) {
+    contenedor.innerHTML = '';
+    contenedor.appendChild(placeholder);
+    return;
+  }
+
+  contenedor.innerHTML = '<div class="ver-placeholder"><p>Buscando…</p></div>';
+
+  try {
+    const params = new URLSearchParams();
+    if (q)        params.append('termino', q);
+    if (categoria) params.append('categoria', categoria);
+    // sin solo_con_stock: el verificador muestra productos aunque estén agotados (RF-01.4)
+
+    const resp = await fetch(`/verificador-precios/buscar?${params}`);
+    if (!resp.ok) throw new Error();
+    const productos = await resp.json();
+
+    if (!productos.length) {
+      contenedor.innerHTML = '<div class="ver-placeholder"><p>Sin resultados para esa búsqueda.</p></div>';
+      return;
+    }
+
+    // Auto-agregar si hay coincidencia exacta de código de barras
+    if (productos.length === 1 && q && !q.includes(' ')) {
+      const exacto = productos.find(p => p.codigo_barras === q);
+      if (exacto) {
+        inputBuscar.select();
+      }
+    }
+
+    contenedor.innerHTML = productos.map(p => {
+      const nombre = (p.descripcion || p.nombre || '').replace(/</g, '&lt;');
+      const imagen = p.ruta_imagen
+        ? `<img src="/uploads/productos/${p.ruta_imagen}" alt="${nombre}" loading="lazy">`
+        : `<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>`;
+      const mayoreo = p.precio_mayoreo
+        ? `<span class="ver-precio-mayoreo">Mayoreo $${Number(p.precio_mayoreo).toLocaleString('es-MX',{minimumFractionDigits:2})}</span>`
+        : `<span class="ver-sin-mayoreo">Sin precio mayoreo</span>`;
+      return `
+        <div class="ver-card">
+          <div class="ver-card__img">${imagen}</div>
+          <div class="ver-card__info">
+            <div class="ver-card__nombre">${nombre}</div>
+            ${p.codigo_barras ? `<div class="ver-card__codigo">${p.codigo_barras}</div>` : ''}
+          </div>
+          <div class="ver-card__precios">
+            <span class="ver-precio-venta">$${Number(p.precio_venta).toLocaleString('es-MX',{minimumFractionDigits:2})}</span>
+            ${mayoreo}
+          </div>
+        </div>`;
+    }).join('');
+  } catch {
+    contenedor.innerHTML = '<div class="ver-placeholder"><p>Error al buscar. Intenta de nuevo.</p></div>';
+  }
+}
+
+// El buscador llama a /productos/buscar que ya existe en FastAPI.
+// Al abrirse como pestaña nueva desde el botón F9 del POS (target="_blank"),
+// hereda la sesión del navegador, por lo que no requiere login adicional.
+</script>
+
+</body>
+</html>

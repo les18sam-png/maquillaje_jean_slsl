@@ -3,15 +3,19 @@
 <div class="page-wrapper">
 
   <!-- Encabezado -->
-  <div class="page-header">
+  <div class="page-header flex-between">
     <div class="page-header__left">
-      <h1 class="page-title">Historial de Ventas</h1>
+      <h1 class="page-title">Ventas del día y Devoluciones</h1>
       <span class="page-subtitle"><%= totalVentas %> venta<%= totalVentas !== 1 ? 's' : '' %> encontrada<%= totalVentas !== 1 ? 's' : '' %></span>
     </div>
+    <a href="/venta" class="btn btn-ghost">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg>
+      Volver
+    </a>
   </div>
 
   <!-- Filtros -->
-  <form method="GET" action="/historial" class="historial-filtros card">
+  <form method="GET" action="/ventas-dia" class="historial-filtros card">
     <div class="filtros-grid">
 
       <div class="form-group">
@@ -27,10 +31,10 @@
       <div class="form-group">
         <label class="form-label">Estado</label>
         <select name="estado" class="form-control">
-          <option value=""     <%= estado === ''          ? 'selected' : '' %>>Todos</option>
-          <option value="activa"    <%= estado === 'activa'    ? 'selected' : '' %>>Activa</option>
-          <option value="cancelada" <%= estado === 'cancelada' ? 'selected' : '' %>>Cancelada</option>
-          <option value="devuelta"  <%= estado === 'devuelta'  ? 'selected' : '' %>>Devuelta</option>
+          <option value=""           <%= estado === ''           ? 'selected' : '' %>>Todos</option>
+          <option value="completada" <%= estado === 'completada' ? 'selected' : '' %>>Completada</option>
+          <option value="cancelada"  <%= estado === 'cancelada'  ? 'selected' : '' %>>Cancelada</option>
+          <option value="devuelta"   <%= estado === 'devuelta'   ? 'selected' : '' %>>Devuelta</option>
         </select>
       </div>
 
@@ -54,7 +58,7 @@
         Buscar
       </button>
       <% if (fechaInicio || fechaFin || estado || metodo) { %>
-        <a href="/historial" class="btn btn-ghost">Limpiar</a>
+        <a href="/ventas-dia" class="btn btn-ghost">Limpiar</a>
       <% } %>
     </div>
   </form>
@@ -85,18 +89,18 @@
         </thead>
         <tbody>
           <% ventas.forEach(v => { %>
-          <tr class="data-table__row" data-href="/historial/<%= v.id %>">
+          <tr class="data-table__row" data-href="/ventas-dia/<%= v.id %>">
             <td>
               <code class="folio-badge">#<%= v.folio %></code>
             </td>
             <td class="text-sm">
-              <%= new Date(v.creado_en).toLocaleDateString('es-MX', { day:'2-digit', month:'short', year:'numeric' }) %>
+              <%= new Date(v.creado_en + 'Z').toLocaleDateString('es-MX', { day:'2-digit', month:'short', year:'numeric', timeZone:'America/Mexico_City' }) %>
               <span class="text-muted text-xs">
-                <%= new Date(v.creado_en).toLocaleTimeString('es-MX', { hour:'2-digit', minute:'2-digit' }) %>
+                <%= new Date(v.creado_en + 'Z').toLocaleTimeString('es-MX', { hour:'2-digit', minute:'2-digit', timeZone:'America/Mexico_City' }) %>
               </span>
             </td>
-            <td class="text-sm"><%= v.usuarios?.nombre_completo || '—' %></td>
-            <td class="text-sm"><%= v.clientes?.nombre || 'Público general' %></td>
+            <td class="text-sm"><%= v.cajero_nombre || '—' %></td>
+            <td class="text-sm"><%= v.cliente_nombre || 'Público general' %></td>
             <td>
               <span class="metodo-badge metodo-badge--<%= v.metodo_pago_principal %>">
                 <% if (v.metodo_pago_principal === 'efectivo')      { %>Efectivo<% } %>
@@ -107,7 +111,7 @@
               </span>
             </td>
             <td>
-              <span class="badge badge--<%= v.estado === 'activa' ? 'success' : v.estado === 'cancelada' ? 'danger' : 'warning' %>">
+              <span class="badge badge--<%= v.estado === 'completada' ? 'success' : v.estado === 'cancelada' ? 'danger' : 'warning' %>">
                 <%= v.estado.charAt(0).toUpperCase() + v.estado.slice(1) %>
               </span>
             </td>
@@ -115,7 +119,7 @@
               $<%= Number(v.total).toLocaleString('es-MX', {minimumFractionDigits:2}) %>
             </td>
             <td class="td-actions" onclick="event.stopPropagation()">
-              <a href="/historial/<%= v.id %>" class="icon-btn" title="Ver detalle">
+              <a href="/ventas-dia/<%= v.id %>" class="icon-btn" title="Ver detalle">
                 <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
               </a>
             </td>
@@ -124,25 +128,6 @@
         </tbody>
       </table>
     </div>
-
-    <!-- Paginación -->
-    <% if (totalPaginas > 1) { %>
-    <div class="pagination">
-      <% if (pagina > 1) { %>
-        <a href="/historial?fecha_inicio=<%= fechaInicio %>&fecha_fin=<%= fechaFin %>&estado=<%= estado %>&metodo=<%= metodo %>&pagina=<%= pagina - 1 %>" class="pagination__btn">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="15 18 9 12 15 6"/></svg>
-          Anterior
-        </a>
-      <% } %>
-      <span class="pagination__info">Página <strong><%= pagina %></strong> de <strong><%= totalPaginas %></strong></span>
-      <% if (pagina < totalPaginas) { %>
-        <a href="/historial?fecha_inicio=<%= fechaInicio %>&fecha_fin=<%= fechaFin %>&estado=<%= estado %>&metodo=<%= metodo %>&pagina=<%= pagina + 1 %>" class="pagination__btn">
-          Siguiente
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="9 18 15 12 9 6"/></svg>
-        </a>
-      <% } %>
-    </div>
-    <% } %>
   <% } %>
 
 </div>
