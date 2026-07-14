@@ -1,0 +1,226 @@
+<%- include('../partials/header') %>
+
+<main class="contenido">
+
+  <div class="page-header flex-between">
+    <div>
+      <h1 class="page-title">Auditoría</h1>
+      <p class="page-subtitle">Historial inmutable de acciones críticas del sistema</p>
+    </div>
+  </div>
+
+  <!-- FILTROS -->
+  <div class="card">
+    <div class="card-titulo">Filtrar registros</div>
+    <form method="GET" action="/auditoria" class="auditoria-filtros">
+
+      <div class="form-group">
+        <label>Módulo</label>
+        <select name="modulo">
+          <option value="">Todos</option>
+          <option value="ventas" <%= filtros.modulo === 'ventas' ? 'selected' : '' %>>Ventas</option>
+          <option value="inventario" <%= filtros.modulo === 'inventario' ? 'selected' : '' %>>Inventario</option>
+          <option value="productos" <%= filtros.modulo === 'productos' ? 'selected' : '' %>>Productos</option>
+          <option value="clientes" <%= filtros.modulo === 'clientes' ? 'selected' : '' %>>Clientes</option>
+          <option value="promociones" <%= filtros.modulo === 'promociones' ? 'selected' : '' %>>Promociones</option>
+          <option value="cortes" <%= filtros.modulo === 'cortes' ? 'selected' : '' %>>Cortes</option>
+          <option value="turnos" <%= filtros.modulo === 'turnos' ? 'selected' : '' %>>Turnos</option>
+          <option value="usuarios" <%= filtros.modulo === 'usuarios' ? 'selected' : '' %>>Usuarios / permisos</option>
+          <option value="sesion" <%= filtros.modulo === 'sesion' ? 'selected' : '' %>>Sesión</option>
+        </select>
+      </div>
+
+        <div class="form-group">
+        <label>Acción</label>
+        <select name="accion">
+            <option value="">Todas</option>
+            <option value="crear" <%= filtros.accion === 'crear' ? 'selected' : '' %>>Crear</option>
+            <option value="actualizar" <%= filtros.accion === 'actualizar' ? 'selected' : '' %>>Actualizar</option>
+            <option value="eliminar" <%= filtros.accion === 'eliminar' ? 'selected' : '' %>>Eliminar</option>
+            <option value="cancelar" <%= filtros.accion === 'cancelar' ? 'selected' : '' %>>Cancelar</option>
+            <option value="devolver" <%= filtros.accion === 'devolver' ? 'selected' : '' %>>Devolución</option>
+            <option value="ajustar" <%= filtros.accion === 'ajustar' ? 'selected' : '' %>>Ajuste de inventario</option>
+            <option value="entrada_mercancia" <%= filtros.accion === 'entrada_mercancia' ? 'selected' : '' %>>Entrada de mercancía</option>
+            <option value="cambio_precio" <%= filtros.accion === 'cambio_precio' ? 'selected' : '' %>>Cambio de precio</option>
+            <option value="cambio_permisos" <%= filtros.accion === 'cambio_permisos' ? 'selected' : '' %>>Cambio de permisos</option>
+            <option value="inicio_sesion" <%= filtros.accion === 'inicio_sesion' ? 'selected' : '' %>>Inicio de sesión</option>
+            <option value="cierre_turno" <%= filtros.accion === 'cierre_turno' ? 'selected' : '' %>>Cierre de turno</option>
+            <option value="corte_caja" <%= filtros.accion === 'corte_caja' ? 'selected' : '' %>>Corte de caja</option>
+            <option value="movimiento_caja" <%= filtros.accion === 'movimiento_caja' ? 'selected' : '' %>>Movimiento de caja</option>
+        </select>
+        </div>
+
+      <div class="form-group">
+        <label>Desde</label>
+        <input type="date" name="fecha_inicio" value="<%= filtros.fecha_inicio || '' %>">
+      </div>
+
+      <div class="form-group">
+        <label>Hasta</label>
+        <input type="date" name="fecha_fin" value="<%= filtros.fecha_fin || '' %>">
+      </div>
+
+      <div class="form-group">
+        <label>Caja</label>
+        <select name="caja_id">
+          <option value="">Todas</option>
+          <% cajas.forEach(c => { %>
+            <option value="<%= c.id %>" <%= filtros.caja_id === c.id ? 'selected' : '' %>><%= c.nombre %></option>
+          <% }) %>
+        </select>
+      </div>
+
+      <% if (usuarios.length > 0) { %>
+      <div class="form-group">
+        <label>Usuario</label>
+        <select name="usuario_id">
+          <option value="">Todos</option>
+          <% usuarios.forEach(u => { %>
+            <option value="<%= u.id %>" <%= filtros.usuario_id === u.id ? 'selected' : '' %>><%= u.nombre_completo || u.nombre %></option>
+          <% }) %>
+        </select>
+      </div>
+      <% } %>
+
+      <div class="form-group auditoria-filtros-btns">
+        <button type="submit" class="btn btn-primary">Filtrar</button>
+        <a href="/auditoria" class="btn btn-ghost">Limpiar</a>
+      </div>
+    </form>
+  </div>
+
+  <!-- TABLA -->
+  <div class="card">
+    <div class="card-titulo">
+      Registros
+      <span class="badge-count"><%= total %></span>
+    </div>
+    <div class="tabla-wrap">
+      <table class="tabla">
+        <thead>
+          <tr>
+            <th>Fecha y hora</th>
+            <th>Usuario</th>
+            <th>Módulo</th>
+            <th>Acción</th>
+            <th>Registro afectado</th>
+            <th>Caja</th>
+            <th>Detalle</th>
+          </tr>
+        </thead>
+        <tbody>
+          <% if (registros.length === 0) { %>
+            <tr>
+              <td colspan="7" class="text-center text-muted" style="padding:2rem;">
+                No hay registros de auditoría con estos filtros
+              </td>
+            </tr>
+          <% } else { %>
+            <% registros.forEach(r => { %>
+              <tr>
+                <td class="text-muted" style="white-space:nowrap;">
+                  <%= new Date(r.fecha_hora).toLocaleString('es-MX') %>
+                </td>
+                <td style="font-size:.82rem;"><%= r.usuario_nombre || r.usuario_id %></td>
+                <td>
+                  <span class="modulo-badge" data-modulo="<%= r.modulo %>"><%= r.modulo %></span>
+                </td>
+                <td class="text-muted" style="font-size:.82rem;"><%= r.accion %></td>
+                <td class="text-muted" style="font-size:.78rem;"><%= r.registro_id || '—' %></td>
+                <td class="text-muted" style="font-size:.82rem;"><%= r.caja_id || '—' %></td>
+                <td>
+                  <button type="button" class="btn btn-ghost btn-sm"
+                    onclick='mostrarDetalle(<%- JSON.stringify(r.valores_anteriores || {}) %>, <%- JSON.stringify(r.valores_nuevos || {}) %>)'>
+                    Ver
+                  </button>
+                </td>
+              </tr>
+            <% }) %>
+          <% } %>
+        </tbody>
+      </table>
+    </div>
+
+    <% if (totalPaginas > 1) { %>
+    <div class="auditoria-paginacion">
+      <% if (pagina > 1) { %>
+        <a class="btn btn-ghost btn-sm" href="/auditoria?<%= new URLSearchParams({...filtros, pagina: pagina - 1}).toString() %>">← Anterior</a>
+      <% } %>
+      <span class="text-muted" style="font-size:.82rem;">Página <%= pagina %> de <%= totalPaginas %> (<%= total %> registros)</span>
+      <% if (pagina < totalPaginas) { %>
+        <a class="btn btn-ghost btn-sm" href="/auditoria?<%= new URLSearchParams({...filtros, pagina: pagina + 1}).toString() %>">Siguiente →</a>
+      <% } %>
+    </div>
+    <% } %>
+  </div>
+
+</main>
+
+<!-- MODAL DETALLE -->
+<div id="modalDetalle" class="modal-overlay oculto">
+  <div class="modal-caja">
+    <div class="modal-header">
+      <span class="card-titulo" style="margin:0;">Detalle del cambio</span>
+      <button type="button" class="modal-cerrar-x" onclick="cerrarDetalle()">&times;</button>
+    </div>
+    <div class="modal-body">
+      <div class="modal-columna">
+        <div class="modal-columna-titulo">Valores anteriores</div>
+        <pre id="valoresAnteriores" class="modal-pre"></pre>
+      </div>
+      <div class="modal-columna">
+        <div class="modal-columna-titulo">Valores nuevos</div>
+        <pre id="valoresNuevos" class="modal-pre"></pre>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button type="button" class="btn btn-primary" onclick="cerrarDetalle()">Cerrar</button>
+    </div>
+  </div>
+</div>
+
+<style>
+  .auditoria-filtros { display: flex; flex-wrap: wrap; gap: 1rem; align-items: flex-end; }
+  .auditoria-filtros .form-group { min-width: 150px; }
+  .auditoria-filtros-btns { display: flex; flex-direction: row; gap: .5rem; align-items: flex-end; }
+
+  .badge-count { display: inline-flex; align-items: center; justify-content: center; background: var(--burgundy); color: white; font-size: .72rem; font-weight: 700; width: 22px; height: 22px; border-radius: 50%; margin-left: .5rem; }
+
+  .btn-sm { padding: .35rem .75rem; font-size: .78rem; }
+
+  .modulo-badge { font-size: .72rem; padding: 2px 10px; border-radius: 20px; font-weight: 600; text-transform: capitalize; background: #f5f5f5; color: #666; }
+  .modulo-badge[data-modulo="ventas"]       { background: #ffeaea; color: #c0392b; }
+  .modulo-badge[data-modulo="inventario"]   { background: #fff3cd; color: #856404; }
+  .modulo-badge[data-modulo="productos"]    { background: #e8f4fd; color: #1a6fa8; }
+  .modulo-badge[data-modulo="clientes"]     { background: #e6f9e6; color: #2d7a2d; }
+  .modulo-badge[data-modulo="promociones"]  { background: #fdeafd; color: #a23fa2; }
+  .modulo-badge[data-modulo="cortes"]       { background: #eee8fd; color: #5b3fa2; }
+  .modulo-badge[data-modulo="turnos"]       { background: #e0f7f5; color: #158a7c; }
+  .modulo-badge[data-modulo="usuarios"]     { background: #fde8ef; color: var(--burgundy); }
+
+  .auditoria-paginacion { display: flex; align-items: center; justify-content: center; gap: 1rem; padding: 1rem 0 .25rem; }
+
+  .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,.4); display: flex; align-items: center; justify-content: center; z-index: 1000; }
+  .modal-overlay.oculto { display: none; }
+  .modal-caja { background: white; border-radius: 12px; width: min(700px, 92vw); max-height: 80vh; display: flex; flex-direction: column; box-shadow: 0 8px 30px rgba(0,0,0,.2); }
+  .modal-header { display: flex; justify-content: space-between; align-items: center; padding: 1rem 1.25rem; border-bottom: 1px solid #eee; }
+  .modal-cerrar-x { background: none; border: none; font-size: 1.4rem; line-height: 1; cursor: pointer; color: #999; }
+  .modal-body { display: flex; gap: 1rem; padding: 1.25rem; overflow-y: auto; }
+  .modal-columna { flex: 1; min-width: 0; }
+  .modal-columna-titulo { font-weight: 700; font-size: .82rem; color: var(--burgundy); margin-bottom: .4rem; }
+  .modal-pre { background: #faf5f6; border: 1px solid #eee; border-radius: 8px; padding: .75rem; font-size: .78rem; white-space: pre-wrap; word-break: break-word; max-height: 300px; overflow-y: auto; }
+  .modal-footer { padding: .75rem 1.25rem; border-top: 1px solid #eee; text-align: right; }
+</style>
+
+<script>
+  function mostrarDetalle(anteriores, nuevos) {
+    document.getElementById('valoresAnteriores').textContent = JSON.stringify(anteriores, null, 2);
+    document.getElementById('valoresNuevos').textContent = JSON.stringify(nuevos, null, 2);
+    document.getElementById('modalDetalle').classList.remove('oculto');
+  }
+  function cerrarDetalle() {
+    document.getElementById('modalDetalle').classList.add('oculto');
+  }
+</script>
+
+<%- include('../partials/footer') %>

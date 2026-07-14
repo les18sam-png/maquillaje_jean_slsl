@@ -151,6 +151,83 @@
     </div>
   </div>
 
+  <!-- Movimientos de caja del turno -->
+<div class="card" style="margin-bottom:20px;">
+  <div class="card__header">
+    <h3 class="card__title">Movimientos de caja</h3>
+  </div>
+  <div style="padding:0 20px 16px;">
+    <table class="data-table">
+      <thead>
+        <tr><th>Tipo</th><th>Notas</th><th>Hora</th><th class="text-right">Monto</th></tr>
+      </thead>
+      <tbody>
+        <% if (resumen.detalleMovimientos.length === 0) { %>
+          <tr><td colspan="4" style="text-align:center;color:#aaa;padding:16px;">Sin movimientos registrados</td></tr>
+        <% } else { %>
+          <% resumen.detalleMovimientos.forEach((m, i) => {
+            const hora = new Date(m.registrado_en.includes('Z') ? m.registrado_en : m.registrado_en + 'Z')
+              .toLocaleTimeString('es-MX', {hour:'2-digit', minute:'2-digit'});
+            const esFondo = i === 0 && m.tipo_movimiento === 'entrada';
+          %>
+          <tr>
+            <td>
+              <% if (esFondo) { %>
+                <span class="badge badge--neutral">Fondo inicial</span>
+              <% } else if (m.tipo_movimiento === 'entrada') { %>
+                <span class="badge badge--success">Entrada</span>
+              <% } else { %>
+                <span class="badge badge--error">Salida</span>
+              <% } %>
+            </td>
+            <td style="font-size:.82rem;color:#666;"><%= m.notas || '—' %></td>
+            <td style="font-size:.82rem;color:#999;"><%= hora %></td>
+            <td class="text-right fw-medium" style="color:<%= m.tipo_movimiento === 'salida' ? '#ef4444' : '#065f46' %>">
+              <%= m.tipo_movimiento === 'salida' ? '−' : '+' %>$<%= Number(m.monto).toLocaleString('es-MX',{minimumFractionDigits:2}) %>
+            </td>
+          </tr>
+          <% }) %>
+        <% } %>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<!-- Efectivo esperado en caja -->
+<div class="card" style="margin-bottom:20px;">
+    <div class="card__header">
+      <h3 class="card__title">Efectivo esperado en caja</h3>
+    </div>
+    <div style="padding:16px 20px;">
+      <table class="data-table">
+        <tbody>
+          <tr>
+            <td style="color:#666;">Fondo inicial</td>
+            <td class="text-right">$<%= Number(resumen.fondoInicial).toLocaleString('es-MX',{minimumFractionDigits:2}) %></td>
+          </tr>
+          <tr>
+            <td style="color:#666;">Ventas en efectivo</td>
+            <td class="text-right">+$<%= Number(resumen.totalEfectivo).toLocaleString('es-MX',{minimumFractionDigits:2}) %></td>
+          </tr>
+          <tr>
+            <td style="color:#666;">Entradas manuales</td>
+            <td class="text-right">+$<%= Number(resumen.entradasManual).toLocaleString('es-MX',{minimumFractionDigits:2}) %></td>
+          </tr>
+          <tr>
+            <td style="color:#666;">Salidas manuales</td>
+            <td class="text-right" style="color:#ef4444;">−$<%= Number(resumen.salidasTotal).toLocaleString('es-MX',{minimumFractionDigits:2}) %></td>
+          </tr>
+          <tr style="border-top:2px solid #F2DCDB;">
+            <td class="fw-medium" style="color:#6C0820;font-size:1rem;">Total esperado en caja</td>
+            <td class="text-right fw-medium" style="color:#6C0820;font-size:1.1rem;">
+              $<%= Number(resumen.efectivoEsperado).toLocaleString('es-MX',{minimumFractionDigits:2}) %>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
   <!-- Confirmar cierre -->
   <div class="turno-form-wrap">
     <form method="POST" action="/turnos/cierre" class="form-card" onsubmit="return confirmarCierre()">
