@@ -1,0 +1,148 @@
+<%- include('../partials/header', { title }) %>
+
+<div class="page-wrapper">
+
+  <nav class="breadcrumb">
+    <a href="/admin" class="breadcrumb__link">Administración</a>
+    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg>
+    <span class="breadcrumb__current">Logotipo</span>
+  </nav>
+
+  <div class="page-header">
+    <div class="page-header__left">
+      <h1 class="page-title">Logotipo</h1>
+      <span class="page-subtitle">Imagen que aparece en el menú lateral</span>
+    </div>
+  </div>
+
+  <% if (toast === 'guardado') { %>
+    <div class="alert alert--success">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>
+      Logotipo actualizado correctamente.
+    </div>
+  <% } %>
+  <% if (toast === 'quitado') { %>
+    <div class="alert alert--success">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>
+      Logotipo quitado. Se usará el ícono por defecto.
+    </div>
+  <% } %>
+  <% if (error === 'formato') { %>
+    <div class="alert alert--error">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+      Formato no válido. Usa una imagen JPG, PNG o WEBP (máx. 2 MB).
+    </div>
+  <% } %>
+
+  <div class="logo-card">
+
+    <div class="logo-preview-zona">
+      <span class="logo-preview-label">Vista previa actual</span>
+      <div class="logo-preview-box">
+        <% if (logoActual) { %>
+          <img src="/uploads/logo/<%= logoActual %>" alt="Logo actual" class="logo-preview-img">
+        <% } else { %>
+          <div class="logo-preview-default">
+            <svg viewBox="0 0 24 24" fill="#C8215A" width="32" height="32">
+              <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 14H9V8h2v8zm4 0h-2V8h2v8z"/>
+            </svg>
+          </div>
+        <% } %>
+      </div>
+      <span class="logo-preview-hint">
+        <%= logoActual ? 'Logo personalizado activo' : 'Ícono por defecto del sistema' %>
+      </span>
+    </div>
+
+    <div class="logo-form-zona">
+      <form method="POST" action="/admin/logotipo" enctype="multipart/form-data">
+        <label class="form-label">Subir nuevo logotipo</label>
+
+        <div class="logo-drop" id="logoDrop" onclick="document.getElementById('logoInput').click()">
+          <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#C8215A" stroke-width="1.8"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+          <span id="logoDropText">Haz clic para elegir una imagen</span>
+          <input type="file" name="logo" id="logoInput" accept="image/png,image/jpeg,image/webp" style="display:none" onchange="mostrarNombre(this)">
+        </div>
+
+        <p class="logo-ayuda">Formatos: JPG, PNG o WEBP. Tamaño máximo: 2 MB. Se recomienda una imagen cuadrada.</p>
+
+        <div class="logo-acciones">
+          <button type="submit" class="btn btn-primary">Guardar logotipo</button>
+        </div>
+      </form>
+
+      <% if (logoActual) { %>
+        <form method="POST" action="/admin/logotipo/quitar" onsubmit="return confirm('¿Quitar el logo y volver al ícono por defecto?')" style="margin-top:12px;">
+          <button type="submit" class="btn btn-ghost">Quitar logo actual</button>
+        </form>
+      <% } %>
+    </div>
+
+  </div>
+
+</div>
+
+<style>
+.logo-card {
+  display: grid;
+  grid-template-columns: 260px 1fr;
+  gap: 24px;
+  background: #fff;
+  border-radius: 14px;
+  box-shadow: 0 1px 4px rgba(60,40,50,.07);
+  padding: 28px;
+  max-width: 720px;
+}
+@media (max-width: 640px) { .logo-card { grid-template-columns: 1fr; } }
+
+.logo-preview-zona {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  padding-right: 24px;
+  border-right: 1px solid #F2DCDB;
+}
+@media (max-width: 640px) {
+  .logo-preview-zona { border-right: none; border-bottom: 1px solid #F2DCDB; padding-right: 0; padding-bottom: 20px; }
+}
+.logo-preview-label { font-size: .72rem; font-weight: 700; text-transform: uppercase; letter-spacing: .06em; color: #B06080; }
+.logo-preview-box {
+  width: 120px; height: 120px;
+  border-radius: 20px;
+  background: #FDF0F6;
+  display: flex; align-items: center; justify-content: center;
+  overflow: hidden;
+  border: 2px solid #F9B8D2;
+}
+.logo-preview-img { width: 100%; height: 100%; object-fit: cover; }
+.logo-preview-default { display: flex; align-items: center; justify-content: center; }
+.logo-preview-hint { font-size: .78rem; color: #999; text-align: center; }
+
+.logo-form-zona { display: flex; flex-direction: column; justify-content: center; }
+.logo-drop {
+  border: 2px dashed #F4A0C0;
+  border-radius: 12px;
+  padding: 28px 20px;
+  text-align: center;
+  cursor: pointer;
+  color: #B5294E;
+  font-size: .88rem;
+  display: flex; flex-direction: column; align-items: center; gap: 8px;
+  transition: border-color .18s, background .18s;
+}
+.logo-drop:hover { border-color: #C8215A; background: #FDF0F6; }
+.logo-ayuda { font-size: .78rem; color: #aaa; margin: 10px 0 0; }
+.logo-acciones { margin-top: 16px; }
+</style>
+
+<script>
+function mostrarNombre(input) {
+  const texto = document.getElementById('logoDropText');
+  if (input.files && input.files[0]) {
+    texto.textContent = input.files[0].name;
+  }
+}
+</script>
+
+<%- include('../partials/footer') %>

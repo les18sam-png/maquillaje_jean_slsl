@@ -4,11 +4,37 @@
 
 const express = require('express');
 const router  = express.Router();
+const multer  = require('multer');
+const path    = require('path');
+const fs      = require('fs');
 const { supabase } = require('../db/database');
 const { api }      = require('../db/api');
 
 const SUCURSAL_ID = process.env.SUCURSAL_ID;
+// ─── MULTER para el logo del sistema ──────────────────────────────────────────
+const logoDir = path.join(__dirname, '../public/uploads/logo');
+if (!fs.existsSync(logoDir)) fs.mkdirSync(logoDir, { recursive: true });
 
+const logoStorage = multer.diskStorage({
+  destination: (req, file, cb) => cb(null, logoDir),
+  filename:    (req, file, cb) => {
+    const ext = path.extname(file.originalname).toLowerCase();
+    cb(null, 'logo-' + Date.now() + ext);
+  }
+});
+
+const logoFilter = (req, file, cb) => {
+  const permitidos = ['image/jpeg', 'image/png', 'image/webp'];
+  permitidos.includes(file.mimetype)
+    ? cb(null, true)
+    : cb(new Error('Formato no permitido'), false);
+};
+
+const uploadLogo = multer({
+  storage: logoStorage,
+  fileFilter: logoFilter,
+  limits: { fileSize: 2 * 1024 * 1024 }
+});
 /* ─────────────────────────────────────────
    GET /admin → panel principal
 ───────────────────────────────────────── */
@@ -265,7 +291,57 @@ router.post('/cajas', async (req, res) => {
     res.redirect(`/admin/cajas?error=${msg}`);
   }
 });
+/* ─────────────────────────────────────────
+   GET /admin/logotipo — pantalla de logo
+───────────────────────────────────────── */
+router.get('/logotipo', (req, res) => {
+  // Busca si ya hay un logo subido (el archivo más reciente en la carpeta)
+  let logoActual = null;
+  try {
+    const archivos = fs.readdirSync(logoDir)
+      .filter(f => /^logo-.*\.(jpg|jpeg|png|webp)$/i.test(f))
+      .sort()
+      .reverse();
+    logoActual = archivos[0] || null;
+  } catch { logoActual = null; }
 
+  res.render('admin/logotipo', {
+    title: 'Logotipo',
+    logoActual,
+    toast: req.query.toast || null,
+    error: req.query.error || null,
+  });
+});
+
+/* ─────────────────────────────────────────
+   POST /admin/logotipo — subir logo nuevo
+───────────────────────────────────────── */
+router.post('/logotipo', uploadLogo.single('logo'), (req, res) => {
+  if (!req.file) {
+    return res.redirect('/admin/logotipo?error=formato');
+  }
+
+  // Borra los logos anteriores, deja solo el nuevo
+  try {
+    fs.readdirSync(logoDir)
+      .filter(f => /^logo-.*\.(jpg|jpeg|png|webp)$/i.test(f) && f !== req.file.filename)
+      .forEach(f => fs.unlinkSync(path.join(logoDir, f)));
+  } catch { /* si falla el borrado, no es crítico */ }
+
+  res.redirect('/admin/logotipo?toast=guardado');
+});
+
+/* ─────────────────────────────────────────
+   POST /admin/logotipo/quitar — volver al ícono por defecto
+───────────────────────────────────────── */
+router.post('/logotipo/quitar', (req, res) => {
+  try {
+    fs.readdirSync(logoDir)
+      .filter(f => /^logo-.*\.(jpg|jpeg|png|webp)$/i.test(f))
+      .forEach(f => fs.unlinkSync(path.join(logoDir, f)));
+  } catch { /* nada */ }
+  res.redirect('/admin/logotipo?toast=quitado');
+});
 /* ─────────────────────────────────────────
    Página temporal para secciones en desarrollo
 ───────────────────────────────────────── */

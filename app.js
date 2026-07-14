@@ -11,8 +11,23 @@ app.set('view engine', 'ejs');
 app.set('views', path.join(__dirname, 'views'));
 
 // ── Pasar currentPath a todas las vistas ───
+const fs = require('fs');
+const logoDirPath = path.join(__dirname, 'public/uploads/logo');
+
 app.use((req, res, next) => {
   res.locals.currentPath = req.path;
+
+  // Detecta si hay un logo personalizado subido
+  let logoSistema = null;
+  try {
+    const archivos = fs.readdirSync(logoDirPath)
+      .filter(f => /^logo-.*\.(jpg|jpeg|png|webp)$/i.test(f))
+      .sort()
+      .reverse();
+    logoSistema = archivos[0] || null;
+  } catch { logoSistema = null; }
+  res.locals.logoSistema = logoSistema;
+
   next();
 });
 
