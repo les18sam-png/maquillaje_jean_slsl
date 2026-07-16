@@ -1,4 +1,4 @@
-// routes/historial.js
+
 // SmartVenta PDV — Ventas del día y Devoluciones
 // SOLO FRONTEND — vía FastAPI, sin acceso directo a Supabase
 

@@ -132,6 +132,24 @@ router.get('/cierre', async (req, res) => {
   }
 });
 
+// GET /turnos/lista?fecha=YYYY-MM-DD&caja_id=UUID — para el filtro dinámico
+router.get('/lista', async (req, res) => {
+  try {
+    const { fecha, caja_id } = req.query;
+    const params = new URLSearchParams();
+    if (caja_id) params.append('caja_id', caja_id);
+    if (fecha)   params.append('fecha', fecha);
+
+    const data = await api(
+      `/turnos/?${params}`, {}, req.session.token
+    );
+    res.json(data || { items: [] });
+  } catch (err) {
+    console.error('[Turnos] Error listando:', err.message);
+    res.json({ items: [] });
+  }
+});
+
 router.post('/cierre', async (req, res) => {
   const { turno_id } = req.body;
 
@@ -145,5 +163,7 @@ router.post('/cierre', async (req, res) => {
     res.redirect('/turnos/cierre?error=fallo');
   }
 });
+
+
 
 module.exports = router;
