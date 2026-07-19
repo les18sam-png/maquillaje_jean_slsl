@@ -1,0 +1,207 @@
+<%- include('../partials/header', { title }) %>
+
+<div class="page-wrapper">
+
+  <nav class="breadcrumb">
+    <a href="/admin" class="breadcrumb__link">Administración</a>
+    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg>
+    <span class="breadcrumb__current">Ticket</span>
+  </nav>
+
+  <div class="page-header">
+    <div class="page-header__left">
+      <h1 class="page-title">Ticket</h1>
+      <span class="page-subtitle">Personaliza el ticket que se imprime al cobrar</span>
+    </div>
+  </div>
+
+  <% if (toast === 'guardado') { %>
+    <div class="alert alert--success">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>
+      Configuración del ticket guardada correctamente.
+    </div>
+  <% } %>
+  <% if (error === 'fallo') { %>
+    <div class="alert alert--error">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+      No se pudo guardar. Intenta de nuevo.
+    </div>
+  <% } %>
+
+  <div class="ticket-config-grid">
+
+    <!-- FORMULARIO -->
+    <div class="config-card">
+      <div class="config-card__header">
+        <div class="config-card__icon" style="background:#fef3c7; color:#92400e;">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+        </div>
+        <h3 class="config-card__title">Personalización</h3>
+      </div>
+
+      <form method="POST" action="/admin/ticket" style="padding:20px;">
+
+        <div class="form-group" style="margin-bottom:16px;">
+          <label class="form-label">Mensaje final</label>
+          <input type="text" name="mensaje_final" class="form-control" maxlength="60"
+                 value="<%= config.mensaje_final %>"
+                 oninput="actualizarPreview()" id="inpMensaje">
+          <span class="form-hint">Aparece al final del ticket. Ej: ¡Gracias por su compra!</span>
+        </div>
+
+        <div class="form-group" style="margin-bottom:16px;">
+          <label class="form-label">Leyenda adicional</label>
+          <textarea name="leyenda" class="form-control" rows="3" maxlength="160"
+                    oninput="actualizarPreview()" id="inpLeyenda"
+                    placeholder="Ej. Cambios con ticket dentro de 3 días. Promoción: 2x1 en labiales."><%= config.leyenda %></textarea>
+          <span class="form-hint">Opcional. Para promociones o políticas de la tienda.</span>
+        </div>
+
+        <div class="form-group" style="margin-bottom:10px;">
+          <label class="form-label">Datos a mostrar</label>
+          <label class="ticket-check">
+            <input type="checkbox" name="mostrar_direccion" <%= config.mostrar_direccion ? 'checked' : '' %> onchange="actualizarPreview()" id="chkDireccion">
+            <span>Mostrar dirección de la sucursal</span>
+          </label>
+          <label class="ticket-check">
+            <input type="checkbox" name="mostrar_telefono" <%= config.mostrar_telefono ? 'checked' : '' %> onchange="actualizarPreview()" id="chkTelefono">
+            <span>Mostrar teléfono</span>
+          </label>
+        </div>
+
+        <div style="display:flex; justify-content:flex-end; margin-top:18px;">
+          <button type="submit" class="btn btn-primary">Guardar cambios</button>
+        </div>
+      </form>
+
+      <div class="config-card__footer">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+        El nombre, dirección y teléfono se toman de Configuración → Sucursal.
+      </div>
+    </div>
+
+    <!-- VISTA PREVIA -->
+    <div class="config-card">
+      <div class="config-card__header">
+        <div class="config-card__icon" style="background:#d1fae5; color:#065f46;">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7z"/></svg>
+        </div>
+        <h3 class="config-card__title">Vista previa</h3>
+      </div>
+
+      <div class="ticket-preview">
+        <div class="ticket-preview__paper">
+          <div class="ticket-line ticket-line--center ticket-line--bold" style="font-size:.9rem;"><%= sucursal.nombre || 'MAQUILLAJE Y MAS JEAN' %></div>
+          <div class="ticket-line ticket-line--center" id="prevDireccion" style="<%= config.mostrar_direccion ? '' : 'display:none' %>"><%= sucursal.direccion || '—' %></div>
+          <div class="ticket-line ticket-line--center" id="prevTelefono" style="<%= config.mostrar_telefono ? '' : 'display:none' %>"><%= sucursal.telefono || '—' %></div>
+          <div class="ticket-divider">================================</div>
+          <div class="ticket-line"><span>Folio:</span><span>#0001</span></div>
+          <div class="ticket-line"><span>Fecha:</span><span><%= new Date().toLocaleDateString('es-MX') %></span></div>
+          <div class="ticket-line"><span>Cajero:</span><span>Usuario</span></div>
+          <div class="ticket-divider">================================</div>
+          <div class="ticket-line ticket-line--header"><span>Producto</span><span>Cant</span><span>Importe</span></div>
+          <div class="ticket-divider">- - - - - - - - - - - - - - - -</div>
+          <div class="ticket-line"><span>Labial Rojo</span><span>2</span><span>$100.00</span></div>
+          <div class="ticket-line"><span>Sombra Marrón</span><span>1</span><span>$85.00</span></div>
+          <div class="ticket-divider">================================</div>
+          <div class="ticket-line ticket-line--bold"><span>TOTAL</span><span></span><span>$185.00</span></div>
+          <div class="ticket-line"><span>Efectivo</span><span></span><span>$200.00</span></div>
+          <div class="ticket-line"><span>Cambio</span><span></span><span>$15.00</span></div>
+          <div class="ticket-divider">- - - - - - - - - - - - - - - -</div>
+          <div class="ticket-line ticket-line--center" id="prevMensaje"><%= config.mensaje_final %></div>
+          <div class="ticket-line ticket-line--center ticket-leyenda" id="prevLeyenda" style="<%= config.leyenda ? '' : 'display:none' %>"><%= config.leyenda %></div>
+        </div>
+      </div>
+
+      <div class="config-card__footer">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+        Los cambios se ven al instante. Recuerda guardar.
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<style>
+.ticket-config-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+  max-width: 900px;
+}
+@media (max-width: 760px) { .ticket-config-grid { grid-template-columns: 1fr; } }
+
+.config-card {
+  background: #fff;
+  border-radius: 12px;
+  box-shadow: 0 1px 4px rgba(60,40,50,.07);
+  overflow: hidden;
+}
+.config-card__header {
+  display: flex; align-items: center; gap: 12px;
+  padding: 16px 20px;
+  border-bottom: 1px solid #F2DCDB;
+}
+.config-card__icon {
+  width: 40px; height: 40px; border-radius: 10px;
+  display: flex; align-items: center; justify-content: center;
+  flex-shrink: 0;
+}
+.config-card__title {
+  font-family: 'Playfair Display', serif;
+  font-size: .95rem; font-weight: 700; color: #3D5D91; margin: 0;
+}
+.config-card__footer {
+  display: flex; align-items: center; gap: 6px;
+  padding: 10px 20px;
+  background: #FDF5F5;
+  border-top: 1px solid #F2DCDB;
+  font-size: .75rem; color: #aaa;
+}
+
+.ticket-check {
+  display: flex; align-items: center; gap: 8px;
+  font-size: .85rem; color: #555;
+  margin-top: 8px; cursor: pointer;
+}
+.ticket-check input { accent-color: #C8215A; width: 16px; height: 16px; }
+
+.ticket-preview { padding: 20px; display: flex; justify-content: center; }
+.ticket-preview__paper {
+  width: 260px;
+  background: #fff;
+  border: 1px dashed #ddd;
+  border-radius: 4px;
+  padding: 14px 12px;
+  font-family: 'Courier New', monospace;
+  font-size: .72rem;
+  color: #333;
+  box-shadow: 0 2px 8px rgba(0,0,0,.08);
+}
+.ticket-line { display: flex; justify-content: space-between; margin-bottom: 3px; gap: 4px; }
+.ticket-line--center { justify-content: center; text-align: center; }
+.ticket-line--bold { font-weight: 700; }
+.ticket-line--header { font-weight: 700; font-size: .68rem; color: #666; }
+.ticket-divider { text-align: center; color: #bbb; font-size: .6rem; margin: 4px 0; overflow: hidden; }
+.ticket-leyenda { margin-top: 6px; font-size: .66rem; color: #666; white-space: pre-wrap; }
+</style>
+
+<script>
+function actualizarPreview() {
+  const mensaje  = document.getElementById('inpMensaje').value;
+  const leyenda  = document.getElementById('inpLeyenda').value;
+  const verDir   = document.getElementById('chkDireccion').checked;
+  const verTel   = document.getElementById('chkTelefono').checked;
+
+  document.getElementById('prevMensaje').textContent = mensaje;
+
+  const prevLey = document.getElementById('prevLeyenda');
+  prevLey.textContent = leyenda;
+  prevLey.style.display = leyenda.trim() ? '' : 'none';
+
+  document.getElementById('prevDireccion').style.display = verDir ? '' : 'none';
+  document.getElementById('prevTelefono').style.display  = verTel ? '' : 'none';
+}
+</script>
+
+<%- include('../partials/footer') %>

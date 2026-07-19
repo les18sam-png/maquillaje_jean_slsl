@@ -112,7 +112,7 @@
               <td class="fw-medium"><%= c.nombre %></td>
               <td class="text-right"><%= c.tickets %></td>
               <td class="text-right fw-medium">$<%= c.total.toLocaleString('es-MX', {minimumFractionDigits:2}) %></td>
-              <td class="text-right text-muted">$<%= (c.total / c.tickets).toLocaleString('es-MX', {minimumFractionDigits:2}) %></td>
+              <td class="text-right text-muted">$<%= (c.total / c.tickets).toLocaleString('es-MX', {minimumFractionDigits:2, maximumFractionDigits:2}) %></td>
             </tr>
             <% }) %>
           </tbody>
@@ -141,9 +141,9 @@
             </tr>
           </thead>
           <tbody>
-            <% turnosConVentas.forEach(t => { %>
+<% turnosConVentas.forEach(t => { %>
             <tr>
-              <td class="fw-medium"><%= t.cajas?.nombre || '—' %></td>
+              <td class="fw-medium"><%= t.caja_nombre || '—' %></td>
               <td class="text-sm">
                 <%= new Date(t.inicio).toLocaleString('es-MX', { day:'2-digit', month:'short', hour:'2-digit', minute:'2-digit' }) %>
               </td>
@@ -154,8 +154,8 @@
                   <span class="badge badge--normal">Cerrado</span>
                 <% } %>
               </td>
-              <td class="text-right"><%= t.numTickets %></td>
-              <td class="text-right fw-medium">$<%= t.totalVentas.toLocaleString('es-MX', {minimumFractionDigits:2}) %></td>
+              <td class="text-right"><%= t.tickets %></td>
+              <td class="text-right fw-medium">$<%= t.total.toLocaleString('es-MX', {minimumFractionDigits:2}) %></td>
             </tr>
             <% }) %>
           </tbody>

@@ -1,0 +1,227 @@
+<%- include('../partials/header', { title }) %>
+
+<div class="page-wrapper">
+
+  <nav class="breadcrumb">
+    <a href="/admin" class="breadcrumb__link">Administración</a>
+    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg>
+    <span class="breadcrumb__current">Corte de caja</span>
+  </nav>
+
+  <div class="page-header">
+    <div class="page-header__left">
+      <h1 class="page-title">Corte de caja</h1>
+      <span class="page-subtitle">Consulta el corte de cualquier caja por día</span>
+    </div>
+  </div>
+
+  <!-- FILTROS -->
+  <div class="corte-filtros-card">
+    <form method="GET" action="/admin/corte" class="corte-filtros">
+      <div class="form-group">
+        <label class="form-label">Caja</label>
+        <select name="caja_id" class="form-control" required>
+          <option value="">Selecciona una caja</option>
+          <% cajas.forEach(c => { %>
+            <option value="<%= c.id %>" <%= filtros.caja_id === c.id ? 'selected' : '' %>><%= c.nombre %></option>
+          <% }) %>
+        </select>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Fecha</label>
+        <input type="date" name="fecha" class="form-control" value="<%= filtros.fecha %>" required>
+      </div>
+      <div class="form-group corte-filtros-btn">
+        <button type="submit" class="btn btn-primary">Ver corte</button>
+      </div>
+    </form>
+  </div>
+
+  <% if (errorCorte) { %>
+    <div class="alert alert--error">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+      <%= errorCorte %>
+    </div>
+  <% } %>
+
+  <% if (corte) { %>
+
+    <% if (corte.num_tickets === 0) { %>
+      <div class="corte-vacio">
+        <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#C8215A" stroke-width="1.4" opacity="0.5"><rect x="3" y="4" width="18" height="16" rx="2"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+        <p>No hay ventas registradas para esta caja en la fecha seleccionada.</p>
+      </div>
+    <% } else { %>
+
+    <!-- RESUMEN SUPERIOR -->
+    <div class="corte-resumen">
+      <div class="corte-stat corte-stat--principal">
+        <span class="corte-stat-label">Total vendido</span>
+        <span class="corte-stat-valor">$<%= corte.total_general.toFixed(2) %></span>
+      </div>
+      <div class="corte-stat">
+        <span class="corte-stat-label">Tickets</span>
+        <span class="corte-stat-valor"><%= corte.num_tickets %></span>
+      </div>
+      <div class="corte-stat">
+        <span class="corte-stat-label">Canceladas</span>
+        <span class="corte-stat-valor"><%= corte.num_canceladas %></span>
+      </div>
+      <div class="corte-stat">
+        <span class="corte-stat-label">Turnos</span>
+        <span class="corte-stat-valor"><%= corte.num_turnos %></span>
+      </div>
+    </div>
+
+    <div class="corte-grid">
+
+      <!-- POR MÉTODO DE PAGO -->
+      <div class="corte-card">
+        <div class="corte-card-titulo">Por forma de pago</div>
+        <table class="corte-tabla">
+          <tbody>
+            <tr>
+              <td>Efectivo</td>
+              <td class="corte-monto">$<%= corte.totales_metodo.efectivo.toFixed(2) %></td>
+            </tr>
+            <tr>
+              <td>Tarjeta</td>
+              <td class="corte-monto">$<%= corte.totales_metodo.tarjeta.toFixed(2) %></td>
+            </tr>
+            <tr>
+              <td>Transferencia</td>
+              <td class="corte-monto">$<%= corte.totales_metodo.transferencia.toFixed(2) %></td>
+            </tr>
+            <tr>
+              <td>Cheque</td>
+              <td class="corte-monto">$<%= corte.totales_metodo.cheque.toFixed(2) %></td>
+            </tr>
+            <tr>
+              <td>Mixto / otros</td>
+              <td class="corte-monto">$<%= corte.totales_metodo.mixto.toFixed(2) %></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <!-- DINERO EN CAJA -->
+      <div class="corte-card">
+        <div class="corte-card-titulo">Dinero en caja (efectivo)</div>
+        <table class="corte-tabla">
+          <tbody>
+            <tr>
+              <td>Fondo inicial</td>
+              <td class="corte-monto">$<%= corte.caja.fondo_inicial.toFixed(2) %></td>
+            </tr>
+            <tr>
+              <td>+ Ventas en efectivo</td>
+              <td class="corte-monto">$<%= corte.caja.efectivo_neto.toFixed(2) %></td>
+            </tr>
+            <tr>
+              <td>+ Entradas de efectivo</td>
+              <td class="corte-monto">$<%= corte.caja.entradas.toFixed(2) %></td>
+            </tr>
+            <tr>
+              <td>− Salidas de efectivo</td>
+              <td class="corte-monto">$<%= corte.caja.salidas.toFixed(2) %></td>
+            </tr>
+            <tr class="corte-tabla-total">
+              <td>Efectivo esperado</td>
+              <td class="corte-monto">$<%= corte.caja.efectivo_esperado.toFixed(2) %></td>
+            </tr>
+          </tbody>
+        </table>
+        <p class="corte-nota">Este es el efectivo que debería haber físicamente en el cajón.</p>
+      </div>
+
+    </div>
+
+    <% } %>
+  <% } else if (!errorCorte) { %>
+    <div class="corte-inicial">
+      <svg width="44" height="44" viewBox="0 0 24 24" fill="none" stroke="#C8215A" stroke-width="1.3" opacity="0.5"><rect x="3" y="4" width="18" height="16" rx="2"/><line x1="7" y1="9" x2="17" y2="9"/><line x1="7" y1="13" x2="13" y2="13"/></svg>
+      <p>Selecciona una caja y una fecha para ver el corte.</p>
+    </div>
+  <% } %>
+
+</div>
+
+<style>
+.corte-filtros-card {
+  background: #fff;
+  border-radius: 12px;
+  box-shadow: 0 1px 4px rgba(60,40,50,.07);
+  padding: 20px;
+  margin-bottom: 18px;
+  max-width: 640px;
+}
+.corte-filtros {
+  display: flex;
+  gap: 14px;
+  align-items: flex-end;
+  flex-wrap: wrap;
+}
+.corte-filtros .form-group { flex: 1; min-width: 150px; margin: 0; }
+.corte-filtros-btn { flex: 0; }
+
+.corte-resumen {
+  display: grid;
+  grid-template-columns: 2fr 1fr 1fr 1fr;
+  gap: 12px;
+  margin-bottom: 18px;
+  max-width: 900px;
+}
+@media (max-width: 640px) { .corte-resumen { grid-template-columns: 1fr 1fr; } }
+.corte-stat {
+  background: #fff;
+  border-radius: 12px;
+  box-shadow: 0 1px 4px rgba(60,40,50,.07);
+  padding: 16px 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.corte-stat--principal { background: linear-gradient(135deg, #E63A6E, #6C0820); }
+.corte-stat--principal .corte-stat-label,
+.corte-stat--principal .corte-stat-valor { color: #fff; }
+.corte-stat-label { font-size: .74rem; color: #999; text-transform: uppercase; letter-spacing: .04em; }
+.corte-stat-valor { font-size: 1.5rem; font-weight: 700; color: #6C0820; font-family: 'Playfair Display', serif; }
+
+.corte-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+  max-width: 900px;
+}
+@media (max-width: 640px) { .corte-grid { grid-template-columns: 1fr; } }
+.corte-card {
+  background: #fff;
+  border-radius: 12px;
+  box-shadow: 0 1px 4px rgba(60,40,50,.07);
+  padding: 20px;
+}
+.corte-card-titulo {
+  font-family: 'Playfair Display', serif;
+  font-weight: 700;
+  color: #3D5D91;
+  font-size: .95rem;
+  margin-bottom: 12px;
+}
+.corte-tabla { width: 100%; border-collapse: collapse; }
+.corte-tabla td { padding: 8px 0; font-size: .88rem; color: #555; border-bottom: 1px solid #F5EAEA; }
+.corte-monto { text-align: right; font-weight: 600; color: #3D5D91; font-variant-numeric: tabular-nums; }
+.corte-tabla-total td { border-top: 2px solid #F2DCDB; border-bottom: none; padding-top: 12px; font-weight: 700; color: #6C0820; font-size: .95rem; }
+.corte-nota { font-size: .76rem; color: #aaa; margin: 10px 0 0; }
+
+.corte-inicial, .corte-vacio {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  padding: 48px 20px;
+  color: #999;
+  text-align: center;
+}
+</style>
+
+<%- include('../partials/footer') %>

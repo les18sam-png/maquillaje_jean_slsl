@@ -4,7 +4,7 @@
 const escpos  = require('escpos');
 escpos.USB     = require('escpos-usb');
 escpos.Network = require('escpos-network');
-
+const { leerConfigTicket } = require('./config-ticket');
 /**
  * Imprime un ticket de venta en la impresora configurada para la caja.
  * @param {object} config  — { tipo: 'usb'|'red', valor: string, puerto: number }
@@ -12,6 +12,7 @@ escpos.Network = require('escpos-network');
  */
 async function imprimirTicket(config, venta) {
   return new Promise((resolve, reject) => {
+    const cfg = leerConfigTicket();
     let device;
 
     if (config.tipo === 'usb') {
@@ -40,8 +41,18 @@ async function imprimirTicket(config, venta) {
           .align('ct')
           .style('b')
           .size(1, 1)
-          .text('MAQUILLAJE Y MAS JEAN')
+          .text(venta.sucursal_nombre || 'MAQUILLAJE Y MAS JEAN')
           .style('normal')
+          .size(0, 0);
+
+        if (cfg.mostrar_direccion && venta.sucursal_direccion) {
+          printer.text(venta.sucursal_direccion);
+        }
+        if (cfg.mostrar_telefono && venta.sucursal_telefono) {
+          printer.text(`Tel: ${venta.sucursal_telefono}`);
+        }
+
+        printer
           .text('Ticket de venta')
           .text(lineaDoble)
 
@@ -101,7 +112,13 @@ async function imprimirTicket(config, venta) {
         printer
           .text(linea)
           .align('ct')
-          .text('¡Gracias por su compra!')
+          .text(cfg.mensaje_final || '¡Gracias por su compra!');
+
+        if (cfg.leyenda) {
+          printer.text(' ').text(cfg.leyenda);
+        }
+
+        printer
           .text(' ')
           .text(' ')
           .cut()

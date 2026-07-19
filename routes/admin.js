@@ -9,7 +9,7 @@ const path    = require('path');
 const fs      = require('fs');
 const { supabase } = require('../db/database');
 const { api }      = require('../db/api');
-
+const { leerConfigTicket, guardarConfigTicket } = require('../utils/config-ticket');
 const SUCURSAL_ID = process.env.SUCURSAL_ID;
 // ─── MULTER para el logo del sistema ──────────────────────────────────────────
 const logoDir = path.join(__dirname, '../public/uploads/logo');
@@ -341,6 +341,90 @@ router.post('/logotipo/quitar', (req, res) => {
       .forEach(f => fs.unlinkSync(path.join(logoDir, f)));
   } catch { /* nada */ }
   res.redirect('/admin/logotipo?toast=quitado');
+});
+
+
+/* ─────────────────────────────────────────
+   GET /admin/ticket — configuración del ticket
+───────────────────────────────────────── */
+router.get('/ticket', async (req, res) => {
+  try {
+    const sucursal = await api('/sucursales/actual', {}, req.session.token).catch(() => ({}));
+    const config   = leerConfigTicket();
+
+    res.render('admin/ticket', {
+      title: 'Ticket',
+      sucursal: sucursal || {},
+      config,
+      toast: req.query.toast || null,
+      error: req.query.error || null,
+    });
+  } catch (err) {
+    if (err.status === 401) return res.redirect('/auth/login?error=sesion');
+    console.error('Error en GET /admin/ticket:', err.message);
+    res.status(500).send('Error al cargar configuración del ticket: ' + err.message);
+  }
+});
+
+/* ─────────────────────────────────────────
+   POST /admin/ticket — guardar configuración
+───────────────────────────────────────── */
+router.post('/ticket', (req, res) => {
+  try {
+    const { mensaje_final, leyenda, mostrar_direccion, mostrar_telefono } = req.body;
+
+    guardarConfigTicket({
+      mensaje_final:     (mensaje_final || '').trim(),
+      leyenda:           (leyenda || '').trim(),
+      mostrar_direccion: mostrar_direccion === 'on',
+      mostrar_telefono:  mostrar_telefono === 'on',
+    });
+
+    res.redirect('/admin/ticket?toast=guardado');
+  } catch (err) {
+    console.error('Error guardando config del ticket:', err.message);
+    res.redirect('/admin/ticket?error=fallo');
+  }
+});
+
+
+/* ─────────────────────────────────────────
+   GET /admin/corte — corte de caja (consulta)
+───────────────────────────────────────── */
+router.get('/corte', async (req, res) => {
+  try {
+    const { caja_id = '', fecha = '' } = req.query;
+
+    // Cajas para el selector
+    const cajasData = await api('/cajas/?solo_activas=false', {}, req.session.token).catch(() => ({ items: [] }));
+    const cajas = (cajasData.items || []).filter(c => !c.es_verificador);
+
+    let corte = null;
+    let errorCorte = null;
+
+    // Si ya eligieron caja y fecha, calcula el corte
+    if (caja_id && fecha) {
+      try {
+        corte = await api(`/cortes/?caja_id=${caja_id}&fecha=${fecha}`, {}, req.session.token);
+      } catch (e) {
+        errorCorte = e.status === 403
+          ? 'No tienes permiso para ver cortes.'
+          : (e.message || 'No se pudo calcular el corte.');
+      }
+    }
+
+    res.render('admin/corte', {
+      title: 'Corte de caja',
+      cajas,
+      corte,
+      errorCorte,
+      filtros: { caja_id, fecha },
+    });
+  } catch (err) {
+    if (err.status === 401) return res.redirect('/auth/login?error=sesion');
+    console.error('Error en GET /admin/corte:', err.message);
+    res.status(500).send('Error al cargar corte: ' + err.message);
+  }
 });
 /* ─────────────────────────────────────────
    Página temporal para secciones en desarrollo
