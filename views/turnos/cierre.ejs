@@ -10,32 +10,74 @@
 
   <!-- Filtro de turno -->
   <div class="card" style="margin-bottom:16px;padding:14px 20px;">
-    <form method="GET" action="/turnos/cierre" style="display:flex;align-items:flex-end;gap:12px;flex-wrap:wrap;">
-      <div class="form-group" style="margin:0;flex:1;min-width:140px;">
-        <label class="form-label">Fecha</label>
-        <input type="date" name="fecha" class="form-control"
-          value="<%= fechaFiltro %>"
-          max="<%= new Date().toISOString().split('T')[0] %>">
-      </div>
-      <% if (turnosDelDia.length > 0) { %>
-      <div class="form-group" style="margin:0;flex:2;min-width:200px;">
-        <label class="form-label">Turno</label>
-        <select name="turno_id" class="form-control">
-          <% turnosDelDia.forEach(t => { %>
+  <div style="display:flex;align-items:flex-end;gap:12px;flex-wrap:wrap;">
+
+    <!-- Paso 1: elegir fecha -->
+    <div class="form-group" style="margin:0;flex:1;min-width:140px;">
+      <label class="form-label">Fecha</label>
+      <input type="date" id="filtro-fecha" class="form-control"
+        value="<%= fechaFiltro %>"
+        max="<%= new Date().toISOString().split('T')[0] %>"
+        onchange="cargarTurnos(this.value)">
+    </div>
+
+    <!-- Paso 2: elegir turno (se llena dinámicamente) -->
+    <div class="form-group" style="margin:0;flex:2;min-width:200px;">
+      <label class="form-label">Turno</label>
+      <select id="filtro-turno" class="form-control" onchange="verTurno()">
+        <% if (turnosDelDia.length === 0) { %>
+          <option value="">Sin turnos en esta fecha</option>
+        <% } else { %>
+          <% turnosDelDia.forEach(t => {
+            const hora = new Date(t.inicio.includes('Z') ? t.inicio : t.inicio + 'Z')
+              .toLocaleTimeString('es-MX', {hour:'2-digit', minute:'2-digit'});
+          %>
             <option value="<%= t.id %>" <%= t.id === turnoSeleccionado ? 'selected' : '' %>>
-              <%= new Date(t.inicio.includes('Z') ? t.inicio : t.inicio + 'Z')
-                    .toLocaleString('es-MX', {hour:'2-digit', minute:'2-digit'}) %>
-              — <%= t.estado === 'abierto' ? '🟢 Abierto' : '⚫ Cerrado' %>
+              <%= hora %> — <%= t.estado === 'abierto' ? '🟢 Abierto' : '⚫ Cerrado' %>
             </option>
           <% }) %>
-        </select>
-      </div>
-      <% } %>
-      <button type="submit" class="btn btn-primary" style="flex-shrink:0;">Ver turno</button>
-      <a href="/turnos/cierre" class="btn btn-ghost" style="flex-shrink:0;">Turno actual</a>
-    </form>
-  </div>
+        <% } %>
+      </select>
+    </div>
 
+    <a href="/turnos/cierre" class="btn btn-ghost" style="flex-shrink:0;">Turno actual</a>
+  </div>
+</div>
+
+<script>
+  async function cargarTurnos(fecha) {
+    try {
+      const resp = await fetch(`/turnos/lista?fecha=${fecha}&caja_id=<%= typeof turno !== 'undefined' ? turno.caja_id : '' %>`);
+      const data = await resp.json();
+      const sel  = document.getElementById('filtro-turno');
+      const turnos = data.items || [];
+
+      if (turnos.length === 0) {
+        sel.innerHTML = '<option value="">Sin turnos en esta fecha</option>';
+        return;
+      }
+
+      sel.innerHTML = turnos.map(t => {
+        const hora = new Date(t.inicio.includes('Z') ? t.inicio : t.inicio + 'Z')
+          .toLocaleTimeString('es-MX', {hour:'2-digit', minute:'2-digit'});
+        const estado = t.estado === 'abierto' ? '🟢 Abierto' : '⚫ Cerrado';
+        return `<option value="${t.id}">${hora} — ${estado}</option>`;
+      }).join('');
+
+      verTurno();
+    } catch (err) {
+      console.error('Error cargando turnos:', err);
+    }
+  }
+
+  function verTurno() {
+    const turno_id = document.getElementById('filtro-turno').value;
+    const fecha    = document.getElementById('filtro-fecha').value;
+    if (turno_id) {
+      window.location.href = `/turnos/cierre?turno_id=${turno_id}&fecha=${fecha}`;
+    }
+  }
+</script>
   <!-- Encabezado -->
   <div class="page-header">
     <div class="page-header__left">

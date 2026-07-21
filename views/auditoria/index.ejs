@@ -13,42 +13,58 @@
   <div class="card">
     <div class="card-titulo">Filtrar registros</div>
     <form method="GET" action="/auditoria" class="auditoria-filtros">
-
-      <div class="form-group">
+        <div class="form-group">
         <label>Módulo</label>
         <select name="modulo">
           <option value="">Todos</option>
           <option value="ventas" <%= filtros.modulo === 'ventas' ? 'selected' : '' %>>Ventas</option>
           <option value="inventario" <%= filtros.modulo === 'inventario' ? 'selected' : '' %>>Inventario</option>
           <option value="productos" <%= filtros.modulo === 'productos' ? 'selected' : '' %>>Productos</option>
-          <option value="clientes" <%= filtros.modulo === 'clientes' ? 'selected' : '' %>>Clientes</option>
+          <option value="categorias" <%= filtros.modulo === 'categorias' ? 'selected' : '' %>>Categorías</option>
           <option value="promociones" <%= filtros.modulo === 'promociones' ? 'selected' : '' %>>Promociones</option>
-          <option value="cortes" <%= filtros.modulo === 'cortes' ? 'selected' : '' %>>Cortes</option>
-          <option value="turnos" <%= filtros.modulo === 'turnos' ? 'selected' : '' %>>Turnos</option>
-          <option value="usuarios" <%= filtros.modulo === 'usuarios' ? 'selected' : '' %>>Usuarios / permisos</option>
-          <option value="sesion" <%= filtros.modulo === 'sesion' ? 'selected' : '' %>>Sesión</option>
+          <option value="movimientos_caja" <%= filtros.modulo === 'movimientos_caja' ? 'selected' : '' %>>Movimientos de caja</option>
         </select>
       </div>
-
-        <div class="form-group">
+      
+       <div class="form-group">
         <label>Acción</label>
         <select name="accion">
-            <option value="">Todas</option>
-            <option value="crear" <%= filtros.accion === 'crear' ? 'selected' : '' %>>Crear</option>
-            <option value="actualizar" <%= filtros.accion === 'actualizar' ? 'selected' : '' %>>Actualizar</option>
-            <option value="eliminar" <%= filtros.accion === 'eliminar' ? 'selected' : '' %>>Eliminar</option>
-            <option value="cancelar" <%= filtros.accion === 'cancelar' ? 'selected' : '' %>>Cancelar</option>
-            <option value="devolver" <%= filtros.accion === 'devolver' ? 'selected' : '' %>>Devolución</option>
-            <option value="ajustar" <%= filtros.accion === 'ajustar' ? 'selected' : '' %>>Ajuste de inventario</option>
+          <option value="">Todas</option>
+
+          <optgroup label="Categorías">
+            <option value="crear_categoria" <%= filtros.accion === 'crear_categoria' ? 'selected' : '' %>>Crear categoría</option>
+            <option value="actualizar_categoria" <%= filtros.accion === 'actualizar_categoria' ? 'selected' : '' %>>Actualizar categoría</option>
+            <option value="eliminar_categoria" <%= filtros.accion === 'eliminar_categoria' ? 'selected' : '' %>>Eliminar categoría</option>
+          </optgroup>
+
+          <optgroup label="Productos">
+            <option value="crear_producto" <%= filtros.accion === 'crear_producto' ? 'selected' : '' %>>Crear producto</option>
+            <option value="actualizar_producto" <%= filtros.accion === 'actualizar_producto' ? 'selected' : '' %>>Actualizar producto</option>
+            <option value="desactivar_producto" <%= filtros.accion === 'desactivar_producto' ? 'selected' : '' %>>Desactivar producto</option>
+            <option value="importar_productos" <%= filtros.accion === 'importar_productos' ? 'selected' : '' %>>Importar productos</option>
+          </optgroup>
+
+          <optgroup label="Inventario">
             <option value="entrada_mercancia" <%= filtros.accion === 'entrada_mercancia' ? 'selected' : '' %>>Entrada de mercancía</option>
-            <option value="cambio_precio" <%= filtros.accion === 'cambio_precio' ? 'selected' : '' %>>Cambio de precio</option>
-            <option value="cambio_permisos" <%= filtros.accion === 'cambio_permisos' ? 'selected' : '' %>>Cambio de permisos</option>
-            <option value="inicio_sesion" <%= filtros.accion === 'inicio_sesion' ? 'selected' : '' %>>Inicio de sesión</option>
-            <option value="cierre_turno" <%= filtros.accion === 'cierre_turno' ? 'selected' : '' %>>Cierre de turno</option>
-            <option value="corte_caja" <%= filtros.accion === 'corte_caja' ? 'selected' : '' %>>Corte de caja</option>
-            <option value="movimiento_caja" <%= filtros.accion === 'movimiento_caja' ? 'selected' : '' %>>Movimiento de caja</option>
+            <option value="ajuste_inventario" <%= filtros.accion === 'ajuste_inventario' ? 'selected' : '' %>>Ajuste de inventario</option>
+          </optgroup>
+
+          <optgroup label="Promociones">
+            <option value="crear_promocion" <%= filtros.accion === 'crear_promocion' ? 'selected' : '' %>>Crear promoción</option>
+            <option value="actualizar_promocion" <%= filtros.accion === 'actualizar_promocion' ? 'selected' : '' %>>Actualizar promoción</option>
+            <option value="eliminar_promocion" <%= filtros.accion === 'eliminar_promocion' ? 'selected' : '' %>>Eliminar promoción</option>
+          </optgroup>
+
+          <optgroup label="Ventas">
+            <option value="crear_venta" <%= filtros.accion === 'crear_venta' ? 'selected' : '' %>>Crear venta</option>
+            <option value="registrar_devolucion" <%= filtros.accion === 'registrar_devolucion' ? 'selected' : '' %>>Registrar devolución</option>
+          </optgroup>
+
+          <optgroup label="Movimientos de caja">
+            <option value="registrar_movimiento_manual" <%= filtros.accion === 'registrar_movimiento_manual' ? 'selected' : '' %>>Registrar movimiento manual</option>
+          </optgroup>
         </select>
-        </div>
+      </div> 
 
       <div class="form-group">
         <label>Desde</label>
@@ -103,41 +119,39 @@
             <th>Usuario</th>
             <th>Módulo</th>
             <th>Acción</th>
-            <th>Registro afectado</th>
             <th>Caja</th>
             <th>Detalle</th>
           </tr>
         </thead>
         <tbody>
-          <% if (registros.length === 0) { %>
+        <% if (registros.length === 0) { %>
+          <tr>
+            <td colspan="6" class="text-center text-muted" style="padding:2rem;">
+              No hay registros de auditoría con estos filtros
+            </td>
+          </tr>
+        <% } else { %>
+          <% registros.forEach(r => { %>
             <tr>
-              <td colspan="7" class="text-center text-muted" style="padding:2rem;">
-                No hay registros de auditoría con estos filtros
+              <td class="text-muted" style="white-space:nowrap;">
+                <%= new Date(r.fecha_hora + 'Z').toLocaleString('es-MX', { timeZone: 'America/Mexico_City' }) %>
+              </td>
+              <td style="font-size:.82rem;"><%= r.usuario_nombre || r.usuario_id %></td>
+              <td>
+                <span class="modulo-badge" data-modulo="<%= r.modulo %>"><%= r.modulo %></span>
+              </td>
+              <td class="text-muted" style="font-size:.82rem;"><%= r.accion %></td>
+              <td class="text-muted" style="font-size:.82rem;"><%= r.caja_nombre || '—' %></td>
+              <td>
+                <button type="button" class="btn btn-ghost btn-sm"
+                  onclick='mostrarDetalle(<%- JSON.stringify(r.valores_anteriores || {}) %>, <%- JSON.stringify(r.valores_nuevos || {}) %>)'>
+                  Ver
+                </button>
               </td>
             </tr>
-          <% } else { %>
-            <% registros.forEach(r => { %>
-              <tr>
-                <td class="text-muted" style="white-space:nowrap;">
-                  <%= new Date(r.fecha_hora).toLocaleString('es-MX') %>
-                </td>
-                <td style="font-size:.82rem;"><%= r.usuario_nombre || r.usuario_id %></td>
-                <td>
-                  <span class="modulo-badge" data-modulo="<%= r.modulo %>"><%= r.modulo %></span>
-                </td>
-                <td class="text-muted" style="font-size:.82rem;"><%= r.accion %></td>
-                <td class="text-muted" style="font-size:.78rem;"><%= r.registro_id || '—' %></td>
-                <td class="text-muted" style="font-size:.82rem;"><%= r.caja_id || '—' %></td>
-                <td>
-                  <button type="button" class="btn btn-ghost btn-sm"
-                    onclick='mostrarDetalle(<%- JSON.stringify(r.valores_anteriores || {}) %>, <%- JSON.stringify(r.valores_nuevos || {}) %>)'>
-                    Ver
-                  </button>
-                </td>
-              </tr>
-            <% }) %>
-          <% } %>
-        </tbody>
+          <% }) %>
+        <% } %>
+      </tbody>
       </table>
     </div>
 
@@ -210,6 +224,8 @@
   .modal-columna-titulo { font-weight: 700; font-size: .82rem; color: var(--burgundy); margin-bottom: .4rem; }
   .modal-pre { background: #faf5f6; border: 1px solid #eee; border-radius: 8px; padding: .75rem; font-size: .78rem; white-space: pre-wrap; word-break: break-word; max-height: 300px; overflow-y: auto; }
   .modal-footer { padding: .75rem 1.25rem; border-top: 1px solid #eee; text-align: right; }
+  .modulo-badge[data-modulo="categorias"]      { background: #e0f0fd; color: #1a6fa8; }
+.modulo-badge[data-modulo="movimientos_caja"]{ background: #fff0e0; color: #b8630a; }
 </style>
 
 <script>

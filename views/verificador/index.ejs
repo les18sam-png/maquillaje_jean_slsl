@@ -1,0 +1,674 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Verificador de Precios — SmartVenta</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600;700&family=Playfair+Display:wght@600;700&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --burgundy: #6C0820;
+      --burgundy-dark: #4A0517;
+      --pink-light: #FCE4EE;
+      --pink-border: #F2DCDB;
+      --navy: #3D5D91;
+      --text: #1a1a2e;
+      --muted: #888;
+      --bg: #FAF5F5;
+    }
+
+    body {
+      font-family: 'DM Sans', sans-serif;
+      background: var(--bg);
+      height: 100vh;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+    }
+
+    /* ── Top bar ── */
+    .vf-topbar {
+      background: var(--burgundy);
+      padding: 10px 16px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      flex-shrink: 0;
+    }
+
+    .vf-logo {
+      display: flex; align-items: center; gap: 10px;
+      cursor: pointer; flex-shrink: 0;
+    }
+    .vf-logo__icon {
+      width: 34px; height: 34px;
+      background: rgba(255,183,197,0.2);
+      border: 1.5px solid rgba(255,183,197,0.3);
+      border-radius: 9px;
+      display: flex; align-items: center; justify-content: center;
+    }
+    .vf-logo__name {
+      font-family: 'Playfair Display', serif;
+      font-size: .95rem; color: #fff; font-weight: 700;
+    }
+    .vf-logo__sub {
+      font-size: .62rem; color: rgba(255,183,197,0.6);
+      letter-spacing: .08em; text-transform: uppercase; display: block;
+    }
+
+    /* Search */
+    .vf-search-wrap {
+      flex: 1; position: relative;
+    }
+    .vf-search-icon {
+      position: absolute; left: 12px; top: 50%;
+      transform: translateY(-50%); color: #aaa; pointer-events: none;
+    }
+    .vf-search {
+      width: 100%;
+      padding: 10px 12px 10px 38px;
+      border: none; border-radius: 9px;
+      font-size: .9rem; font-family: 'DM Sans', sans-serif;
+      outline: none; background: #fff;
+    }
+    .vf-search:focus { box-shadow: 0 0 0 2px rgba(255,183,197,.5); }
+
+    .vf-search-hint {
+      position: absolute; top: calc(100% + 6px); left: 0;
+      font-size: .8rem; font-weight: 500; color: var(--burgundy);
+      background: #FCE4EE; border: 1px solid #F4A0C0;
+      padding: 6px 12px; border-radius: 7px;
+      display: none; z-index: 10; white-space: nowrap;
+    }
+    .vf-search-hint--visible { display: block; }
+
+    .vf-hint-text {
+      font-size: .72rem; color: rgba(255,183,197,0.5);
+      flex-shrink: 0; white-space: nowrap;
+    }
+
+    /* ── Body: dos columnas ── */
+    .vf-body {
+      display: grid;
+      grid-template-columns: 2fr 1fr;
+      flex: 1;
+      overflow: hidden;
+    }
+
+    /* ── Panel izquierdo — detalle producto ── */
+    .vf-detalle {
+      background: #fff;
+      border-right: 1px solid var(--pink-border);
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+
+    .vf-detalle__empty {
+      flex: 1;
+      display: flex; flex-direction: column;
+      align-items: center; justify-content: center;
+      color: #ddd; gap: 12px; padding: 24px; text-align: center;
+    }
+    .vf-detalle__empty p { font-size: .85rem; color: #bbb; }
+
+    .vf-detalle-layout {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 16px;
+      align-items: start;
+      height: 100%;
+    }
+
+    .vf-producto-img {
+      width: 100%;
+      aspect-ratio: 1;
+      background: #FCE4EE;
+      border-radius: 14px;
+      overflow: hidden;
+      display: flex; align-items: center; justify-content: center;
+    }
+    .vf-producto-img img { width: 100%; height: 100%; object-fit: cover; }
+    .vf-producto-img svg { color: #ddd; }
+
+    .vf-detalle-info { min-width: 0; }
+
+
+    .vf-producto-nombre {
+      font-family: 'Playfair Display', serif;
+      font-size: 1.15rem; color: var(--text);
+      margin-bottom: 4px; line-height: 1.3;
+    }
+    .vf-producto-codigo {
+      font-size: .72rem; color: #aaa; font-family: monospace;
+      margin-bottom: 16px;
+    }
+
+    .vf-precios {
+      background: var(--pink-light);
+      border-radius: 12px;
+      padding: 16px;
+      margin-bottom: 16px;
+    }
+    .vf-precio-item {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 6px 0;
+    }
+    .vf-precio-item + .vf-precio-item {
+      border-top: 1px solid var(--pink-border);
+    }
+    .vf-precio-label { font-size: .78rem; color: var(--muted); font-weight: 500; }
+    .vf-precio-valor {
+      font-family: 'Playfair Display', serif;
+      font-size: 1.3rem; font-weight: 700; color: var(--burgundy);
+    }
+    .vf-precio-valor--secundario {
+      font-size: 1rem; color: var(--navy);
+    }
+    .vf-precio-valor--promo {
+      color: #065f46;
+    }
+
+    .vf-badge-promo {
+      display: inline-block;
+      background: #065f46; color: #fff;
+      font-size: .65rem; font-weight: 700;
+      padding: 2px 7px; border-radius: 5px;
+      margin-left: 6px; vertical-align: middle;
+    }
+
+    .vf-stock-info {
+      background: #fff;
+      border: 1px solid var(--pink-border);
+      border-radius: 10px;
+      padding: 12px 14px;
+      margin-bottom: 12px;
+    }
+    .vf-stock-label { font-size: .72rem; color: var(--muted); margin-bottom: 2px; }
+    .vf-stock-valor { font-size: 1.1rem; font-weight: 700; color: var(--text); }
+    .vf-stock-valor--agotado { color: #ef4444; }
+    .vf-stock-valor--bajo { color: #f59e0b; }
+
+    .vf-descripcion {
+      font-size: .82rem; color: #666; line-height: 1.5;
+    }
+
+    /* ── Panel derecho — catálogo ── */
+    .vf-catalogo {
+      display: flex; flex-direction: column; overflow: hidden;
+    }
+
+    .vf-catalogo__filtro {
+      padding: 8px 10px;
+      border-bottom: 1px solid var(--pink-border);
+      background: #fff; flex-shrink: 0;
+    }
+    .vf-catalogo__filtro select {
+      width: 100%; padding: 7px 10px;
+      border: 1.5px solid #E0C8C8; border-radius: 7px;
+      font-size: .82rem; font-family: 'DM Sans', sans-serif;
+      background: #fff; outline: none;
+    }
+    .vf-catalogo__filtro select:focus { border-color: var(--burgundy); }
+
+    .vf-catalogo__grid {
+      flex: 1; overflow-y: auto; padding: 10px;
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(110px, 1fr));
+      grid-auto-rows: 140px;
+      gap: 8px;
+      align-content: start;
+    }
+
+    .vf-mini-card {
+      background: #fff; border-radius: 10px;
+      box-shadow: 0 1px 4px rgba(60,40,50,.08);
+      overflow: hidden; cursor: pointer;
+      border: 2px solid transparent;
+      transition: box-shadow .15s, border-color .15s, transform .12s;
+      display: flex; flex-direction: column;
+    }
+    .vf-mini-card:hover {
+      box-shadow: 0 4px 14px rgba(108,8,32,.14);
+      border-color: #FFB7C5;
+      transform: translateY(-2px);
+    }
+    .vf-mini-card.activa {
+      border-color: var(--burgundy);
+      background: var(--pink-light);
+    }
+    .vf-mini-card__img {
+      height: 80px; background: var(--pink-light);
+      overflow: hidden; position: relative; flex-shrink: 0;
+    }
+    .vf-mini-card__img img { width: 100%; height: 100%; object-fit: cover; }
+    .vf-mini-card__img-placeholder {
+      width: 100%; height: 100%;
+      display: flex; align-items: center; justify-content: center; color: #ccc;
+    }
+    .vf-mini-card__info { padding: 6px 7px 8px; flex: 1; }
+    .vf-mini-card__nombre {
+      font-size: .68rem; font-weight: 600; color: var(--navy);
+      line-height: 1.2; display: -webkit-box;
+      -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
+      margin-bottom: 3px;
+    }
+    .vf-mini-card__precio {
+      font-size: .8rem; font-weight: 700; color: var(--burgundy);
+    }
+    .vf-mini-card__badge-promo {
+      font-size: .6rem; background: #065f46; color: #fff;
+      padding: 1px 5px; border-radius: 4px; font-weight: 700;
+      display: inline-block; margin-bottom: 2px;
+    }
+
+    .vf-catalogo__placeholder {
+      grid-column: 1 / -1;
+      display: flex; align-items: center; justify-content: center;
+      padding: 40px 10px; text-align: center; color: #bbb; font-size: .82rem;
+    }
+
+    /* ── Modal PIN ── */
+    .pin-overlay {
+      position: fixed; inset: 0;
+      background: rgba(74,5,23,.85);
+      backdrop-filter: blur(4px);
+      z-index: 1000;
+      display: none;
+      align-items: center; justify-content: center;
+    }
+    .pin-overlay.activo { display: flex; }
+    .pin-card {
+      background: #fff; border-radius: 20px;
+      padding: 32px 28px; width: 100%; max-width: 300px;
+      text-align: center;
+    }
+    .pin-card h2 { font-family:'Playfair Display',serif; color:var(--burgundy); margin-bottom:4px; }
+    .pin-card p { font-size:.82rem; color:#aaa; margin-bottom:18px; }
+    .pin-display { display:flex; gap:10px; justify-content:center; margin-bottom:18px; }
+    .pin-dot { width:13px; height:13px; border-radius:50%; border:2px solid #E0C8C8; transition:background .12s; }
+    .pin-dot.lleno { background:var(--burgundy); border-color:var(--burgundy); }
+    .pin-teclado { display:grid; grid-template-columns:repeat(3,1fr); gap:9px; }
+    .pin-btn {
+      padding:13px; border:1.5px solid #E0C8C8; border-radius:9px;
+      font-size:1rem; font-weight:600; color:var(--text);
+      background:#fff; cursor:pointer; transition:all .12s;
+      font-family:'DM Sans',sans-serif;
+    }
+    .pin-btn:hover { background:var(--pink-light); border-color:var(--burgundy); }
+    .pin-error { color:#ef4444; font-size:.78rem; margin-top:8px; min-height:18px; }
+    .pin-cancelar { margin-top:12px; font-size:.78rem; color:#aaa; cursor:pointer; background:none; border:none; font-family:'DM Sans',sans-serif; }
+    .pin-cancelar:hover { color:var(--burgundy); }
+
+    .vf-detalle__content { flex: 1; overflow-y: auto; padding: 20px; display: none; }
+    .vf-detalle__content.activo { display: block; }
+  </style>
+</head>
+<body>
+
+<!-- Top bar -->
+<div class="vf-topbar">
+  <div class="vf-logo" onclick="clicLogo()">
+    <div class="vf-logo__icon">
+      <svg viewBox="0 0 24 24" fill="white" width="18" height="18">
+        <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 14H9V8h2v8zm4 0h-2V8h2v8z"/>
+      </svg>
+    </div>
+    <div>
+      <span class="vf-logo__name">SmartVenta</span>
+      <span class="vf-logo__sub">Verificador de Precios</span>
+    </div>
+
+  </div>
+
+  <button onclick="toggleFullscreen()" id="btn-fullscreen" title="Pantalla completa" style="background:rgba(255,183,197,.15);border:1px solid rgba(255,183,197,.3);color:#fff;border-radius:7px;padding:6px 10px;cursor:pointer;flex-shrink:0;">
+    <svg id="icon-expand" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M8 3H5a2 2 0 00-2 2v3m18 0V5a2 2 0 00-2-2h-3m0 18h3a2 2 0 002-2v-3M3 16v3a2 2 0 002 2h3"/></svg>
+    <svg id="icon-compress" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="display:none"><path d="M8 3v3a2 2 0 01-2 2H3m18 0h-3a2 2 0 01-2-2V3m0 18v-3a2 2 0 012-2h3M3 16h3a2 2 0 012 2v3"/></svg>
+  </button>
+
+  <div class="vf-search-wrap">
+    <svg class="vf-search-icon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+    <input type="text" id="vf-search" class="vf-search"
+      placeholder="Escanea código de barras o escribe el nombre…"
+      autocomplete="off" autofocus>
+    <div class="vf-search-hint" id="vf-search-hint">
+      Usa % para buscar en todas las categorías
+    </div>
+  </div>
+
+  <span class="vf-hint-text">Toca el logo 3× para salir</span>
+</div>
+
+<!-- Body -->
+<div class="vf-body">
+
+  <!-- Panel izquierdo: detalle -->
+  <div class="vf-detalle">
+    <div class="vf-detalle__empty" id="vf-empty">
+      <svg width="52" height="52" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.2">
+        <rect x="3" y="3" width="18" height="18" rx="2"/>
+        <line x1="7" y1="8" x2="7.01" y2="8" stroke-width="3"/>
+        <line x1="10" y1="8" x2="17" y2="8"/>
+        <line x1="7" y1="12" x2="7.01" y2="12" stroke-width="3"/>
+        <line x1="10" y1="12" x2="17" y2="12"/>
+        <line x1="7" y1="16" x2="7.01" y2="16" stroke-width="3"/>
+        <line x1="10" y1="16" x2="17" y2="16"/>
+      </svg>
+      <p>Selecciona un producto para ver su precio</p>
+    </div>
+    <div class="vf-detalle__content" id="vf-detalle-content"></div>
+  </div>
+
+  <!-- Panel derecho: catálogo -->
+  <div class="vf-catalogo">
+    <div class="vf-catalogo__filtro">
+      <select id="vf-categoria" onchange="buscar()">
+        <option value="">Todas las categorías</option>
+      </select>
+    </div>
+    <div class="vf-catalogo__grid" id="vf-grid">
+      <div class="vf-catalogo__placeholder">
+        <p>Selecciona una categoría o busca un producto</p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Modal PIN -->
+<div class="pin-overlay" id="pin-overlay">
+  <div class="pin-card">
+    <h2>Acceso al sistema</h2>
+    <p>PIN de supervisor</p>
+    <div class="pin-display" id="pin-display">
+      <div class="pin-dot" id="dot-0"></div>
+      <div class="pin-dot" id="dot-1"></div>
+      <div class="pin-dot" id="dot-2"></div>
+      <div class="pin-dot" id="dot-3"></div>
+    </div>
+    <div class="pin-teclado">
+      <button class="pin-btn" onclick="pinTecla('1')">1</button>
+      <button class="pin-btn" onclick="pinTecla('2')">2</button>
+      <button class="pin-btn" onclick="pinTecla('3')">3</button>
+      <button class="pin-btn" onclick="pinTecla('4')">4</button>
+      <button class="pin-btn" onclick="pinTecla('5')">5</button>
+      <button class="pin-btn" onclick="pinTecla('6')">6</button>
+      <button class="pin-btn" onclick="pinTecla('7')">7</button>
+      <button class="pin-btn" onclick="pinTecla('8')">8</button>
+      <button class="pin-btn" onclick="pinTecla('9')">9</button>
+      <button class="pin-btn" onclick="pinTecla('0')" style="grid-column:2">0</button>
+      <button class="pin-btn" onclick="pinBorrar()">⌫</button>
+    </div>
+    <p class="pin-error" id="pin-error"></p>
+    <button class="pin-cancelar" onclick="cerrarPin()">Cancelar</button>
+  </div>
+</div>
+
+<script>
+  const PIN_CORRECTO = '1234';
+  let pinActual = '';
+  let clicsLogo = 0, timerLogo = null;
+  let debounceTimer = null;
+  let cardActiva = null;
+
+  // ── Categorías ────────────────────────────
+  async function cargarCategorias(intentos = 0) {
+    try {
+      const cats = await fetch('/verificador/categorias').then(r => {
+        if (!r.ok) throw new Error();
+        return r.json();
+      });
+      const sel = document.getElementById('vf-categoria');
+      cats.forEach(c => {
+        const opt = document.createElement('option');
+        opt.value = c.id; opt.textContent = c.nombre;
+        sel.appendChild(opt);
+      });
+    } catch {
+      if (intentos < 3) setTimeout(() => cargarCategorias(intentos + 1), 800);
+    }
+  }
+  cargarCategorias();
+
+  // ── Búsqueda ──────────────────────────────
+  const input = document.getElementById('vf-search');
+  const hint  = document.getElementById('vf-search-hint');
+
+  input.addEventListener('focus', () => hint.classList.add('vf-search-hint--visible'));
+  input.addEventListener('blur',  () => hint.classList.remove('vf-search-hint--visible'));
+  input.addEventListener('input', () => { clearTimeout(debounceTimer); debounceTimer = setTimeout(buscar, 300); });
+  input.addEventListener('keydown', e => { if (e.key === 'Enter') { clearTimeout(debounceTimer); buscar(); } });
+
+  async function buscar() {
+    const qCrudo      = input.value.trim();
+    const buscarTodas = qCrudo.includes('%');
+    const q           = qCrudo.replace(/%/g, '').trim();
+    // Código: sin espacios y al menos 4 caracteres
+    const esCodigo    = q.length >= 4 && !q.includes(' ');
+    const categoria   = (buscarTodas || esCodigo) ? '' : document.getElementById('vf-categoria').value;
+    const grid        = document.getElementById('vf-grid');
+
+    if (!q && !categoria) {
+      grid.innerHTML = '<div class="vf-catalogo__placeholder"><p>Selecciona una categoría o busca un producto</p></div>';
+      return;
+    }
+
+    grid.innerHTML = '<div class="vf-catalogo__placeholder"><p>Buscando…</p></div>';
+
+    try {
+      const params = new URLSearchParams();
+      if (q)         params.append('q', q);
+      if (categoria) params.append('categoria', categoria);
+
+      const productos = await fetch(`/verificador/buscar?${params}`).then(r => {
+        if (!r.ok) throw new Error();
+        return r.json();
+      });
+
+      if (!productos.length) {
+        grid.innerHTML = '<div class="vf-catalogo__placeholder"><p>Sin resultados</p></div>';
+        return;
+      }
+
+      // Coincidencia exacta de código → mostrar detalle directo y limpiar input
+      const exacto = esCodigo
+        ? productos.find(p => String(p.codigo_barras).trim() === q)
+        : null;
+
+      if (exacto) {
+        renderGrid(productos);
+        // Marcar la card como activa
+        setTimeout(() => {
+          const card = document.querySelector(`.vf-mini-card[data-id="${exacto.id}"]`);
+          if (card) { card.classList.add('activa'); cardActiva = card; }
+        }, 50);
+        mostrarDetalle(exacto);
+        input.value = '';
+        return;
+      }
+
+      renderGrid(productos);
+
+      // Si solo hay un resultado, mostrarlo directo
+      if (productos.length === 1) {
+        mostrarDetalle(productos[0]);
+        setTimeout(() => {
+          const card = document.querySelector(`.vf-mini-card[data-id="${productos[0].id}"]`);
+          if (card) { card.classList.add('activa'); cardActiva = card; }
+        }, 50);
+      }
+
+    } catch {
+      grid.innerHTML = '<div class="vf-catalogo__placeholder"><p>Error de conexión</p></div>';
+    }
+  }
+
+  // ── Grid ──────────────────────────────────
+  function renderGrid(productos) {
+    window._vfProductos = {};
+    productos.forEach(p => { window._vfProductos[p.id] = p; });
+
+    const grid = document.getElementById('vf-grid');
+    grid.innerHTML = productos.map(p => {
+      const tienePromo = p.precio_promo !== null && p.precio_promo !== undefined;
+      const precio     = tienePromo ? p.precio_promo : Number(p.precio_venta);
+      const img        = p.ruta_imagen
+        ? `<img src="/uploads/productos/${p.ruta_imagen}" alt="" loading="lazy">`
+        : `<div class="vf-mini-card__img-placeholder"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg></div>`;
+      return `
+        <div class="vf-mini-card" data-id="${p.id}">
+          <div class="vf-mini-card__img">${img}</div>
+          <div class="vf-mini-card__info">
+            ${tienePromo ? '<span class="vf-mini-card__badge-promo">PROMO</span>' : ''}
+            <div class="vf-mini-card__nombre">${p.descripcion}</div>
+            <div class="vf-mini-card__precio">$${precio.toLocaleString('es-MX',{minimumFractionDigits:2})}</div>
+          </div>
+        </div>`;
+    }).join('');
+  }
+
+  document.getElementById('vf-grid').addEventListener('click', e => {
+    const card = e.target.closest('.vf-mini-card');
+    if (!card) return;
+    const p = window._vfProductos?.[card.dataset.id];
+    if (!p) return;
+    if (cardActiva) cardActiva.classList.remove('activa');
+    card.classList.add('activa');
+    cardActiva = card;
+    mostrarDetalle(p);
+  });
+
+  // ── Detalle ───────────────────────────────
+  function mostrarDetalle(p) {
+    const agotado    = (p.cantidad_actual ?? 0) <= 0;
+    const stockBajo  = !agotado && p.cantidad_actual <= (p.inventario_minimo ?? 0);
+    const tienePromo = p.precio_promo !== null && p.precio_promo !== undefined;
+    const precioMostrar = tienePromo ? p.precio_promo : Number(p.precio_venta);
+    const img        = p.ruta_imagen
+      ? `<img src="/uploads/productos/${p.ruta_imagen}" alt="${p.descripcion}">`
+      : `<svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.2"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>`;
+    const stockClass = agotado ? 'vf-stock-valor--agotado' : stockBajo ? 'vf-stock-valor--bajo' : '';
+    const stockTexto = agotado ? 'Sin existencias' : `${p.cantidad_actual} unidades`;
+
+    document.getElementById('vf-empty').style.display = 'none';
+    const cont = document.getElementById('vf-detalle-content');
+    cont.classList.add('activo');
+    cont.innerHTML = `
+      <div class="vf-detalle-layout">
+        <div class="vf-producto-img">${img}</div>
+        <div class="vf-detalle-info">
+          <div class="vf-producto-nombre">${p.descripcion}</div>
+          ${p.codigo_barras ? `<div class="vf-producto-codigo">${p.codigo_barras}</div>` : ''}
+          <div class="vf-precios">
+            <div class="vf-precio-item">
+              <span class="vf-precio-label">Menudeo ${tienePromo ? '<span class="vf-badge-promo">PROMO</span>' : ''}</span>
+              <span class="vf-precio-valor ${tienePromo ? 'vf-precio-valor--promo' : ''}">$${precioMostrar.toLocaleString('es-MX',{minimumFractionDigits:2})}</span>
+            </div>
+            ${tienePromo ? `
+            <div class="vf-precio-item">
+              <span class="vf-precio-label">Normal</span>
+              <span style="font-family:'Playfair Display',serif;font-size:.95rem;text-decoration:line-through;color:#aaa">$${Number(p.precio_venta).toLocaleString('es-MX',{minimumFractionDigits:2})}</span>
+            </div>` : ''}
+            ${p.precio_mayoreo ? `
+            <div class="vf-precio-item">
+              <span class="vf-precio-label">Mayoreo</span>
+              <span class="vf-precio-valor vf-precio-valor--secundario">$${Number(p.precio_mayoreo).toLocaleString('es-MX',{minimumFractionDigits:2})}</span>
+            </div>` : ''}
+          </div>
+          <div class="vf-stock-info">
+            <div class="vf-stock-label">Existencia</div>
+            <div class="vf-stock-valor ${stockClass}">${stockTexto}</div>
+          </div>
+          ${p.categoria_nombre ? `<p class="vf-descripcion" style="color:#aaa;font-size:.7rem;margin-top:4px;">Categoría: ${p.categoria_nombre}</p>` : ''}
+        </div>
+      </div>`;
+  }
+
+  // ── Logo × 3 ──────────────────────────────
+  function clicLogo() {
+    clicsLogo++;
+    clearTimeout(timerLogo);
+    timerLogo = setTimeout(() => { clicsLogo = 0; }, 1500);
+    if (clicsLogo >= 3) { clicsLogo = 0; abrirPin(); }
+  }
+
+  // ── PIN ───────────────────────────────────
+  function abrirPin() {
+    pinActual = ''; actualizarDots();
+    document.getElementById('pin-error').textContent = '';
+    document.getElementById('pin-overlay').classList.add('activo');
+  }
+  function cerrarPin() {
+    pinActual = ''; actualizarDots();
+    document.getElementById('pin-overlay').classList.remove('activo');
+    input.focus();
+  }
+  function pinTecla(n) {
+    if (pinActual.length >= 4) return;
+    pinActual += n; actualizarDots();
+    if (pinActual.length === 4) verificarPin();
+  }
+  function pinBorrar() {
+    pinActual = pinActual.slice(0, -1); actualizarDots();
+    document.getElementById('pin-error').textContent = '';
+  }
+  function actualizarDots() {
+    for (let i = 0; i < 4; i++)
+      document.getElementById(`dot-${i}`).classList.toggle('lleno', i < pinActual.length);
+  }
+  function verificarPin() {
+    if (pinActual === PIN_CORRECTO) { window.location.href = '/venta'; }
+    else {
+      document.getElementById('pin-error').textContent = 'PIN incorrecto.';
+      pinActual = ''; actualizarDots();
+    }
+  }
+
+  document.addEventListener('keydown', e => {
+    if (!document.getElementById('pin-overlay').classList.contains('activo')) return;
+    if (e.key >= '0' && e.key <= '9') pinTecla(e.key);
+    if (e.key === 'Backspace') pinBorrar();
+    if (e.key === 'Escape') cerrarPin();
+  });
+
+  document.addEventListener('click', e => {
+    if (!document.getElementById('pin-overlay').classList.contains('activo') &&
+        !e.target.closest('.vf-logo') &&
+        !e.target.closest('select')) {
+      input.focus();
+    }
+  });
+
+  function toggleFullscreen() {
+  if (!document.fullscreenElement) {
+    document.documentElement.requestFullscreen();
+  } else {
+    document.exitFullscreen();
+  }
+}
+
+  document.addEventListener('fullscreenchange', () => {
+    const enFS = !!document.fullscreenElement;
+    document.getElementById('icon-expand').style.display   = enFS ? 'none'  : 'block';
+    document.getElementById('icon-compress').style.display = enFS ? 'block' : 'none';
+  });
+
+  // Entrar a pantalla completa automáticamente al cargar
+  document.addEventListener('DOMContentLoaded', () => {
+    document.documentElement.requestFullscreen().catch(() => {});
+  });
+  // Si el usuario sale de fullscreen, volver a entrar
+  document.addEventListener('fullscreenchange', () => {
+    if (!document.fullscreenElement) {
+      setTimeout(() => {
+        document.documentElement.requestFullscreen().catch(() => {});
+      }, 500);
+    }
+  });
+</script>
+
+</body>
+</html>
