@@ -247,16 +247,17 @@ router.post('/toggle/:id', async (req, res) => {
 });
 
 // ─── API BUSCAR (usada por POS y verificador) ─────────────────────────────────
+// ─── API BUSCAR (usada por POS, verificador y catálogo visual de Productos) ───
 router.get('/api/buscar', async (req, res) => {
-  const { q = '' } = req.query;
-  if (!q) return res.json([]);
+  const { q = '', categoria = '' } = req.query;
+  if (!q && !categoria) return res.json([]);
 
   try {
-    const productos = await api(
-      `/productos/buscar?termino=${encodeURIComponent(q)}`,
-      {},
-      req.session.token,
-    );
+    const params = new URLSearchParams();
+    if (q)         params.append('termino', q);
+    if (categoria) params.append('categoria', categoria);
+
+    const productos = await api(`/productos/buscar?${params}`, {}, req.session.token);
 
     res.json((productos || []).map(p => ({
       ...p,

@@ -465,6 +465,7 @@ let metodoCobro = 'efectivo';  // método de pago seleccionado en el modal
 let cobrando    = false;       // bandera anti doble cobro
 let lastVentaId = localStorage.getItem('smartventa_last_venta') || null;// id de la última venta completada (para reimprimir)
 let debounceTimer = null;
+let ultimaBusquedaId = 0;
 let saveTimer     = null;
 let toastTimer    = null;
 let tipoMovimientoActual = 'entrada';
@@ -493,6 +494,7 @@ function inicializarTickets() {
       id: va.producto_id,
       nombre:   va.productos?.descripcion  || 'Producto',
       codigo:   va.productos?.codigo_barras || '',
+      imagen:   va.productos?.ruta_imagen   || null,
       precio:   Number(va.precio_unitario),
       mayoreo:  null, promo: null, porcentaje_promo: null, cantidad_minima_promo: null,
       cantidad: va.cantidad, stock: Infinity,
@@ -621,6 +623,8 @@ inputBusqueda.addEventListener('keydown', e => {
 function dispararBusqueda() { clearTimeout(debounceTimer); debounceTimer = setTimeout(buscarCatalogo, 300); }
 
 async function buscarCatalogo() {
+  const miBusquedaId = ++ultimaBusquedaId;
+
   const qCrudo   = document.getElementById('pdv-search').value.trim();
   let   categoria = document.getElementById('filtro-categoria').value;
   const grid     = document.getElementById('catalogo-grid');
@@ -644,6 +648,10 @@ async function buscarCatalogo() {
     if (!resp.ok) throw new Error();
     const productos = await resp.json();
 
+    // Si mientras esperábamos esta respuesta el usuario ya lanzó una
+    // búsqueda más nueva, esta respuesta llegó tarde — la ignoramos.
+    if (miBusquedaId !== ultimaBusquedaId) return;
+
     if (esCodigo) {
       const exacto = productos.find(p => p.codigo_barras === q);
       if (exacto) {
@@ -655,6 +663,7 @@ async function buscarCatalogo() {
     }
     renderizarResultados(productos);
   } catch {
+    if (miBusquedaId !== ultimaBusquedaId) return;
     grid.innerHTML = '<div class="pdv-catalogo__placeholder"><p>Error al buscar productos.</p></div>';
   }
 }

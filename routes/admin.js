@@ -8,7 +8,7 @@ const multer  = require('multer');
 const path    = require('path');
 const fs      = require('fs');
 const { supabase } = require('../db/database');
-const { api }      = require('../db/api');
+const { api, API_URL } = require('../db/api');
 const { leerConfigTicket, guardarConfigTicket } = require('../utils/config-ticket');
 const SUCURSAL_ID = process.env.SUCURSAL_ID;
 // ─── MULTER para el logo del sistema ──────────────────────────────────────────
@@ -426,6 +426,64 @@ router.get('/corte', async (req, res) => {
     res.status(500).send('Error al cargar corte: ' + err.message);
   }
 });
+
+/* ─────────────────────────────────────────
+   GET /admin/respaldo — exportar datos
+───────────────────────────────────────── */
+router.get('/respaldo', (req, res) => {
+  res.render('admin/respaldo', {
+    title: 'Respaldo',
+    error: req.query.error || null,
+  });
+});
+
+
+
+/* ─────────────────────────────────────────
+   GET /admin/respaldo/json — descargar respaldo JSON
+───────────────────────────────────────── */
+router.get('/respaldo/json', async (req, res) => {
+  try {
+    const respuesta = await fetch(`${API_URL}/respaldo/json`, {
+      headers: { Authorization: `Bearer ${req.session.token}` },
+    });
+    if (!respuesta.ok) throw new Error('Error al generar el respaldo JSON');
+
+    const buffer = await respuesta.arrayBuffer();
+    const disposition = respuesta.headers.get('content-disposition') || '';
+    const nombre = disposition.match(/filename=([^;]+)/)?.[1] || 'respaldo.json';
+
+    res.setHeader('Content-Type', 'application/json');
+    res.setHeader('Content-Disposition', `attachment; filename="${nombre}"`);
+    res.send(Buffer.from(buffer));
+  } catch (err) {
+    res.redirect('/admin/respaldo?error=fallo');
+  }
+});
+
+/* ─────────────────────────────────────────
+   GET /admin/respaldo/excel — descargar respaldo Excel
+───────────────────────────────────────── */
+router.get('/respaldo/excel', async (req, res) => {
+  try {
+    const respuesta = await fetch(`${API_URL}/respaldo/excel`, {
+      headers: { Authorization: `Bearer ${req.session.token}` },
+    });
+    if (!respuesta.ok) throw new Error('Error al generar el respaldo Excel');
+
+    const buffer = await respuesta.arrayBuffer();
+    const disposition = respuesta.headers.get('content-disposition') || '';
+    const nombre = disposition.match(/filename=([^;]+)/)?.[1] || 'respaldo.xlsx';
+
+    res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+    res.setHeader('Content-Disposition', `attachment; filename="${nombre}"`);
+    res.send(Buffer.from(buffer));
+  } catch (err) {
+    res.redirect('/admin/respaldo?error=fallo');
+  }
+});
+
+
 /* ─────────────────────────────────────────
    Página temporal para secciones en desarrollo
 ───────────────────────────────────────── */

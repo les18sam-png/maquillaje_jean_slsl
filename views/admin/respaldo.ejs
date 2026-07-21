@@ -1,0 +1,39 @@
+<%- include('../partials/header', { title }) %>
+
+<div class="page-wrapper">
+
+  <div class="page-header">
+    <div class="page-header__left">
+      <h1 class="page-title">Respaldo</h1>
+      <span class="page-subtitle">Exporta los datos de tu sucursal</span>
+    </div>
+  </div>
+
+  <% if (error) { %>
+    <div class="alert alert--error" style="margin-bottom:16px;">
+      No se pudo generar el respaldo. Intenta de nuevo.
+    </div>
+  <% } %>
+
+  <div class="card" style="max-width:640px; padding:24px;">
+    <p style="color:#666; font-size:.9rem; margin-bottom:20px;">
+      Descarga una copia de los datos de tu sucursal: productos, categorías, promociones,
+      inventario, kardex, clientes, cajas, turnos, movimientos de caja, ventas, artículos
+      vendidos y pagos. No incluye usuarios, roles ni auditoría.
+    </p>
+
+    <div style="display:flex; gap:12px; flex-wrap:wrap;">
+      <a href="/admin/respaldo/json" class="btn btn-primary">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+        Descargar JSON
+      </a>
+      <a href="/admin/respaldo/excel" class="btn btn-secondary">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+        Descargar Excel
+      </a>
+    </div>
+  </div>
+
+</div>
+
+<%- include('../partials/footer') %>
