@@ -159,9 +159,12 @@
     <div class="form-section">
       <h2 class="form-section__title">Permisos</h2>
       <p class="form-hint" style="margin-bottom:14px;">
-        Los permisos se heredan del rol seleccionado. Aquí puedes consultarlos — para modificarlos, cambia el rol.
-      </p>
-
+  <% if (modoEdicion) { %>
+    Los permisos se heredan del rol seleccionado, pero puedes personalizarlos individualmente para este usuario.
+  <% } else { %>
+    Los permisos se heredan del rol seleccionado. Podrás personalizarlos individualmente después de crear el usuario, desde Editar.
+  <% } %>
+</p>
       <!-- Tabs -->
       <div class="permisos-tabs">
         <button type="button" class="permisos-tab permisos-tab--active" onclick="switchTab(this, 'tab-ventas')">Ventas</button>
@@ -175,29 +178,39 @@
       <div class="permisos-tab-content" id="tab-ventas">
         <div class="permisos-check-grid">
           <label class="permiso-check">
-            <input type="checkbox" name="perm_corte_caja" disabled
-              <%= usuario?.roles?.perm_corte_caja ? 'checked' : '' %>>
+            <input type="checkbox" name="perm_corte_caja" <%= modoEdicion ? '' : 'disabled' %>
+  <%= usuario?.perm_corte_caja ? 'checked' : '' %>>
             <span>Corte de caja</span>
           </label>
           <label class="permiso-check">
-            <input type="checkbox" name="perm_cancelar_tickets" disabled
-              <%= usuario?.roles?.perm_cancelar_tickets ? 'checked' : '' %>>
+            <input type="checkbox" name="perm_cancelar_tickets" <%= modoEdicion ? '' : 'disabled' %>
+  <%= usuario?.perm_cancelar_tickets ? 'checked' : '' %>>
             <span>Cancelar tickets</span>
           </label>
-          <label class="permiso-check">
-            <input type="checkbox" name="perm_descuentos" disabled
-              <%= usuario?.roles?.perm_descuentos ? 'checked' : '' %>>
+        <label class="permiso-check">
+            <input type="checkbox" name="perm_descuentos" <%= modoEdicion ? '' : 'disabled' %>
+  <%= usuario?.perm_descuentos ? 'checked' : '' %>>
             <span>Aplicar descuentos</span>
+          </label>
+          <label class="permiso-check">
+            <input type="checkbox" name="perm_movimientos_caja" <%= modoEdicion ? '' : 'disabled' %>
+              <%= usuario?.perm_movimientos_caja ? 'checked' : '' %>>
+            <span>Movimientos de caja</span>
+          </label>
+          <label class="permiso-check">
+            <input type="checkbox" name="perm_devoluciones" <%= modoEdicion ? '' : 'disabled' %>
+              <%= usuario?.perm_devoluciones ? 'checked' : '' %>>
+            <span>Devoluciones</span>
           </label>
         </div>
       </div>
 
-      <!-- Tab Clientes -->
+<!-- Tab Clientes -->
       <div class="permisos-tab-content" id="tab-clientes" style="display:none">
         <div class="permisos-check-grid">
           <label class="permiso-check">
-            <input type="checkbox" name="perm_clientes" disabled
-              <%= usuario?.roles?.perm_clientes ? 'checked' : '' %>>
+            <input type="checkbox" name="perm_clientes" <%= modoEdicion ? '' : 'disabled' %>
+              <%= usuario?.perm_clientes ? 'checked' : '' %>>
             <span>Gestionar clientes</span>
           </label>
         </div>
@@ -207,13 +220,13 @@
       <div class="permisos-tab-content" id="tab-productos" style="display:none">
         <div class="permisos-check-grid">
           <label class="permiso-check">
-            <input type="checkbox" name="perm_modificar_precios" disabled
-              <%= usuario?.roles?.perm_modificar_precios ? 'checked' : '' %>>
+            <input type="checkbox" name="perm_modificar_precios" <%= modoEdicion ? '' : 'disabled' %>
+              <%= usuario?.perm_modificar_precios ? 'checked' : '' %>>
             <span>Modificar precios</span>
           </label>
           <label class="permiso-check">
-            <input type="checkbox" name="perm_promociones" disabled
-              <%= usuario?.roles?.perm_promociones ? 'checked' : '' %>>
+            <input type="checkbox" name="perm_promociones" <%= modoEdicion ? '' : 'disabled' %>
+  <%= usuario?.perm_promociones ? 'checked' : '' %>>
             <span>Promociones</span>
           </label>
         </div>
@@ -223,18 +236,18 @@
       <div class="permisos-tab-content" id="tab-inventario" style="display:none">
         <div class="permisos-check-grid">
           <label class="permiso-check">
-            <input type="checkbox" name="perm_inventario_entrada" disabled
-              <%= usuario?.roles?.perm_inventario_entrada ? 'checked' : '' %>>
+            <input type="checkbox" name="perm_inventario_entrada" <%= modoEdicion ? '' : 'disabled' %>
+  <%= usuario?.perm_inventario_entrada ? 'checked' : '' %>>
             <span>Entrada de mercancía</span>
           </label>
           <label class="permiso-check">
-            <input type="checkbox" name="perm_inventario_ajuste" disabled
-              <%= usuario?.roles?.perm_inventario_ajuste ? 'checked' : '' %>>
+            <input type="checkbox" name="perm_inventario_ajuste" <%= modoEdicion ? '' : 'disabled' %>
+  <%= usuario?.perm_inventario_ajuste ? 'checked' : '' %>>
             <span>Ajuste de inventario</span>
           </label>
           <label class="permiso-check">
-            <input type="checkbox" name="perm_kardex" disabled
-              <%= usuario?.roles?.perm_kardex ? 'checked' : '' %>>
+            <input type="checkbox" name="perm_kardex" <%= modoEdicion ? '' : 'disabled' %>
+              <%= usuario?.perm_kardex ? 'checked' : '' %>>
             <span>Ver kardex</span>
           </label>
         </div>
@@ -243,24 +256,28 @@
       <!-- Tab Otros -->
       <div class="permisos-tab-content" id="tab-otros" style="display:none">
         <div class="permisos-check-grid">
-          <label class="permiso-check">
-            <input type="checkbox" name="perm_reportes" disabled
-              <%= usuario?.roles?.perm_reportes ? 'checked' : '' %>>
+         <label class="permiso-check">
+            <input type="checkbox" name="perm_reportes" <%= modoEdicion ? '' : 'disabled' %>
+              <%= usuario?.perm_reportes ? 'checked' : '' %>>
             <span>Ver reportes</span>
           </label>
           <label class="permiso-check">
-            <input type="checkbox" name="perm_exportar" disabled
-              <%= usuario?.roles?.perm_exportar ? 'checked' : '' %>>
+            <input type="checkbox" name="perm_exportar" <%= modoEdicion ? '' : 'disabled' %>
+  <%= usuario?.perm_exportar ? 'checked' : '' %>>
             <span>Exportar datos</span>
           </label>
           <label class="permiso-check">
-            <input type="checkbox" name="perm_administrar" disabled
-              <%= usuario?.roles?.perm_administrar ? 'checked' : '' %>>
+            <input type="checkbox" name="perm_administrar" <%= modoEdicion ? '' : 'disabled' %>
+              <%= usuario?.perm_administrar ? 'checked' : '' %>>
             <span>Administrar sistema</span>
+          </label>
+          <label class="permiso-check">
+            <input type="checkbox" name="perm_auditoria" <%= modoEdicion ? '' : 'disabled' %>
+              <%= usuario?.perm_auditoria ? 'checked' : '' %>>
+            <span>Ver auditoría</span>
           </label>
         </div>
       </div>
-
     </div>
 
     <!-- Botones -->

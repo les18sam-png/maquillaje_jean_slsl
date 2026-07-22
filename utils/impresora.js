@@ -118,6 +118,12 @@ async function imprimirTicket(config, venta) {
           printer.text(' ').text(cfg.leyenda);
         }
 
+        // Abrir cajón de dinero solo si el pago incluye efectivo (puro o mixto)
+        const incluyeEfectivo = (venta.pagos || []).some(p => p.metodo === 'efectivo');
+        if (incluyeEfectivo) {
+          printer.cashdraw(2);
+        }
+
         printer
           .text(' ')
           .text(' ')

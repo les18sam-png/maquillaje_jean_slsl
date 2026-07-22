@@ -7,7 +7,6 @@ const router  = express.Router();
 const multer  = require('multer');
 const path    = require('path');
 const fs      = require('fs');
-const { supabase } = require('../db/database');
 const { api, API_URL } = require('../db/api');
 const { leerConfigTicket, guardarConfigTicket } = require('../utils/config-ticket');
 const SUCURSAL_ID = process.env.SUCURSAL_ID;
@@ -49,10 +48,22 @@ router.get('/usuarios', async (req, res) => {
   try {
     const data = await api('/usuarios/', {}, req.session.token);
 
-    const usuarios = (data.items || []).map(u => ({
-      ...u,
-      roles: { nombre: u.rol_nombre },
-    }));
+    const PERMISOS = [
+      'perm_inventario_entrada', 'perm_inventario_ajuste', 'perm_kardex',
+      'perm_corte_caja', 'perm_modificar_precios', 'perm_cancelar_tickets',
+      'perm_clientes', 'perm_descuentos', 'perm_reportes', 'perm_exportar',
+      'perm_promociones', 'perm_administrar', 'perm_movimientos_caja',
+      'perm_devoluciones', 'perm_auditoria',
+    ];
+
+    const usuarios = (data.items || []).map(u => {
+      const permisos = {};
+      PERMISOS.forEach(p => { permisos[p] = u[p]; });
+      return {
+        ...u,
+        roles: { nombre: u.rol_nombre, ...permisos },
+      };
+    });
 
     res.render('admin/usuarios', {
       title:    'Usuarios',
@@ -70,17 +81,12 @@ router.get('/usuarios', async (req, res) => {
 ───────────────────────────────────────── */
 router.get('/usuarios/nuevo', async (req, res) => {
   try {
-    // Roles sigue en Supabase por ahora
-    const { data: roles } = await supabase
-      .from('roles')
-      .select('id, nombre')
-      .eq('sucursal_id', SUCURSAL_ID)
-      .order('nombre');
+    const rolesData = await api('/roles/', {}, req.session.token);
 
     res.render('admin/form-usuario', {
       title:       'Nuevo Usuario',
       usuario:     null,
-      roles:       roles || [],
+      roles:       rolesData.items || [],
       modoEdicion: false,
     });
   } catch (err) {
@@ -121,16 +127,12 @@ router.get('/usuarios/:id/editar', async (req, res) => {
   try {
     const usuario = await api(`/usuarios/${req.params.id}`, {}, req.session.token);
 
-    const { data: roles } = await supabase
-      .from('roles')
-      .select('id, nombre')
-      .eq('sucursal_id', SUCURSAL_ID)
-      .order('nombre');
+    const rolesData = await api('/roles/', {}, req.session.token);
 
     res.render('admin/form-usuario', {
       title:       `Editar — ${usuario.nombre_completo}`,
       usuario,
-      roles:       roles || [],
+      roles:       rolesData.items || [],
       modoEdicion: true,
     });
   } catch (err) {
@@ -144,13 +146,26 @@ router.get('/usuarios/:id/editar', async (req, res) => {
 /* ─────────────────────────────────────────
    POST /admin/usuarios/:id/editar — MIGRADO
 ───────────────────────────────────────── */
+const PERMISOS = [
+  'perm_inventario_entrada', 'perm_inventario_ajuste', 'perm_kardex',
+  'perm_corte_caja', 'perm_modificar_precios', 'perm_cancelar_tickets',
+  'perm_clientes', 'perm_descuentos', 'perm_reportes', 'perm_exportar',
+  'perm_promociones', 'perm_administrar', 'perm_movimientos_caja',
+  'perm_devoluciones', 'perm_auditoria',
+];
+
 router.post('/usuarios/:id/editar', async (req, res) => {
   try {
     const { nombre_completo, nombre_usuario, rol_id } = req.body;
 
+    const permisos = {};
+    PERMISOS.forEach(p => {
+      permisos[p] = req.body[p] === 'on';
+    });
+
     await api(`/usuarios/${req.params.id}`, {
       method: 'PUT',
-      body: JSON.stringify({ nombre_completo, nombre_usuario, rol_id }),
+      body: JSON.stringify({ nombre_completo, nombre_usuario, rol_id, ...permisos }),
     }, req.session.token);
 
     res.redirect('/admin/usuarios?toast=actualizado');
@@ -182,23 +197,18 @@ router.post('/usuarios/:id/toggle', async (req, res) => {
 });
 
 /* ─────────────────────────────────────────
-   73 — GET /admin/roles — sigue con Supabase
+   GET /admin/roles — sigue con Supabase
 ───────────────────────────────────────── */
 router.get('/roles', async (req, res) => {
   try {
-    const { data: roles, error } = await supabase
-      .from('roles')
-      .select('*')
-      .eq('sucursal_id', SUCURSAL_ID)
-      .order('nombre');
-
-    if (error) throw error;
+    const rolesData = await api('/roles/', {}, req.session.token);
 
     res.render('admin/roles', {
       title: 'Roles y Permisos',
-      roles: roles || [],
+      roles: rolesData.items || [],
     });
   } catch (err) {
+    if (err.status === 401) return res.redirect('/auth/login?error=sesion');
     console.error('Error en GET /admin/roles:', err.message);
     res.status(500).send('Error al cargar roles: ' + err.message);
   }
