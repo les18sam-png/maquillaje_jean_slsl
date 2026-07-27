@@ -1,9 +1,25 @@
 const express = require('express');
 const router  = express.Router();
+const fs = require('fs');
+const path = require('path');
 const { api } = require('../db/api');
 
+const logoDir = path.join(__dirname, '../public/uploads/logo');
+
+function obtenerLogoActual() {
+  try {
+    const archivos = fs.readdirSync(logoDir)
+      .filter(f => /^logo-.*\.(jpg|jpeg|png|webp)$/i.test(f))
+      .sort()
+      .reverse();
+    return archivos[0] || null;
+  } catch {
+    return null;
+  }
+}
+
 router.get('/', (req, res) => {
-  res.render('verificador/index', { title: 'Verificador de Precios' });
+  res.render('verificador/index', { title: 'Verificador de Precios', logoActual: obtenerLogoActual() });
 });
 
 router.get('/buscar', async (req, res) => {

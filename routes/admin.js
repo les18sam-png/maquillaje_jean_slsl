@@ -223,12 +223,25 @@ router.get('/configuracion', async (req, res) => {
 
     const cajasData = await api('/cajas/?solo_activas=false', {}, req.session.token).catch(() => ({ items: [] }));
 
+    const configTicket = leerConfigTicket();
+
+    let logoActual = null;
+    try {
+      const archivos = fs.readdirSync(logoDir)
+        .filter(f => /^logo-.*\.(jpg|jpeg|png|webp)$/i.test(f))
+        .sort()
+        .reverse();
+      logoActual = archivos[0] || null;
+    } catch { logoActual = null; }
+
     res.render('admin/configuracion', {
-      title:    'Configuración',
-      sucursal: sucursal || {},
-      cajas:    cajasData.items || [],
-      toast:    req.query.toast || null,
-      error:    req.query.error || null,
+      title:       'Configuración',
+      sucursal:    sucursal || {},
+      cajas:       cajasData.items || [],
+      configTicket,
+      logoActual,
+      toast:       req.query.toast || null,
+      error:       req.query.error || null,
     });
   } catch (err) {
     if (err.status === 401) return res.redirect('/auth/login?error=sesion');
@@ -362,10 +375,20 @@ router.get('/ticket', async (req, res) => {
     const sucursal = await api('/sucursales/actual', {}, req.session.token).catch(() => ({}));
     const config   = leerConfigTicket();
 
+    let logoActual = null;
+    try {
+      const archivos = fs.readdirSync(logoDir)
+        .filter(f => /^logo-.*\.(jpg|jpeg|png|webp)$/i.test(f))
+        .sort()
+        .reverse();
+      logoActual = archivos[0] || null;
+    } catch { logoActual = null; }
+
     res.render('admin/ticket', {
       title: 'Ticket',
       sucursal: sucursal || {},
       config,
+      logoActual,
       toast: req.query.toast || null,
       error: req.query.error || null,
     });
@@ -493,7 +516,94 @@ router.get('/respaldo/excel', async (req, res) => {
   }
 });
 
+/* ─────────────────────────────────────────
+   GET /admin/reportes-correo — lista de destinatarios
+───────────────────────────────────────── */
+router.get('/reportes-correo', async (req, res) => {
+  try {
+    const data = await api('/destinatarios-reportes/', {}, req.session.token);
+    res.render('admin/reportes-correo', {
+      title: 'Reportes por correo',
+      destinatarios: data.items || [],
+      toast: req.query.toast || null,
+      error: req.query.error || null,
+    });
+  } catch (err) {
+    if (err.status === 401) return res.redirect('/auth/login?error=sesion');
+    console.error('Error en GET /admin/reportes-correo:', err.message);
+    res.status(500).send('Error al cargar destinatarios: ' + err.message);
+  }
+});
 
+/* ─────────────────────────────────────────
+   POST /admin/reportes-correo/nuevo — agregar destinatario
+───────────────────────────────────────── */
+router.post('/reportes-correo/nuevo', async (req, res) => {
+  try {
+    const { correo, nombre, frecuencia } = req.body;
+    await api('/destinatarios-reportes/', {
+      method: 'POST',
+      body: JSON.stringify({
+        correo: correo?.trim(),
+        nombre: nombre?.trim() || null,
+        recibe_corte: req.body.recibe_corte === 'on',
+        recibe_ventas: req.body.recibe_ventas === 'on',
+        frecuencia: frecuencia || 'diario',
+      }),
+    }, req.session.token);
+    res.redirect('/admin/reportes-correo?toast=creado');
+  } catch (err) {
+    if (err.status === 401) return res.redirect('/auth/login?error=sesion');
+    console.error('Error creando destinatario:', err.message);
+    res.redirect('/admin/reportes-correo?error=fallo');
+  }
+});
+
+/* ─────────────────────────────────────────
+   POST /admin/reportes-correo/:id/toggle — activar/desactivar
+───────────────────────────────────────── */
+router.post('/reportes-correo/:id/toggle', async (req, res) => {
+  try {
+    const { activo_actual } = req.body;
+    await api(`/destinatarios-reportes/${req.params.id}`, {
+      method: 'PUT',
+      body: JSON.stringify({ activo: activo_actual !== 'true' }),
+    }, req.session.token);
+    res.redirect('/admin/reportes-correo?toast=actualizado');
+  } catch (err) {
+    if (err.status === 401) return res.redirect('/auth/login?error=sesion');
+    console.error('Error actualizando destinatario:', err.message);
+    res.redirect('/admin/reportes-correo');
+  }
+});
+
+/* ─────────────────────────────────────────
+   POST /admin/reportes-correo/:id/eliminar
+───────────────────────────────────────── */
+router.post('/reportes-correo/:id/eliminar', async (req, res) => {
+  try {
+    await api(`/destinatarios-reportes/${req.params.id}`, { method: 'DELETE' }, req.session.token);
+    res.redirect('/admin/reportes-correo?toast=eliminado');
+  } catch (err) {
+    if (err.status === 401) return res.redirect('/auth/login?error=sesion');
+    console.error('Error eliminando destinatario:', err.message);
+    res.redirect('/admin/reportes-correo?error=fallo');
+  }
+});
+
+/* ─────────────────────────────────────────
+   POST /admin/reportes-correo/:id/enviar-ahora
+───────────────────────────────────────── */
+router.post('/reportes-correo/:id/enviar-ahora', async (req, res) => {
+  try {
+    await api(`/destinatarios-reportes/${req.params.id}/enviar-ahora`, { method: 'POST' }, req.session.token);
+    res.redirect('/admin/reportes-correo?toast=enviado');
+  } catch (err) {
+    if (err.status === 401) return res.redirect('/auth/login?error=sesion');
+    console.error('Error enviando reporte:', err.message);
+    res.redirect('/admin/reportes-correo?error=fallo_envio');
+  }
+});
 /* ─────────────────────────────────────────
    Página temporal para secciones en desarrollo
 ───────────────────────────────────────── */

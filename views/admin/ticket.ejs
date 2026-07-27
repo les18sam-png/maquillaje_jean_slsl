@@ -90,7 +90,12 @@
       </div>
 
       <div class="ticket-preview">
-        <div class="ticket-preview__paper">
+<div class="ticket-preview__paper">
+          <% if (logoActual) { %>
+            <div style="display:flex;justify-content:center;margin-bottom:8px;">
+             <img src="/uploads/logo/<%= logoActual %>" alt="Logo" style="width:60px;height:60px;object-fit:contain;border-radius:12px;">
+            </div>
+          <% } %>
           <div class="ticket-line ticket-line--center ticket-line--bold" style="font-size:.9rem;"><%= sucursal.nombre || 'MAQUILLAJE Y MAS JEAN' %></div>
           <div class="ticket-line ticket-line--center" id="prevDireccion" style="<%= config.mostrar_direccion ? '' : 'display:none' %>"><%= sucursal.direccion || '—' %></div>
           <div class="ticket-line ticket-line--center" id="prevTelefono" style="<%= config.mostrar_telefono ? '' : 'display:none' %>"><%= sucursal.telefono || '—' %></div>

@@ -499,6 +499,7 @@ function inicializarTickets() {
       mayoreo:  null, promo: null, porcentaje_promo: null, cantidad_minima_promo: null,
       cantidad: va.cantidad, stock: Infinity,
       forzado:  va.uso_precio_mayoreo && v.motivo_mayoreo === 'manual',
+      promoGuardada: !!va.uso_promocion,
     })),
     notas: v.notas || '', dirty: false, _guardando: false, _reguardar: false,
   }));
@@ -885,11 +886,12 @@ function precioAplicado(item) {
     if (item.promo != null)     return item.promo;
     if (item.porcentaje_promo)  return item.precio * (1 - item.porcentaje_promo / 100);
   }
-  if (item.forzado)            return item.mayoreo;  // F11: override manual
+  if (item.forzado) return item.mayoreo != null ? item.mayoreo : item.precio;  // ← fix: fallback si se perdió el dato al recargar
   return aplicaMayoreoItem(item) ? item.mayoreo : item.precio;
 }
 
 function motivoPrecio(item) {
+  if (item.promoGuardada) return 'promo';
   if (item.cantidad_minima_promo != null && item.cantidad >= item.cantidad_minima_promo) {
     if (item.promo != null || item.porcentaje_promo) return 'promo';
   }
@@ -1076,9 +1078,9 @@ function construirPagos(total) {
     if (che) pagos.push({ metodo: 'cheque',        monto: che });
     return pagos;
   }
-  const monto = parseFloat(document.getElementById('cobro-pago-con').value) || total;
-  const pago  = { metodo: metodoCobro, monto };
-  if (metodoCobro === 'efectivo') pago.recibido = monto;
+  const escrito = parseFloat(document.getElementById('cobro-pago-con').value) || total;
+  const pago    = { metodo: metodoCobro, monto: total };
+  if (metodoCobro === 'efectivo') pago.recibido = escrito;
   if (['tarjeta', 'transferencia', 'cheque'].includes(metodoCobro)) {
     pago.referencia = document.getElementById('cobro-referencia').value || null;
   }

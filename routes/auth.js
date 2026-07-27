@@ -3,8 +3,23 @@
 
 const express = require('express');
 const router = express.Router();
+const fs = require('fs');
+const path = require('path');
 const { api, API_URL } = require('../db/api');
 
+const logoDir = path.join(__dirname, '../public/uploads/logo');
+
+function obtenerLogoActual() {
+  try {
+    const archivos = fs.readdirSync(logoDir)
+      .filter(f => /^logo-.*\.(jpg|jpeg|png|webp)$/i.test(f))
+      .sort()
+      .reverse();
+    return archivos[0] || null;
+  } catch {
+    return null;
+  }
+}
 // ─────────────────────────────────────────
 // GET /auth/login — muestra formulario
 // ─────────────────────────────────────────
@@ -13,7 +28,7 @@ router.get('/login', (req, res) => {
   if (req.session.token) {
     return res.redirect('/venta');
   }
-  res.render('auth/login', { error: req.query.error || null });
+  res.render('auth/login', { error: req.query.error || null, logoActual: obtenerLogoActual() });
 });
 
 // ─────────────────────────────────────────

@@ -1,0 +1,155 @@
+<%- include('../partials/header', { title }) %>
+
+<div class="page-wrapper">
+
+  <!-- Breadcrumb -->
+  <nav class="breadcrumb">
+    <a href="/admin" class="breadcrumb__link">Administración</a>
+    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg>
+    <span class="breadcrumb__current">Reportes por correo</span>
+  </nav>
+
+  <!-- Encabezado -->
+  <div class="page-header">
+    <div class="page-header__left">
+      <h1 class="page-title">Reportes por correo</h1>
+      <span class="page-subtitle"><%= destinatarios.length %> destinatario<%= destinatarios.length !== 1 ? 's' : '' %></span>
+    </div>
+    <div class="page-header__right">
+      <button class="btn btn-primary" onclick="document.getElementById('modal-nuevo').classList.add('activo')">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+        Agregar destinatario
+      </button>
+    </div>
+  </div>
+
+  <!-- Toast -->
+  <% if (toast) { %>
+    <div class="alert alert--success" id="toast">
+      <%= { creado: 'Destinatario agregado.', actualizado: 'Actualizado.', eliminado: 'Destinatario eliminado.', enviado: 'Reporte enviado.' }[toast] || 'Listo.' %>
+    </div>
+  <% } %>
+  <% if (error) { %>
+    <div class="alert alert--error">
+      <%= error === 'fallo_envio' ? 'No se pudo enviar el reporte. Revisa la configuración de correo.' : 'Ocurrió un error. Intenta de nuevo.' %>
+    </div>
+  <% } %>
+
+  <!-- Aviso -->
+  <div class="alert alert--warning" style="max-width:700px;margin-bottom:16px;">
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+    Los reportes se envían automáticamente todos los días a las 7:00 am. Los reportes semanales se envían los lunes.
+  </div>
+
+  <!-- Lista -->
+  <% if (destinatarios.length === 0) { %>
+    <div class="empty-state">
+      <p>No hay destinatarios configurados. Agrega el primero.</p>
+    </div>
+  <% } else { %>
+    <div class="reportes-lista">
+      <% destinatarios.forEach(d => { %>
+        <div class="reporte-card <%= !d.activo ? 'reporte-card--inactivo' : '' %>">
+          <div class="reporte-card__info">
+            <div class="reporte-card__correo"><%= d.correo %></div>
+            <% if (d.nombre) { %><div class="reporte-card__nombre"><%= d.nombre %></div><% } %>
+            <div class="reporte-card__tags">
+              <% if (d.recibe_corte) { %><span class="tag">Corte de caja</span><% } %>
+              <% if (d.recibe_ventas) { %><span class="tag">Resumen de ventas</span><% } %>
+              <span class="tag tag--frecuencia"><%= d.frecuencia === 'diario' ? 'Diario' : 'Semanal' %></span>
+              <% if (!d.activo) { %><span class="tag tag--inactivo">Pausado</span><% } %>
+            </div>
+          </div>
+          <div class="reporte-card__acciones">
+            <form method="POST" action="/admin/reportes-correo/<%= d.id %>/enviar-ahora" class="form-inline">
+              <button type="submit" class="btn btn-ghost btn-sm">Enviar ahora</button>
+            </form>
+            <form method="POST" action="/admin/reportes-correo/<%= d.id %>/toggle" class="form-inline">
+              <input type="hidden" name="activo_actual" value="<%= d.activo %>">
+              <button type="submit" class="btn btn-secondary btn-sm"><%= d.activo ? 'Pausar' : 'Activar' %></button>
+            </form>
+            <form method="POST" action="/admin/reportes-correo/<%= d.id %>/eliminar" class="form-inline"
+              onsubmit="return confirm('¿Eliminar a <%= d.correo %> de los reportes por correo?')">
+              <button type="submit" class="btn btn-danger btn-sm">Eliminar</button>
+            </form>
+          </div>
+        </div>
+      <% }) %>
+    </div>
+  <% } %>
+
+</div>
+
+<!-- Modal: agregar destinatario -->
+<div class="modal-overlay" id="modal-nuevo">
+  <div class="modal-card">
+    <h2 class="modal-title">Agregar destinatario</h2>
+    <form method="POST" action="/admin/reportes-correo/nuevo">
+      <div class="form-group form-group--full">
+        <label class="form-label">Correo <span class="required">*</span></label>
+        <input type="email" name="correo" class="form-control" required placeholder="correo@ejemplo.com">
+      </div>
+      <div class="form-group form-group--full">
+        <label class="form-label">Nombre (opcional)</label>
+        <input type="text" name="nombre" class="form-control" placeholder="Para identificarlo en la lista">
+      </div>
+      <div class="form-group form-group--full">
+        <label class="form-label">¿Qué recibe?</label>
+        <label class="permiso-check" style="margin-bottom:8px;">
+          <input type="checkbox" name="recibe_corte" checked>
+          <span>Corte de caja</span>
+        </label>
+        <label class="permiso-check">
+          <input type="checkbox" name="recibe_ventas" checked>
+          <span>Resumen de ventas</span>
+        </label>
+      </div>
+      <div class="form-group form-group--full">
+        <label class="form-label">Frecuencia</label>
+        <select name="frecuencia" class="form-control">
+          <option value="diario">Diario</option>
+          <option value="semanal">Semanal (lunes)</option>
+        </select>
+      </div>
+      <div class="form-footer" style="justify-content:flex-end;gap:10px;">
+        <button type="button" class="btn btn-ghost" onclick="document.getElementById('modal-nuevo').classList.remove('activo')">Cancelar</button>
+        <button type="submit" class="btn btn-primary">Agregar</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<style>
+.reportes-lista { display: flex; flex-direction: column; gap: 10px; max-width: 760px; }
+.reporte-card {
+  background: #fff; border-radius: 12px; padding: 14px 18px;
+  box-shadow: 0 1px 4px rgba(60,40,50,.07);
+  display: flex; align-items: center; justify-content: space-between; gap: 12px;
+  flex-wrap: wrap;
+}
+.reporte-card--inactivo { opacity: .55; }
+.reporte-card__correo { font-weight: 600; color: #3D5D91; font-size: .92rem; }
+.reporte-card__nombre { font-size: .78rem; color: #999; margin-top: 1px; }
+.reporte-card__tags { display: flex; gap: 6px; margin-top: 8px; flex-wrap: wrap; }
+.tag {
+  font-size: .68rem; font-weight: 600; padding: 3px 9px; border-radius: 12px;
+  background: #FCE4EE; color: #6C0820;
+}
+.tag--frecuencia { background: #dbeafe; color: #1e40af; }
+.tag--inactivo { background: #fee2e2; color: #991b1b; }
+.reporte-card__acciones { display: flex; gap: 6px; flex-shrink: 0; }
+.form-inline { display: inline; }
+
+.modal-overlay {
+  position: fixed; inset: 0; background: rgba(74,5,23,.5);
+  display: none; align-items: center; justify-content: center; z-index: 1000; padding: 16px;
+}
+.modal-overlay.activo { display: flex; }
+.modal-card {
+  background: #fff; border-radius: 16px; padding: 26px; width: 100%; max-width: 420px;
+  max-height: 90vh; overflow-y: auto;
+}
+.modal-title { font-family: 'Playfair Display', serif; color: #6C0820; font-size: 1.2rem; margin-bottom: 16px; }
+</style>
+
+<%- include('../partials/footer') %>
