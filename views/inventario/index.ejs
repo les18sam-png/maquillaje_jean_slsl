@@ -94,14 +94,14 @@
                 <td><span class="codigo-badge"><%= p.codigo_barras || '—' %></span></td>
                 <td><strong><%= p.descripcion %></strong></td>
                 <td><%= p.categoria_nombre %></td>
-<td>
-  <span class="<%= p.cantidad_actual <= p.inventario_minimo ? 'stock-bajo' : 'stock-ok' %>">
-    <%= p.cantidad_actual %>
-  </span>
-</td>
+                <td>
+                  <span class="<%= p.cantidad_actual <= p.inventario_minimo ? 'stock-bajo' : 'stock-ok' %>">
+                    <%= p.cantidad_actual %>
+                  </span>
+                </td>
                 <td><span class="text-muted"><%= p.inventario_minimo %></span></td>
                 <td>
-                  <% if (p.stock_actual <= p.inventario_minimo) { %>
+                  <% if (p.cantidad_actual <= p.inventario_minimo) { %>
                     <span class="badge-alerta">Stock bajo</span>
                   <% } else { %>
                     <span class="badge badge-activo">OK</span>

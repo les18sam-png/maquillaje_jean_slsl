@@ -1,3 +1,12 @@
+<%
+  // Normaliza un timestamp de Supabase (sin zona horaria, pero guardado
+  // en UTC) a un Date correcto — mismo patrón usado en kardex.ejs.
+  function normalizarFecha(valor) {
+    if (!valor) return new Date();
+    const tieneZona = /Z$|[+-]\d{2}:\d{2}$/.test(valor);
+    return new Date(tieneZona ? valor : `${valor}Z`);
+  }
+%>
 <%- include('../partials/header', { title }) %>
 
 <div class="page-wrapper">
@@ -145,7 +154,7 @@
             <tr>
               <td class="fw-medium"><%= t.caja_nombre || '—' %></td>
               <td class="text-sm">
-                <%= new Date(t.inicio).toLocaleString('es-MX', { day:'2-digit', month:'short', hour:'2-digit', minute:'2-digit' }) %>
+                <%= normalizarFecha(t.inicio).toLocaleString('es-MX', { day:'2-digit', month:'short', hour:'2-digit', minute:'2-digit', timeZone: 'America/Mexico_City' }) %>
               </td>
               <td>
                 <% if (t.estado === 'abierto') { %>
@@ -175,6 +184,11 @@
 @media (max-width: 800px) {
   .reportes-graficas-grid { grid-template-columns: 1fr; }
 }
+
+  .data-table { table-layout: fixed; }
+  .data-table th:first-child,
+  .data-table td:first-child { width: 30%; }
+  .data-table th.text-right { text-align: right; }
 </style>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>

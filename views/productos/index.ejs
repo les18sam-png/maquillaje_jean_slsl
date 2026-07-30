@@ -12,9 +12,9 @@
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
         Importar Excel
       </a>
-      <a href="/productos/exportar" class="btn btn-secondary">
+      <a href="/productos/exportar" class="btn btn-secondary" id="btnExportar">
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
-        Exportar Excel
+        <span id="btnExportarTexto">Exportar Excel</span>
       </a>
       <a href="/productos/nuevo" class="btn btn-primary">+ Nuevo Producto</a>
       <a href="/productos/departamentos" class="btn btn-secondary">
@@ -25,7 +25,6 @@
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
         Promociones
       </a>
-
     </div>
   </div>
 
@@ -34,31 +33,16 @@
     <div class="productos-col-tabla">
 
       <div class="card">
-        <div class="card-titulo">Filtros</div>
-        <form method="GET" action="/productos" class="form-grid">
-         <div class="form-group">
-            <label>Buscar</label>
-            <input type="text" name="q" id="filtroBuscarInput" placeholder="Código o descripción..." value="<%= q %>">
+        <div class="card-titulo">Buscar Productos</div>
+        <div class="pdv-search-box" style="position:relative;">
+          <input type="text" id="buscarProductoInput"
+            placeholder="Buscar por nombre o código de barras…"
+            autocomplete="off"
+            style="width:100%; padding:.6rem .8rem; border:1.5px solid #E0C8C8; border-radius:8px; font-size:.9rem; font-family:inherit;">
+          <div class="pdv-search-hint" id="buscarProductoHint">
+            Coloca el símbolo % para buscar en todas las categorías
           </div>
-          <div class="form-group">
-            <label>Categoría</label>
-           <select name="categoria_id">
-            <option value="">Todas</option>
-            <option value="ninguna">Sin categoría</option>
-            <% categorias.forEach(cat => { %>
-              <option value="<%= cat.id %>" <%= categoria_id == cat.id ? 'selected' : '' %>>
-                <%= cat.nombre %>
-              </option>
-            <% }) %>
-          </select>
-          </div>
-          <div class="form-group" style="display:flex; align-items:flex-end; gap:.5rem;">
-            <button type="submit" class="btn btn-primary">Buscar</button>
-            <% if (q || categoria_id) { %>
-              <a href="/productos" class="btn btn-ghost">Limpiar</a>
-            <% } %>
-          </div>
-        </form>
+        </div>
       </div>
 
       <div class="card">
@@ -66,7 +50,7 @@
           <table class="tabla">
             <thead>
               <tr>
-                <th>Imagen</th>
+                
                 <th>Código</th>
                 <th>Descripción</th>
                 <th>Categoría</th>
@@ -77,68 +61,16 @@
                 <th></th>
               </tr>
             </thead>
-            <tbody>
-              <% if (productos.length === 0) { %>
-                <tr>
-                  <td colspan="8" class="text-center text-muted" style="padding:2rem;">
-                    <%= hayFiltros ? 'Sin productos que coincidan con la búsqueda' : 'Usa los filtros para buscar productos' %>
-                  </td>
-                </tr>
-              <% } else { %>
-                <% productos.forEach(p => { %>
-                  <tr class="<%= !p.activo ? 'fila-inactiva' : '' %>">
-                    <td>
-                      <% if (p.ruta_imagen) { %>
-                        <img src="/uploads/productos/<%= p.ruta_imagen %>" alt="<%= p.descripcion %>"
-                          class="tabla-img" loading="lazy">
-                      <% } else { %>
-                        <div class="tabla-img-placeholder">
-                          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" opacity="0.3">
-                            <rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/>
-                          </svg>
-                        </div>
-                      <% } %>
-                    </td>
-                    <td><span class="codigo-badge"><%= p.codigo_barras || '—' %></span></td>
-                    <td><strong><%= p.descripcion %></strong></td>
-                    <td><%= p.categoria_nombre || '—' %></td>
-                    <td>$<%= parseFloat(p.precio_venta).toFixed(2) %></td>
-                    <td>$<%= parseFloat(p.precio_mayoreo).toFixed(2) %></td>
-                    <td>
-  <span class="<%= p.stock_bajo ? 'stock-bajo' : 'stock-ok' %>">
-    <%= p.cantidad_actual %>
-  </span>
-</td>
-<td>
-                      <span class="badge badge-<%= p.activo ? 'activo' : 'inactivo' %>">
-                        <%= p.activo ? 'Activo' : 'Inactivo' %>
-                      </span>
-                    </td>
-                    <td>
-                      <div class="acciones">
-                          <a href="/productos/editar/<%= p.id %>" class="btn btn-ghost btn-xs" title="Editar">
-                          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
-                        </a>
-                        <form method="POST" action="/productos/toggle/<%= p.id %>" style="display:inline;" class="form-toggle"
-                          data-nombre="<%= p.descripcion %>" data-activo="<%= p.activo %>">
-                          <button type="submit" class="btn btn-ghost btn-xs btn-danger-ghost"
-                            title="<%= p.activo ? 'Desactivar producto' : 'Activar producto' %>">
-                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6"/><path d="M10 11v6M14 11v6"/><path d="M9 6V4h6v2"/></svg>
-                          </button>
-                        </form>                   
-                      </div>
-                    </td>
-                  </tr>
-                <% }) %>
-              <% } %>
+            <tbody id="tablaBody">
+              <tr>
+                <td colspan="8" class="text-center text-muted" style="padding:2rem;">
+                  Usa el buscador para encontrar productos
+                </td>
+              </tr>
             </tbody>
           </table>
         </div>
-        <% if (productos.length > 0) { %>
-          <div class="tabla-footer">
-            <%= productos.length %> producto<%= productos.length !== 1 ? 's' : '' %> encontrado<%= productos.length !== 1 ? 's' : '' %>
-          </div>
-        <% } %>
+        <div class="tabla-footer" id="tablaFooter" style="display:none;"></div>
       </div>
 
     </div>
@@ -148,8 +80,6 @@
         <div class="catalogo-header">
           <div class="card-titulo">Catálogo Visual</div>
         </div>
-
-        <input type="text" id="catalogoBuscar" placeholder="Buscar por nombre o código…" class="catalogo-search" autocomplete="off">
 
         <select id="catalogoCategoria" class="catalogo-select-categoria">
           <option value="">Todas las categorías</option>
@@ -161,7 +91,6 @@
         <div class="catalogo-grid" id="catalogoGrid">
           <p class="catalogo-empty">Busca un producto por nombre/código o selecciona una categoría.</p>
         </div>
-
       </div>
     </div>
 
@@ -170,6 +99,9 @@
 </main>
 
 <style>
+  .catalogo-item--seleccionada { border-color: var(--raspberry, #B5294E); box-shadow: 0 0 0 2px rgba(181,41,78,.25); }
+  .card:has(#buscarProductoInput) { overflow: visible; }
+  .pdv-search-hint { white-space: normal; max-width: 100%; }
   .productos-layout { display: grid; grid-template-columns: 1fr 280px; gap: 1.5rem; align-items: start; }
   .productos-col-tabla { display: flex; flex-direction: column; gap: 1.5rem; }
   .productos-col-catalogo { position: sticky; top: 1.5rem; }
@@ -177,6 +109,7 @@
   .tabla-img-placeholder { width: 48px; height: 48px; background: #f5f5f5; border-radius: 8px; display: flex; align-items: center; justify-content: center; }
   .codigo-badge { font-family: monospace; font-size: .8rem; background: var(--champagne); padding: 2px 6px; border-radius: 4px; }
   .stock-ok { color: #2d7a2d; font-weight: 600; }
+  .stock-bajo { color: #c0392b; font-weight: 700; }
   .fila-inactiva { opacity: .5; }
   .badge { font-size: .72rem; padding: 2px 8px; border-radius: 20px; font-weight: 600; text-transform: capitalize; }
   .badge-activo { background: #e6f9e6; color: #2d7a2d; }
@@ -186,18 +119,9 @@
   .btn-danger-ghost { background: transparent; color: #c0392b; border: 1px solid #c0392b; }
   .btn-danger-ghost:hover { background: #ffeaea; }
   .tabla-footer { padding: .75rem 1rem; font-size: .82rem; color: #999; border-top: 1px solid #f0f0f0; }
+  .btn-disabled { pointer-events: none; opacity: .6; }
   .catalogo-card { padding: 1rem; }
   .catalogo-header { margin-bottom: .6rem; }
-  .catalogo-search {
-    width: 100%;
-    padding: .5rem .7rem;
-    font-size: .82rem;
-    border: 1.5px solid #E0C8C8;
-    border-radius: 8px;
-    outline: none;
-    margin-bottom: .5rem;
-  }
-  .catalogo-search:focus { border-color: var(--raspberry); box-shadow: 0 0 0 3px rgba(181,41,78,.1); }
   .catalogo-select-categoria {
     width: 100%;
     padding: .5rem .6rem;
@@ -207,24 +131,26 @@
     background: #fff;
     margin-bottom: .75rem;
   }
-
-
-
   .catalogo-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: .5rem; max-height: 65vh; overflow-y: auto; }
   .catalogo-item { cursor: pointer; border-radius: 8px; overflow: hidden; border: 1px solid #eee; transition: transform .15s, box-shadow .15s; background: white; }
   .catalogo-item:hover { transform: translateY(-2px); box-shadow: 0 4px 12px rgba(0,0,0,.1); }
-  .catalogo-item.oculto { display: none; }
   .catalogo-img-wrap { position: relative; aspect-ratio: 1; background: #f9f9f9; }
   .catalogo-img-wrap img { width: 100%; height: 100%; object-fit: cover; }
   .catalogo-sin-img { width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; }
   .catalogo-nombre { font-size: .7rem; font-weight: 600; padding: .25rem .3rem 0; margin: 0; line-height: 1.2; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   .catalogo-precio { font-size: .7rem; color: var(--burgundy); padding: 0 .3rem .3rem; margin: 0; font-weight: 700; }
   .catalogo-empty { text-align: center; color: #aaa; font-size: .85rem; padding: 2rem 0; grid-column: 1/-1; }
+  .pdv-search-hint { position:absolute; top:calc(100% + 6px); left:0; font-size:.85rem; font-weight:500; color:#6C0820; background:#FCE4EE; border:1px solid #F4A0C0; padding:8px 14px; border-radius:8px; box-shadow:0 3px 10px rgba(0,0,0,.10); display:none; z-index:5; white-space:nowrap; }
+  .pdv-search-hint--visible { display:block; }
   @media (max-width: 900px) { .productos-layout { grid-template-columns: 1fr; } .productos-col-catalogo { position: static; } }
 </style>
 
 <script>
 (function() {
+
+  // ═══════════════════════════════════════════════
+  // TOASTS DE REDIRECCIÓN (crear/editar/eliminar)
+  // ═══════════════════════════════════════════════
   window.addEventListener('load', () => {
     const params = new URLSearchParams(window.location.search);
     const toast  = params.get('toast');
@@ -232,38 +158,58 @@
     if (toast === 'editado')   showToast('Producto actualizado correctamente', 'success');
     if (toast === 'eliminado') showToast('Producto eliminado', 'info');
   });
-  // REEMPLAZA el bloque form-toggle
-document.querySelectorAll('.form-toggle').forEach(form => {
-  form.addEventListener('submit', async function(e) {
-    e.preventDefault();
-    const nombre = this.dataset.nombre;
-    const activo = this.dataset.activo === 'true';
-    const accion = activo ? 'desactivar' : 'activar';
-    if (!confirm(`¿${accion.charAt(0).toUpperCase() + accion.slice(1)} "${nombre}"?`)) return;
-    const res  = await fetch(this.action, { method: 'POST' });
-    const data = await res.json();
-    if (data.ok) {
-      showToast(`Producto ${data.estado === 'activo' ? 'activado' : 'desactivado'}`, 'info');
-      setTimeout(() => location.reload(), 1000);
-    }
-  });
-});
-let catalogoBusquedaId = 0;
-  let catalogoDebounce   = null;
 
-  function catalogoDisparar() {
-    clearTimeout(catalogoDebounce);
-    catalogoDebounce = setTimeout(catalogoBuscar, 300);
+  // ═══════════════════════════════════════════════
+  // EXPORTAR EXCEL — feedback visual mientras descarga
+  // ═══════════════════════════════════════════════
+  document.getElementById('btnExportar').addEventListener('click', function() {
+    const texto = document.getElementById('btnExportarTexto');
+    this.classList.add('btn-disabled');
+    texto.textContent = 'Generando archivo…';
+    setTimeout(() => {
+      texto.textContent = 'Exportar Excel';
+      this.classList.remove('btn-disabled');
+    }, 4000);
+  });
+
+  // ═══════════════════════════════════════════════
+  // BÚSQUEDA UNIFICADA (nombre o código de barras)
+  // ═══════════════════════════════════════════════
+  const inputBuscarProducto = document.getElementById('buscarProductoInput');
+  const hintBuscarProducto  = document.getElementById('buscarProductoHint');
+  const catalogoCategoria   = document.getElementById('catalogoCategoria');
+  let debounceProductos     = null;
+  let idBusquedaProductos   = 0;
+
+  function pareceCodigoBarras(texto) {
+    return !texto.includes(' ') && texto.length >= 6;
   }
 
-  async function catalogoBuscar() {
-    const miBusquedaId = ++catalogoBusquedaId;
-    const q         = document.getElementById('catalogoBuscar').value.trim();
-    const categoria = document.getElementById('catalogoCategoria').value;
-    const grid      = document.getElementById('catalogoGrid');
+  inputBuscarProducto.addEventListener('focus', () => hintBuscarProducto.classList.add('pdv-search-hint--visible'));
+  inputBuscarProducto.addEventListener('blur',  () => hintBuscarProducto.classList.remove('pdv-search-hint--visible'));
+  inputBuscarProducto.addEventListener('input', () => {
+    clearTimeout(debounceProductos);
+    debounceProductos = setTimeout(buscarProductos, 300);
+  });
+  inputBuscarProducto.addEventListener('keydown', e => {
+    if (e.key === 'Enter') { e.preventDefault(); clearTimeout(debounceProductos); buscarProductos(); }
+  });
+  catalogoCategoria.addEventListener('change', buscarProductos);
+
+  async function buscarProductos() {
+    const miId  = ++idBusquedaProductos;
+    const qCrudo = inputBuscarProducto.value.trim();
+    const grid   = document.getElementById('catalogoGrid');
+
+    // "%" en el texto = buscar en todas las categorías, ignorando
+    // el filtro de categoría seleccionado (igual que en el POS).
+    const buscarEnTodas = qCrudo.includes('%');
+    const q             = qCrudo.replace(/%/g, '').trim();
+    const categoria     = buscarEnTodas ? '' : catalogoCategoria.value;
 
     if (!q && !categoria) {
       grid.innerHTML = '<p class="catalogo-empty">Busca un producto por nombre/código o selecciona una categoría.</p>';
+      renderTabla([]);
       return;
     }
     grid.innerHTML = '<p class="catalogo-empty">Buscando…</p>';
@@ -276,16 +222,33 @@ let catalogoBusquedaId = 0;
       if (!resp.ok) throw new Error();
       const productos = await resp.json();
 
-      if (miBusquedaId !== catalogoBusquedaId) return; // respuesta obsoleta, ignorar
+      if (miId !== idBusquedaProductos) return; // respuesta obsoleta, ignorar
 
+      // Coincidencia EXACTA de código de barras → mostrar solo ese producto
+      // en la tabla. Antes, buscar "66666" mostraba TODOS los productos
+      // cuyo código empieza con ese prefijo (coincidencia parcial del
+      // ilike en el backend, correcta para RF-01.3, pero no lo que el
+      // usuario espera al escanear/escribir un código completo).
+      if (pareceCodigoBarras(q)) {
+        const exacto = productos.find(p => p.codigo_barras === q);
+        if (exacto) {
+          renderTabla([exacto]);
+          grid.innerHTML = '<p class="catalogo-empty">Coincidencia exacta — mostrada en la tabla.</p>';
+          return;
+        }
+      }
+
+      // Sin coincidencia exacta: mostrar candidatos en el Catálogo Visual
+      // para que el usuario elija el producto correcto con un clic.
       catalogoRenderizar(productos);
+      renderTabla([]);
     } catch {
-      if (miBusquedaId !== catalogoBusquedaId) return;
+      if (miId !== idBusquedaProductos) return;
       grid.innerHTML = '<p class="catalogo-empty">Error al buscar productos.</p>';
     }
   }
 
-function catalogoRenderizar(productos) {
+  function catalogoRenderizar(productos) {
     const grid = document.getElementById('catalogoGrid');
     if (!productos.length) {
       grid.innerHTML = '<p class="catalogo-empty">Sin resultados.</p>';
@@ -293,7 +256,6 @@ function catalogoRenderizar(productos) {
     }
     grid.innerHTML = productos.map(p => {
       const nombre = String(p.descripcion || '').replace(/"/g, '&quot;');
-      const termino = p.codigo_barras || p.descripcion || '';
       const img = p.ruta_imagen
         ? `<img src="/uploads/productos/${p.ruta_imagen}" alt="${nombre}" loading="lazy">`
         : `<div class="catalogo-sin-img">
@@ -301,39 +263,100 @@ function catalogoRenderizar(productos) {
                <rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/>
              </svg>
            </div>`;
+      // Se guarda el producto completo en data-producto para poder
+      // renderizar la tabla directamente al hacer clic, sin otra
+      // llamada al servidor.
+      const productoJson = JSON.stringify(p).replace(/"/g, '&quot;');
       return `
-        <div class="catalogo-item" data-termino="${String(termino).replace(/"/g, '&quot;')}"
-             title="${nombre} — $${Number(p.precio_venta).toFixed(2)} — clic para buscarlo en la tabla">
+        <div class="catalogo-item" data-producto="${productoJson}"
+             title="${nombre} — $${Number(p.precio_venta).toFixed(2)} — clic para verlo en la tabla">
           <div class="catalogo-img-wrap">${img}</div>
           <p class="catalogo-nombre">${nombre}</p>
           <p class="catalogo-precio">$${Number(p.precio_venta).toLocaleString('es-MX', { minimumFractionDigits: 2 })}</p>
         </div>`;
     }).join('');
   }
-// Al hacer clic en una tarjeta del Catálogo Visual, busca ese producto
-  // exacto en la tabla de Filtros (izquierda).
+
+  // Al hacer clic en una tarjeta del Catálogo Visual, filtra la tabla
+  // a SOLO ese producto SIN tocar el grid — así el usuario puede seguir
+  // eligiendo otros productos de la misma búsqueda sin tener que
+  // volver a escribir.
   document.getElementById('catalogoGrid').addEventListener('click', e => {
     const item = e.target.closest('.catalogo-item');
     if (!item) return;
-    const termino = item.dataset.termino || '';
-    const form = document.querySelector('.card form[method="GET"]');
-    const inputBuscar = document.getElementById('filtroBuscarInput');
-    if (inputBuscar) inputBuscar.value = termino;
-    if (form) form.submit();
-  });
-  document.getElementById('catalogoBuscar').addEventListener('input', catalogoDisparar);
-  document.getElementById('catalogoCategoria').addEventListener('change', catalogoBuscar);
+    const producto = JSON.parse(item.dataset.producto);
+    renderTabla([producto]);
 
-// El campo de búsqueda de Filtros (izquierda) también alimenta el Catálogo Visual (derecha),
-  // como ayuda para confirmar visualmente el producto antes de dar clic en "Buscar".
-  const filtroBuscarInput = document.getElementById('filtroBuscarInput');
-  if (filtroBuscarInput) {
-    filtroBuscarInput.addEventListener('input', function() {
-      document.getElementById('catalogoBuscar').value = this.value;
-      catalogoDisparar();
-    });
+    // Resaltar visualmente la tarjeta seleccionada
+    document.querySelectorAll('.catalogo-item--seleccionada')
+      .forEach(el => el.classList.remove('catalogo-item--seleccionada'));
+    item.classList.add('catalogo-item--seleccionada');
+  });
+
+  // ═══════════════════════════════════════════════
+  // RENDER DE LA TABLA (izquierda)
+  // ═══════════════════════════════════════════════
+  function renderTabla(productos) {
+    const tbody  = document.getElementById('tablaBody');
+    const footer = document.getElementById('tablaFooter');
+
+    if (!productos.length) {
+      tbody.innerHTML = `<tr><td colspan="8" class="text-center text-muted" style="padding:2rem;">Usa el buscador para encontrar productos</td></tr>`;
+      footer.style.display = 'none';
+      return;
+    }
+
+    tbody.innerHTML = productos.map(p => {
+      const nombreEscapado = String(p.descripcion || '').replace(/'/g, "\\'");
+
+      return `
+        <tr class="${!p.activo ? 'fila-inactiva' : ''}">
+          <td><span class="codigo-badge">${p.codigo_barras || '—'}</span></td>
+          <td><strong>${p.descripcion}</strong></td>
+          <td>${p.categoria_nombre || '—'}</td>
+          <td>$${Number(p.precio_venta).toFixed(2)}</td>
+          <td>$${Number(p.precio_mayoreo).toFixed(2)}</td>
+          <td><span class="${p.stock_bajo ? 'stock-bajo' : 'stock-ok'}">${p.cantidad_actual}</span></td>
+          <td><span class="badge badge-${p.activo ? 'activo' : 'inactivo'}">${p.activo ? 'Activo' : 'Inactivo'}</span></td>
+          <td>
+            <div class="acciones">
+              <a href="/productos/editar/${p.id}" class="btn btn-ghost btn-xs" title="Editar">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+              </a>
+              <button type="button" class="btn btn-ghost btn-xs btn-danger-ghost"
+                onclick="toggleProducto('${p.id}', '${nombreEscapado}', ${p.activo})"
+                title="${p.activo ? 'Desactivar' : 'Activar'} producto">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6"/><path d="M10 11v6M14 11v6"/><path d="M9 6V4h6v2"/></svg>
+              </button>
+            </div>
+          </td>
+        </tr>`;
+    }).join('');
+
+    footer.style.display = 'block';
+    footer.textContent = `${productos.length} producto${productos.length !== 1 ? 's' : ''} encontrado${productos.length !== 1 ? 's' : ''}`;
   }
 
+  // ═══════════════════════════════════════════════
+  // TOGGLE ACTIVO / INACTIVO
+  // ═══════════════════════════════════════════════
+  window.toggleProducto = async function(id, nombre, activo) {
+    const accion = activo ? 'desactivar' : 'activar';
+    if (!confirm(`¿${accion.charAt(0).toUpperCase() + accion.slice(1)} "${nombre}"?`)) return;
+
+    try {
+      const res  = await fetch(`/productos/toggle/${id}`, { method: 'POST' });
+      const data = await res.json();
+      if (data.ok) {
+        showToast(`Producto ${data.estado === 'activo' ? 'activado' : 'desactivado'}`, 'info');
+        buscarProductos(); // re-consulta para reflejar el nuevo estado
+      } else {
+        showToast(data.mensaje || 'No se pudo actualizar el producto', 'error');
+      }
+    } catch {
+      showToast('Error de conexión al actualizar el producto', 'error');
+    }
+  };
 
 })();
 </script>

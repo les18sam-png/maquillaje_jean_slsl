@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>Productos faltantes — SmartVenta</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Playfair+Display:wght@600;700&display=swap" rel="stylesheet">
+<style>
+  *,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+  :root{
+    --burgundy:#6C0820; --burgundy-dark:#4A0517;
+    --pink-light:#FCE4EE; --pink-border:#F2DCDB;
+    --text:#1a1a2e; --muted:#888; --bg:#FAF5F5; --rojo:#c0392b;
+  }
+  html,body{background:var(--bg);font-family:'DM Sans',sans-serif;color:var(--text);}
+  .pf-shell{max-width:480px;margin:0 auto;min-height:100vh;}
+  .pf-top{
+    background:linear-gradient(160deg,var(--burgundy),var(--burgundy-dark));
+    padding:calc(env(safe-area-inset-top) + 16px) 18px 16px;color:#fff;
+    display:flex;align-items:center;gap:10px;
+  }
+  .pf-back{background:rgba(255,255,255,.14);border:1px solid rgba(255,255,255,.25);color:#fff;border-radius:8px;padding:7px 9px;cursor:pointer;display:flex;}
+  .pf-titulo{font-family:'Playfair Display',serif;font-size:1.05rem;font-weight:700;}
+  .pf-sub{font-size:.68rem;color:rgba(255,255,255,.6);}
+  .pf-body{padding:16px 18px 32px;}
+  .pf-buscador{
+    background:#fff;border:1.5px solid var(--pink-border);border-radius:10px;
+    padding:9px 12px;width:100%;font-size:.85rem;font-family:'DM Sans',sans-serif;
+    margin-bottom:12px;outline:none;
+  }
+  .pf-buscador:focus{border-color:var(--burgundy);}
+  .pf-fila{
+    background:#fff;border:1px solid var(--pink-border);border-radius:12px;
+    padding:12px 14px;margin-bottom:8px;display:flex;justify-content:space-between;align-items:center;
+  }
+  .pf-nombre{font-size:.85rem;font-weight:600;}
+  .pf-sucursal{font-size:.7rem;color:var(--muted);margin-top:2px;}
+  .pf-stock{
+    font-size:.75rem;font-weight:700;padding:4px 10px;border-radius:10px;
+    background:#fee2e2;color:var(--rojo);white-space:nowrap;flex-shrink:0;
+  }
+  .pf-stock--agotado{background:var(--rojo);color:#fff;}
+  .pf-vacio{text-align:center;color:#bbb;font-size:.85rem;padding:40px 10px;}
+</style>
+</head>
+<body>
+
+<div class="pf-shell">
+  <div class="pf-top">
+    <button class="pf-back" onclick="history.back()">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2"><polyline points="15 18 9 12 15 6"/></svg>
+    </button>
+    <div>
+      <div class="pf-titulo">Productos faltantes</div>
+      <div class="pf-sub" id="pf-cantidad">Cargando…</div>
+    </div>
+  </div>
+
+  <div class="pf-body">
+    <input type="text" class="pf-buscador" id="pf-buscar" placeholder="Buscar producto…">
+    <div id="pf-lista"><div class="pf-vacio">Cargando…</div></div>
+  </div>
+</div>
+
+<script>
+  const params = new URLSearchParams(window.location.search);
+  const sucursalId = params.get('sucursal_id') || '';
+  let productos = [];
+
+  async function cargar() {
+    const qp = new URLSearchParams();
+    if (sucursalId) qp.append('sucursal_id', sucursalId);
+    try {
+      const resp = await fetch(`/dashboard-dueno/data/productos-faltantes?${qp}`);
+      if (!resp.ok) throw new Error();
+      const data = await resp.json();
+      productos = data.items;
+      document.getElementById('pf-cantidad').textContent = `${data.total} producto${data.total === 1 ? '' : 's'} en o bajo el mínimo`;
+      render(productos);
+    } catch {
+      document.getElementById('pf-lista').innerHTML = '<div class="pf-vacio">Error al cargar productos.</div>';
+    }
+  }
+
+  function render(lista) {
+    const wrap = document.getElementById('pf-lista');
+    if (!lista.length) {
+      wrap.innerHTML = '<div class="pf-vacio">Sin productos faltantes 🎉</div>';
+      return;
+    }
+    wrap.innerHTML = lista.map(p => `
+      <div class="pf-fila">
+        <div>
+          <div class="pf-nombre">${p.nombre}</div>
+          <div class="pf-sucursal">${p.sucursal_nombre}</div>
+        </div>
+        <div class="pf-stock ${p.cantidad_actual <= 0 ? 'pf-stock--agotado' : ''}">
+          ${p.cantidad_actual <= 0 ? 'Agotado' : p.cantidad_actual + ' / mín. ' + p.inventario_minimo}
+        </div>
+      </div>
+    `).join('');
+  }
+
+  document.getElementById('pf-buscar').addEventListener('input', function() {
+    const q = this.value.trim().toLowerCase();
+    render(productos.filter(p => p.nombre.toLowerCase().includes(q)));
+  });
+
+  cargar();
+</script>
+
+</body>
+</html>

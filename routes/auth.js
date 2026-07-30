@@ -53,7 +53,7 @@ router.post('/login', async (req, res) => {
       return res.redirect('/auth/login?error=credenciales');
     }
 
-    const data = await response.json();
+     const data = await response.json();
 
     // Guardar todo lo necesario en la sesión
     req.session.token = data.access_token;
@@ -65,7 +65,21 @@ router.post('/login', async (req, res) => {
     req.session.rol_id = data.rol_id;
     req.session.permisos = data.permisos;
 
-    res.redirect('/');
+    try {
+      const sucursal = await api('/sucursales/actual', {}, data.access_token);
+      req.session.sucursal_nombre = sucursal?.nombre || null;
+    } catch {
+      req.session.sucursal_nombre = null;
+    }
+
+    // La dueña tiene su propia pantalla exclusiva — no entra al sistema normal
+    if (data.permisos?.perm_dueno) {
+      return res.redirect('/dashboard-dueno');
+    }
+
+    res.redirect('/');    
+    
+    
   } catch (err) {
     console.error('[Login] Error:', err.message);
     res.redirect('/auth/login?error=credenciales');

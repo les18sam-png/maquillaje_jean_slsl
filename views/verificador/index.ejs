@@ -94,7 +94,7 @@
     /* ── Body: dos columnas ── */
     .vf-body {
       display: grid;
-      grid-template-columns: 2fr 1fr;
+      grid-template-columns: 1fr 380px;
       flex: 1;
       overflow: hidden;
     }
@@ -218,9 +218,9 @@
     .vf-catalogo__grid {
       flex: 1; overflow-y: auto; padding: 10px;
       display: grid;
-      grid-template-columns: repeat(auto-fill, minmax(110px, 1fr));
-      grid-auto-rows: 140px;
-      gap: 8px;
+      grid-template-columns: repeat(3, 1fr);
+      grid-auto-rows: 100px;
+      gap: 6px;
       align-content: start;
     }
 
@@ -245,27 +245,28 @@
       height: 80px; background: var(--pink-light);
       overflow: hidden; position: relative; flex-shrink: 0;
     }
-    .vf-mini-card__img img { width: 100%; height: 100%; object-fit: cover; }
-    .vf-mini-card__img-placeholder {
-      width: 100%; height: 100%;
-      display: flex; align-items: center; justify-content: center; color: #ccc;
+    .vf-mini-card__img img { width: 100%; height: 100%; object-fit: contain; }
+    .vf-mini-card__img {
+      height: 55px; background: var(--pink-light);
+      overflow: hidden; position: relative; flex-shrink: 0;
     }
-    .vf-mini-card__info { padding: 6px 7px 8px; flex: 1; }
-    .vf-mini-card__nombre {
-      font-size: .68rem; font-weight: 600; color: var(--navy);
-      line-height: 1.2; display: -webkit-box;
-      -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
-      margin-bottom: 3px;
-    }
-    .vf-mini-card__precio {
-      font-size: .8rem; font-weight: 700; color: var(--burgundy);
-    }
+
+    
     .vf-mini-card__badge-promo {
       font-size: .6rem; background: #065f46; color: #fff;
       padding: 1px 5px; border-radius: 4px; font-weight: 700;
       display: inline-block; margin-bottom: 2px;
     }
-
+    .vf-mini-card__info { padding: 4px 5px 6px; flex: 1; }
+    .vf-mini-card__nombre {
+      font-size: .6rem; font-weight: 600; color: var(--navy);
+      line-height: 1.15; display: -webkit-box;
+      -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
+      margin-bottom: 2px;
+    }
+    .vf-mini-card__precio {
+      font-size: .72rem; font-weight: 700; color: var(--burgundy);
+    }
     .vf-catalogo__placeholder {
       grid-column: 1 / -1;
       display: flex; align-items: center; justify-content: center;

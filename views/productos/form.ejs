@@ -107,7 +107,7 @@
                   value="<%= producto ? producto.precio_mayoreo : '' %>" class="input-with-prefix">
               </div>
               <span class="field-error" id="err-precio_mayoreo"></span>
-              <span class="field-hint">Se aplica cuando el ticket supera $300 o el cliente es mayorista</span>
+              <span class="field-hint">Se aplica cuando el ticket supera $350 o el cliente es mayorista</span>
             </div>
 
             <div class="form-group">
@@ -129,7 +129,7 @@
               <label for="inventario_minimo">Stock mínimo <span class="req">*</span></label>
               <input type="number" id="inventario_minimo" name="inventario_minimo" placeholder="0" min="0" step="1"
                 value="<%= producto ? producto.inventario_minimo : 0 %>">
-              <span class="field-hint">Alerta cuando el stock baje de este número</span>
+              <span class="field-hint">Alerta cuando el stock baje de este número · Debe ser igual o mayor a 0</span>
               <span class="field-error" id="err-inventario_minimo"></span>
             </div>
 
@@ -137,7 +137,8 @@
             <div class="form-group">
               <label for="stock_inicial">Stock inicial</label>
               <input type="number" id="stock_inicial" name="stock_inicial" placeholder="0" min="0" step="1" value="0">
-              <span class="field-hint">Cantidad con la que entra el producto al inventario</span>
+              <span class="field-hint">Cantidad con la que entra el producto al inventario · Debe ser igual o mayor a 0</span>
+              <span class="field-error" id="err-stock_inicial"></span>
             </div>
             <% } %>
 
@@ -312,6 +313,7 @@
     precio_venta:      { req: true, num: true, min: 0.01, msg: 'El precio de venta debe ser mayor a $0.' },
     precio_mayoreo:    { req: true, num: true, min: 0.01, msg: 'El precio mayoreo debe ser mayor a $0.' },
     inventario_minimo: { req: true, num: true, min: 0,    msg: 'Ingresa el stock mínimo.' },
+    stock_inicial:     { req: false, num: true, min: 0,   msg: 'El stock inicial debe ser igual o mayor a 0.' },
   };
 
   function validarCampo(id) {
@@ -320,8 +322,22 @@
     if (!el || !errEl) return true;
     const r = reglas[id];
     const v = el.value.trim();
+
     if (r.req && v === '') { errEl.textContent = r.msg; return false; }
-    if (r.num && (isNaN(parseFloat(v)) || parseFloat(v) < r.min)) { errEl.textContent = r.msg; return false; }
+
+    if (r.num) {
+      const num = parseFloat(v);
+      if (isNaN(num)) { errEl.textContent = r.msg; return false; }
+      // Mensaje específico cuando el valor es negativo, para que quede
+      // claro por qué es inválido en vez de repetir el mensaje genérico.
+      if (num < r.min) {
+        errEl.textContent = r.min === 0
+          ? 'El valor debe ser igual o mayor a 0.'
+          : r.msg;
+        return false;
+      }
+    }
+
     errEl.textContent = '';
     return true;
   }

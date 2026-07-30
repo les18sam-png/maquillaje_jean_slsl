@@ -299,13 +299,9 @@ router.get('/cajas', async (req, res) => {
 ───────────────────────────────────────── */
 router.post('/cajas', async (req, res) => {
   try {
-    const { nombre, es_verificador } = req.body;
     await api('/cajas/', {
       method: 'POST',
-      body: JSON.stringify({
-        nombre:         nombre?.trim(),
-        es_verificador: es_verificador === 'true',
-      }),
+      body: JSON.stringify(construirPayloadCaja(req.body)),
     }, req.session.token);
     res.redirect('/admin/cajas?toast=creada');
   } catch (err) {
@@ -314,6 +310,56 @@ router.post('/cajas', async (req, res) => {
     res.redirect(`/admin/cajas?error=${msg}`);
   }
 });
+
+/* ─────────────────────────────────────────
+   PUT /admin/cajas/:id — editar caja (incluye impresora)
+───────────────────────────────────────── */
+router.put('/cajas/:id', async (req, res) => {
+  try {
+    await api(`/cajas/${req.params.id}`, {
+      method: 'PUT',
+      body: JSON.stringify(construirPayloadCaja(req.body, true)),
+    }, req.session.token);
+    res.redirect('/admin/cajas?toast=actualizada');
+  } catch (err) {
+    if (err.status === 401) return res.redirect('/auth/login?error=sesion');
+    if (err.status === 404) return res.redirect('/admin/cajas?error=no_encontrada');
+    const msg = err.status === 409 ? 'limite' : 'fallo';
+    res.redirect(`/admin/cajas?error=${msg}`);
+  }
+});
+
+/**
+ * Arma el payload para crear/actualizar una caja, normalizando los campos
+ * de impresora según el tipo elegido (usb usa "valor" como nombre del
+ * recurso compartido; red usa "valor" como IP + "puerto").
+ */
+function construirPayloadCaja(body, esActualizacion = false) {
+  const payload = {
+    nombre: body.nombre?.trim(),
+    es_verificador: body.es_verificador === 'true',
+  };
+  if (esActualizacion) {
+    payload.activa = body.activa === 'true';
+  }
+
+  const tieneImpresora = body.impresora_tipo === 'usb' || body.impresora_tipo === 'red';
+  if (tieneImpresora) {
+    payload.impresora_tipo = body.impresora_tipo;
+    payload.impresora_valor = body.impresora_valor || null;
+    payload.impresora_puerto = body.impresora_tipo === 'red' && body.impresora_puerto
+      ? parseInt(body.impresora_puerto, 10)
+      : null;
+  } else {
+    payload.impresora_tipo = null;
+    payload.impresora_valor = null;
+    payload.impresora_puerto = null;
+  }
+
+  return payload;
+}
+
+
 /* ─────────────────────────────────────────
    GET /admin/logotipo — pantalla de logo
 ───────────────────────────────────────── */

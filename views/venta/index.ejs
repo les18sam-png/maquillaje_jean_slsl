@@ -1294,22 +1294,34 @@ inicializarTickets();
         <span id="turno-reloj"></span>
       </div>
 
-      <div class="form-group">
-        <label class="form-label" for="turno-caja">Caja <span class="required">*</span></label>
-        <% if (cajas.length === 0) { %>
-          <div class="alert alert--warning" style="margin:4px 0 0">
-            No hay cajas activas. Pide al administrador que configure una en
-            <a href="/admin/cajas" class="link">Admin → Cajas</a>.
-          </div>
-        <% } else { %>
-          <select id="turno-caja" class="form-control">
-            <option value="">Selecciona una caja…</option>
-            <% cajas.forEach(c => { %>
-              <option value="<%= c.id %>"><%= c.nombre %></option>
-            <% }) %>
-          </select>
-        <% } %>
-      </div>
+      <div class="form-group" style="margin-top:16px">
+  <label class="form-label">Caja <span class="required">*</span></label>
+
+  <!-- Caja detectada automáticamente (se muestra si hay localStorage) -->
+  <div id="caja-detectada" style="display:none;">
+    <div style="background:#fdf5f7;border:1px solid #f5d0d8;border-radius:8px;padding:10px 14px;display:flex;align-items:center;justify-content:space-between;">
+      <span id="caja-detectada-nombre" style="font-weight:600;color:#6C0820;font-size:.9rem;"></span>
+      <button type="button" onclick="cambiarCaja()" style="font-size:.75rem;color:#aaa;background:none;border:none;cursor:pointer;text-decoration:underline;">Cambiar</button>
+    </div>
+    <input type="hidden" id="turno-caja-hidden" name="caja_id">
+  </div>
+
+  <!-- Selector manual (se muestra si no hay localStorage o el usuario quiere cambiar) -->
+  <div id="caja-selector" style="display:none;">
+      <% if (cajas.length === 0) { %>
+        <div class="alert alert--warning">
+          No hay cajas activas. Configura una en <a href="/admin/cajas" class="link">Admin → Cajas</a>.
+        </div>
+      <% } else { %>
+        <select id="turno-caja" class="form-control">
+          <option value="">Selecciona una caja…</option>
+          <% cajas.forEach(c => { %>
+            <option value="<%= c.id %>"><%= c.nombre %></option>
+          <% }) %>
+        </select>
+      <% } %>
+    </div>
+  </div>
 
       <div class="form-group" style="margin-top:14px;">
         <label class="form-label" for="turno-fondo">Fondo inicial en efectivo</label>
@@ -1337,80 +1349,121 @@ inicializarTickets();
 </div>
 
 <script>
-  function mostrarFormulario() {
-    document.getElementById('turno-conectando').style.display = 'none';
-    document.getElementById('turno-formulario').style.display = 'block';
-    function tick() {
-      const el = document.getElementById('turno-reloj');
-      if (el) el.textContent = new Date().toLocaleString('es-MX', {
-        weekday:'long', day:'2-digit', month:'long', year:'numeric',
-        hour:'2-digit', minute:'2-digit', second:'2-digit',
-      });
-    }
-    tick(); setInterval(tick, 1000);
-  }
+  const SUCURSAL_ID = '<%= sucursal_id %>';
+const STORAGE_KEY = `smartventa_caja_${SUCURSAL_ID}`;
+const cajaGuardada = localStorage.getItem(STORAGE_KEY);
 
-  const cajaGuardada = localStorage.getItem('smartventa_caja_id');
-  if (cajaGuardada) {
-    fetch('/venta/reconectar-turno', {
-      method: 'POST', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ caja_id: cajaGuardada }),
-    })
-    .then(r => r.json())
-    .then(data => {
-      if (data.ok) { window.location.reload(); }
-      else {
-        mostrarFormulario();
-        const sel = document.getElementById('turno-caja');
-        if (sel) sel.value = cajaGuardada;
-      }
-    })
-    .catch(() => {
-      mostrarFormulario();
-      const sel = document.getElementById('turno-caja');
-      if (sel) sel.value = cajaGuardada;
-    });
+// Mapa de cajas disponibles para mostrar el nombre
+const CAJAS_MAP = {
+  <% cajas.forEach(c => { %>
+  '<%= c.id %>': '<%= c.nombre %>',
+  <% }) %>
+};
+
+function mostrarFormulario() {
+  document.getElementById('turno-conectando').style.display = 'none';
+  document.getElementById('turno-formulario').style.display = 'block';
+
+  if (cajaGuardada && CAJAS_MAP[cajaGuardada]) {
+    // Hay caja guardada que pertenece a esta sucursal → mostrar nombre, ocultar selector
+    document.getElementById('caja-detectada-nombre').textContent = CAJAS_MAP[cajaGuardada];
+    document.getElementById('caja-detectada').style.display = 'block';
+    document.getElementById('caja-selector').style.display   = 'none';
+    document.getElementById('turno-caja-hidden').value = cajaGuardada;
   } else {
-    mostrarFormulario();
+    // No hay caja guardada → mostrar selector
+    document.getElementById('caja-detectada').style.display = 'none';
+    document.getElementById('caja-selector').style.display  = 'block';
   }
 
-  async function abrirTurnoDesdeModal() {
-    const caja_id       = document.getElementById('turno-caja')?.value;
-    const fondo_inicial = parseFloat(document.getElementById('turno-fondo')?.value) || 0;
-    const errDiv        = document.getElementById('turno-error');
-    const btn           = document.getElementById('turno-btn');
+  // Reloj
+  function tick() {
+    const el = document.getElementById('turno-reloj');
+    if (el) el.textContent = new Date().toLocaleString('es-MX', {
+      weekday:'long', day:'2-digit', month:'long',
+      year:'numeric', hour:'2-digit', minute:'2-digit', second:'2-digit'
+    });
+  }
+  tick(); setInterval(tick, 1000);
+}
 
-    if (!caja_id) {
-      errDiv.textContent = 'Selecciona una caja antes de continuar.';
-      errDiv.style.display = 'block'; return;
-    }
+function cambiarCaja() {
+  // El cajero quiere elegir otra caja manualmente
+  document.getElementById('caja-detectada').style.display = 'none';
+  document.getElementById('caja-selector').style.display  = 'block';
+  const sel = document.getElementById('turno-caja');
+  if (sel && cajaGuardada) sel.value = cajaGuardada;
+}
 
-    btn.disabled    = true;
-    btn.textContent = 'Abriendo turno…';
-    errDiv.style.display = 'none';
-
-    try {
-      const resp = await fetch('/venta/abrir-turno', {
-        method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ caja_id, fondo_inicial }),
-      });
-      const data = await resp.json();
-      if (!resp.ok || !data.ok) {
-        errDiv.textContent   = data.error || 'No se pudo abrir el turno.';
-        errDiv.style.display = 'block';
-        btn.disabled = false;
-        btn.innerHTML = '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg> Abrir Turno';
-        return;
-      }
-      localStorage.setItem('smartventa_caja_id', caja_id);
+if (cajaGuardada) {
+  fetch('/venta/reconectar-turno', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ caja_id: cajaGuardada }),
+  })
+  .then(r => r.json())
+  .then(data => {
+    if (data.ok) {
       window.location.reload();
-    } catch {
-      errDiv.textContent   = 'Error de conexión. Intenta de nuevo.';
+    } else {
+      mostrarFormulario();
+    }
+  })
+  .catch(() => mostrarFormulario());
+} else {
+  mostrarFormulario();
+}
+
+async function abrirTurnoDesdeModal() {
+  // Obtener caja_id de donde esté disponible
+  const cajaHidden = document.getElementById('turno-caja-hidden');
+  const cajaSelect = document.getElementById('turno-caja');
+  const caja_id = (cajaHidden && cajaHidden.value)
+    ? cajaHidden.value
+    : (cajaSelect ? cajaSelect.value : '');
+
+  const fondo_inicial = parseFloat(document.getElementById('turno-fondo')?.value) || 0;
+  const errDiv        = document.getElementById('turno-error');
+  const btn           = document.getElementById('turno-btn');
+
+  if (!caja_id) {
+    errDiv.textContent   = 'Selecciona una caja antes de continuar.';
+    errDiv.style.display = 'block'; return;
+  }
+
+  btn.disabled    = true;
+  btn.textContent = 'Abriendo turno…';
+  errDiv.style.display = 'none';
+
+  try {
+    const resp = await fetch('/venta/abrir-turno', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ caja_id, fondo_inicial }),
+    });
+    const data = await resp.json();
+
+    if (!resp.ok || !data.ok) {
+      errDiv.textContent   = data.error || 'No se pudo abrir el turno.';
       errDiv.style.display = 'block';
       btn.disabled = false;
       btn.innerHTML = '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg> Abrir Turno';
+      return;
     }
+
+    localStorage.setItem(STORAGE_KEY, caja_id);
+    window.location.reload();
+  } catch {
+    errDiv.textContent   = 'Error de conexión. Intenta de nuevo.';
+    errDiv.style.display = 'block';
+    btn.disabled = false;
+    btn.innerHTML = '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg> Abrir Turno';
   }
+}
+  
+
+  
+  
 </script>
 <% } %>
 

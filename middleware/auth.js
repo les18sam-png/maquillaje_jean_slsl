@@ -4,19 +4,18 @@ function requireAuth(req, res, next) {
   if (!req.session.token) {
     return res.redirect('/auth/login');
   }
-  res.locals.usuario     = req.session.usuario;
-  res.locals.sucursal_id = req.session.sucursal_id;
-  res.locals.permisos    = req.session.permisos || {};
-  next();
-}
 
-function requireAuth(req, res, next) {
-  if (!req.session.token) {
-    return res.redirect('/auth/login?error=sesion');
+  // La dueña solo puede ver su panel — cualquier otra ruta la regresa ahí
+  const esDueno = !!req.session.permisos?.perm_dueno;
+  if (esDueno && !req.path.startsWith('/dashboard-dueno')) {
+    return res.redirect('/dashboard-dueno');
   }
-  res.locals.usuario     = req.session.usuario;
+
+  res.locals.usuario     = req.session.usuario?.nombre_completo || null;
+  res.locals.sucursal    = req.session.sucursal_nombre || null;
   res.locals.sucursal_id = req.session.sucursal_id;
   res.locals.permisos    = req.session.permisos || {};
+  res.locals.caja        = req.session.caja_nombre || null;
   next();
 }
 
@@ -26,10 +25,9 @@ function requireTurno(req, res, next) {
   if (!req.session.turno_id || !req.session.caja_id) {
     return res.redirect('/turnos/apertura');
   }
-  res.locals.caja_id  = req.session.caja_id;
-  res.locals.turno_id = req.session.turno_id;
+  res.locals.caja_id   = req.session.caja_id;
+  res.locals.turno_id  = req.session.turno_id;
   next();
 }
 
 module.exports = { requireAuth, requireTurno };
-

@@ -1706,6 +1706,8 @@ button { font-family: var(--font-body); cursor: pointer; }
 .alert--success { background: #d1fae5; color: #065f46; border: 1px solid #6ee7b7; }
 .alert--warning { background: #fef3c7; color: #92400e; border: 1px solid #fcd34d; }
 
+.data-table th.text-right { text-align: right; }
+
 .data-table { width: 100%; border-collapse: collapse; font-size: .875rem; }
 .data-table thead tr { background: #FCE4EE; }
 .data-table th {

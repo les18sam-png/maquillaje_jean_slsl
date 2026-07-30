@@ -44,12 +44,16 @@ router.get('/', async (req, res) => {
       tieneTurno,
       cajas,
       cajeroNombre: req.session.usuario?.nombre_completo || '',
+      sucursal_id: req.session.sucursal_id,
     });
   } catch (err) {
     if (err.status === 401) return res.redirect('/auth/login?error=sesion');
     res.status(500).send('Error al cargar el punto de venta: ' + err.message);
   }
 });
+
+//TRUNOS 
+//-----------------------------
 
 //TRUNOS 
 //-----------------------------
@@ -70,7 +74,16 @@ router.post('/abrir-turno', async (req, res) => {
 
     req.session.turno_id = turno.id;
     req.session.caja_id  = caja_id;
-    res.json({ ok: true, turno });
+
+    // Resolver el nombre de la caja una sola vez para el header
+    try {
+      const caja = await api(`/cajas/${caja_id}`, {}, req.session.token);
+      req.session.caja_nombre = caja?.nombre || null;
+    } catch {
+      req.session.caja_nombre = null;
+    }
+
+    res.json({ ok: true, turno, sucursal_id: req.session.sucursal_id });
 
   } catch (err) {
     // 409 = ya existe turno en esa caja → reconectar en vez de error
@@ -83,6 +96,14 @@ router.post('/abrir-turno', async (req, res) => {
         if (turnoActivo) {
           req.session.turno_id = turnoActivo.id;
           req.session.caja_id  = caja_id;
+
+          try {
+            const caja = await api(`/cajas/${caja_id}`, {}, req.session.token);
+            req.session.caja_nombre = caja?.nombre || null;
+          } catch {
+            req.session.caja_nombre = null;
+          }
+
           return res.json({ ok: true, turno: turnoActivo, reconectado: true });
         }
       } catch {}
@@ -103,16 +124,29 @@ router.post('/reconectar-turno', async (req, res) => {
       `/turnos/activo?caja_id=${caja_id}`,
       {}, req.session.token
     );
-    if (!turno) return res.json({ ok: false, sin_turno: true });
+
+    // Si no hay turno activo → responder sin_turno para mostrar formulario
+    if (!turno || !turno.id) {
+      return res.json({ ok: false, sin_turno: true });
+    }
 
     req.session.turno_id = turno.id;
     req.session.caja_id  = caja_id;
+
+    // Resolver el nombre de la caja una sola vez para el header
+    try {
+      const caja = await api(`/cajas/${caja_id}`, {}, req.session.token);
+      req.session.caja_nombre = caja?.nombre || null;
+    } catch {
+      req.session.caja_nombre = null;
+    }
+
     res.json({ ok: true, turno });
   } catch (err) {
-    res.status(err.status || 500).json({ ok: false, error: err.message });
+    // 404 o cualquier error = no hay turno activo
+    res.json({ ok: false, sin_turno: true });
   }
 });
-
 
 router.get('/buscar', async (req, res) => {
   try {

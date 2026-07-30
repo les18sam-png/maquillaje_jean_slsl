@@ -18,19 +18,19 @@
     <!-- FORMULARIO -->
     <div class="promos-col-form">
       <div class="card">
-        <div class="card-titulo"><%= editando ? 'Editar Promoción' : 'Nueva Promoción' %></div>
+        <div class="card-titulo"><%= editando && editando.id ? 'Editar Promoción' : 'Nueva Promoción' %></div>
 
         <% if (typeof error !== 'undefined' && error) { %>
           <div class="alert alert-error"><%= error %></div>
         <% } %>
 
-        <form method="POST" action="<%= editando ? '/productos/promociones/editar/' + editando.id : '/productos/promociones/nuevo' %>">
+        <form method="POST" action="<%= editando && editando.id ? '/productos/promociones/editar/' + editando.id : '/productos/promociones/nuevo' %>">
 
           <div class="form-group">
             <label for="nombre">Nombre de la Promoción <span class="req">*</span></label>
             <input type="text" id="nombre" name="nombre"
               placeholder="Ej. 3x2 Labiales, Docena de sombras..."
-              value="<%= editando ? editando.nombre : '' %>">
+              value="<%= editando ? editando.nombre : '' %>" autocomplete="off">
             <span class="field-error" id="err-nombre"></span>
           </div>
 
@@ -40,9 +40,11 @@
               value="<%= editando ? editando.producto_descripcion : '' %>" autocomplete="off">
             <input type="hidden" id="producto_id" name="producto_id"
               value="<%= editando ? editando.producto_id : '' %>">
+            <input type="hidden" id="producto_descripcion_hidden" name="producto_descripcion"
+              value="<%= editando ? editando.producto_descripcion : '' %>">
             <div id="sugerencias" class="sugerencias-wrap"></div>
             <span class="field-error" id="err-producto"></span>
-            <% if (editando) { %>
+            <% if (editando && editando.id) { %>
               <span class="field-hint">Producto actual: <strong><%= editando.producto_descripcion %></strong></span>
             <% } %>
           </div>
@@ -80,8 +82,14 @@
 
           <div class="form-group">
             <label for="fecha_inicio">Fecha de inicio <span class="req">*</span></label>
+            <%
+              // Fecha de HOY en zona horaria local, sin pasar por UTC (evita
+              // que new Date().toISOString() adelante un día en horas de la
+              // tarde/noche cuando el servidor está detrás de UTC, como México).
+              const hoyLocal = new Date().toLocaleDateString('en-CA'); // YYYY-MM-DD
+            %>
             <input type="date" id="fecha_inicio" name="fecha_inicio"
-              value="<%= editando ? editando.fecha_inicio : new Date().toISOString().split('T')[0] %>">
+              value="<%= editando ? editando.fecha_inicio : hoyLocal %>">
             <span class="field-error" id="err-fecha"></span>
           </div>
 
@@ -100,9 +108,9 @@
                 <polyline points="17 21 17 13 7 13 7 21"/>
                 <polyline points="7 3 7 8 15 8"/>
               </svg>
-              <%= editando ? 'Guardar Cambios' : 'Guardar Promoción' %>
+              <%= editando && editando.id ? 'Guardar Cambios' : 'Guardar Promoción' %>
             </button>
-            <% if (editando) { %>
+            <% if (editando && editando.id) { %>
               <a href="/productos/promociones" class="btn btn-ghost">Cancelar</a>
             <% } %>
           </div>
@@ -189,23 +197,22 @@
   .badge-activo { background: #e6f9e6; color: #2d7a2d; }
   .badge-inactivo { background: #f5f5f5; color: #999; }
 
-  /* Prefijo $ */
   .input-prefix-wrap { display: flex; align-items: stretch; }
   .input-prefix { display: flex; align-items: center; padding: 0 .75rem; background: var(--champagne); border: 1px solid #ddd; border-right: none; border-radius: 8px 0 0 8px; color: var(--burgundy); font-weight: 600; font-size: .9rem; min-width: 2.5rem; justify-content: center; }
   .input-with-prefix { border-radius: 0 8px 8px 0 !important; }
 
-  /* Precios referencia */
   .precios-ref { display: flex; gap: 1rem; margin-top: .4rem; font-size: .78rem; color: #888; }
 
-  /* Sugerencias búsqueda */
   .sugerencias-wrap { position: relative; }
-  .sugerencias-lista { position: absolute; top: 0; left: 0; right: 0; background: white; border: 1px solid #ddd; border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,.1); z-index: 100; max-height: 200px; overflow-y: auto; }
-  .sugerencia-item { padding: .6rem 1rem; cursor: pointer; font-size: .875rem; border-bottom: 1px solid #f5f5f5; }
+  .sugerencias-lista { position: absolute; top: 0; left: 0; right: 0; background: white; border: 1px solid #ddd; border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,.1); z-index: 100; max-height: 220px; overflow-y: auto; }
+  .sugerencia-item { padding: .5rem .8rem; cursor: pointer; font-size: .875rem; border-bottom: 1px solid #f5f5f5; display: flex; align-items: center; gap: .6rem; }
+  .sugerencia-img { width: 36px; height: 36px; object-fit: cover; border-radius: 6px; border: 1px solid #eee; flex-shrink: 0; }
+  .sugerencia-img-placeholder { background: #f5f5f5; display: flex; align-items: center; justify-content: center; }
+  .sugerencia-texto { min-width: 0; flex: 1; }
   .sugerencia-item:hover { background: #fff8f9; }
   .sugerencia-item:last-child { border-bottom: none; }
   .sugerencia-codigo { font-size: .75rem; color: #999; font-family: monospace; }
 
-  /* Lista promociones */
   .promos-lista { display: flex; flex-direction: column; gap: .75rem; }
   .promo-item { border: 1px solid #f0f0f0; border-radius: 10px; padding: .9rem 1rem; transition: background .15s; }
   .promo-item:hover { background: #fafafa; }
@@ -231,11 +238,12 @@
 (function() {
 
   // ── BÚSQUEDA DE PRODUCTO ──
-  const inputBuscar  = document.getElementById('buscarProducto');
-  const inputId      = document.getElementById('producto_id');
-  const contenedor   = document.getElementById('sugerencias');
-  const preciosRef   = document.getElementById('preciosRef');
-  const refNormal    = document.getElementById('refNormal');
+  const inputBuscar     = document.getElementById('buscarProducto');
+  const inputId         = document.getElementById('producto_id');
+  const inputDescOculta = document.getElementById('producto_descripcion_hidden');
+  const contenedor      = document.getElementById('sugerencias');
+  const preciosRef      = document.getElementById('preciosRef');
+  const refNormal       = document.getElementById('refNormal');
   let timer;
 
   inputBuscar.addEventListener('input', function() {
@@ -251,12 +259,25 @@
       data.forEach(p => {
         const item = document.createElement('div');
         item.className = 'sugerencia-item';
-        item.innerHTML = `<div>${p.descripcion}</div><div class="sugerencia-codigo">${p.codigo || 'Sin código'} · $${parseFloat(p.precio_venta).toFixed(2)}</div>`;
+        const miniatura = p.imagen
+          ? `<img src="/uploads/productos/${p.imagen}" class="sugerencia-img" alt="">`
+          : `<div class="sugerencia-img sugerencia-img-placeholder">
+               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" opacity="0.35">
+                 <rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/>
+               </svg>
+             </div>`;
+        item.innerHTML = `
+          ${miniatura}
+          <div class="sugerencia-texto">
+            <div>${p.descripcion}</div>
+            <div class="sugerencia-codigo">${p.codigo || 'Sin código'} · $${parseFloat(p.precio_venta).toFixed(2)}</div>
+          </div>`;
         item.addEventListener('click', () => {
-          inputBuscar.value  = p.descripcion;
-          inputId.value      = p.id;
-          contenedor.innerHTML = '';
-          refNormal.textContent = '$' + parseFloat(p.precio_venta).toFixed(2);
+          inputBuscar.value      = p.descripcion;
+          inputId.value          = p.id;
+          inputDescOculta.value  = p.descripcion;
+          contenedor.innerHTML   = '';
+          refNormal.textContent  = '$' + parseFloat(p.precio_venta).toFixed(2);
           preciosRef.style.display = 'flex';
           document.getElementById('err-producto').textContent = '';
         });

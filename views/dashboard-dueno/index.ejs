@@ -1,0 +1,423 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>Panel de la Dueña — SmartVenta</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Playfair+Display:wght@600;700&display=swap" rel="stylesheet">
+<style>
+  *,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+  :root{
+    --burgundy:#6C0820; --burgundy-dark:#4A0517;
+    --pink-light:#FCE4EE; --pink-border:#F2DCDB;
+    --navy:#3D5D91; --text:#1a1a2e; --muted:#888; --bg:#FAF5F5;
+    --verde:#065f46; --rojo:#c0392b;
+  }
+  html,body{background:var(--bg);font-family:'DM Sans',sans-serif;color:var(--text);}
+  body{padding-bottom:env(safe-area-inset-bottom);}
+
+  .pd-shell{max-width:480px;margin:0 auto;min-height:100vh;display:flex;flex-direction:column;}
+
+  /* Top bar */
+  .pd-top{
+    background:linear-gradient(160deg,var(--burgundy),var(--burgundy-dark));
+    padding:calc(env(safe-area-inset-top) + 16px) 18px 18px;
+    color:#fff; flex-shrink:0;
+  }
+  .pd-top__row{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;}
+  .pd-top__brand{font-family:'Playfair Display',serif;font-size:1.05rem;font-weight:700;}
+  .pd-top__brand span{display:block;font-family:'DM Sans',sans-serif;font-size:.65rem;font-weight:500;letter-spacing:.08em;text-transform:uppercase;color:rgba(255,255,255,.6);}
+  .pd-logout{background:rgba(255,255,255,.14);border:1px solid rgba(255,255,255,.25);color:#fff;border-radius:8px;padding:7px 9px;font-size:.75rem;cursor:pointer;}
+
+  .pd-fecha{
+    display:flex;align-items:center;gap:8px;
+    background:rgba(255,255,255,.12); border:1px solid rgba(255,255,255,.2);
+    border-radius:10px; padding:7px 10px;
+  }
+  .pd-fecha input{
+    background:transparent;border:none;color:#fff;font-family:'DM Sans',sans-serif;
+    font-size:.85rem;flex:1;outline:none;
+  }
+  .pd-fecha input::-webkit-calendar-picker-indicator{filter:invert(1);opacity:.8;}
+
+  /* Toggle sucursales */
+  .pd-toggle{
+    display:flex; gap:6px; overflow-x:auto; padding:14px 18px 0;
+    -webkit-overflow-scrolling:touch;
+  }
+  .pd-toggle::-webkit-scrollbar{display:none;}
+  .pd-toggle-btn{
+    flex-shrink:0; padding:8px 14px; border-radius:20px;
+    border:1.5px solid var(--pink-border); background:#fff;
+    font-family:'DM Sans',sans-serif; font-size:.8rem; font-weight:600;
+    color:var(--muted); cursor:pointer; transition:.15s;
+    white-space:nowrap;
+  }
+  .pd-toggle-btn.activo{background:var(--burgundy);border-color:var(--burgundy);color:#fff;}
+
+  /* Contenido */
+  .pd-body{flex:1;padding:16px 18px 32px;}
+
+  /* Card efectivo — elemento signature */
+  .pd-efectivo{
+    background:#fff; border-radius:18px; padding:22px 20px;
+    box-shadow:0 8px 24px rgba(108,8,32,.08); border:1px solid var(--pink-border);
+    margin-bottom:14px; text-align:center; position:relative; overflow:hidden;
+  }
+  .pd-efectivo__label{
+    display:inline-flex;align-items:center;gap:6px;
+    font-size:.72rem;font-weight:600;color:var(--muted);
+    text-transform:uppercase;letter-spacing:.06em;margin-bottom:6px;
+  }
+  .pd-pulso{
+    width:7px;height:7px;border-radius:50%;background:var(--verde);
+    animation:pd-latido 1.8s ease-in-out infinite;
+  }
+  @keyframes pd-latido{
+    0%,100%{box-shadow:0 0 0 0 rgba(6,95,70,.4);}
+    50%{box-shadow:0 0 0 6px rgba(6,95,70,0);}
+  }
+  .pd-efectivo__valor{
+    font-family:'Playfair Display',serif; font-weight:700;
+    font-size:2.4rem; color:var(--burgundy); line-height:1.1;
+  }
+  .pd-efectivo__sub{font-size:.72rem;color:var(--muted);margin-top:4px;}
+
+  /* Grid stats */
+  .pd-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px;}
+  .pd-stat{
+    background:#fff;border:1px solid var(--pink-border);border-radius:14px;
+    padding:14px 14px 12px;
+  }
+  .pd-stat__icono{
+    width:30px;height:30px;border-radius:8px;background:var(--pink-light);
+    display:flex;align-items:center;justify-content:center;margin-bottom:8px;color:var(--burgundy);
+  }
+  .pd-stat__label{font-size:.7rem;color:var(--muted);font-weight:600;text-transform:uppercase;letter-spacing:.04em;}
+  .pd-stat__valor{font-family:'Playfair Display',serif;font-size:1.3rem;font-weight:700;color:var(--text);margin-top:2px;}
+  .pd-stat__extra{font-size:.7rem;color:var(--muted);margin-top:2px;}
+  .pd-stat--entrada .pd-stat__valor{color:var(--verde);}
+  .pd-stat--salida .pd-stat__valor{color:var(--rojo);}
+
+  /* Mini stats fila 2 */
+  .pd-fila-2{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px;}
+  .pd-mini{background:#fff;border:1px solid var(--pink-border);border-radius:12px;padding:12px 14px;}
+  .pd-mini__label{font-size:.68rem;color:var(--muted);font-weight:600;text-transform:uppercase;}
+  .pd-mini__valor{font-family:'Playfair Display',serif;font-size:1.15rem;font-weight:700;color:var(--text);margin-top:2px;}
+  .pd-mini__valor--verde{color:var(--verde);}
+  .pd-mini__valor--rojo{color:var(--rojo);}
+
+  /* Secciones: métodos de pago, alertas, top productos */
+  .pd-seccion{background:#fff;border:1px solid var(--pink-border);border-radius:14px;padding:14px;margin-bottom:14px;}
+  .pd-seccion__titulo{font-size:.78rem;font-weight:700;color:var(--burgundy);margin-bottom:10px;}
+
+  .pd-barra-fila{display:flex;align-items:center;gap:8px;margin-bottom:8px;}
+  .pd-barra-fila:last-child{margin-bottom:0;}
+  .pd-barra-nombre{font-size:.75rem;color:var(--text);width:78px;flex-shrink:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  .pd-barra-track{flex:1;height:8px;background:var(--pink-light);border-radius:4px;overflow:hidden;}
+  .pd-barra-fill{height:100%;background:var(--burgundy);border-radius:4px;}
+  .pd-barra-valor{font-size:.72rem;font-weight:600;color:var(--muted);width:50px;text-align:right;flex-shrink:0;}
+
+  .pd-alerta-fila{display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid #f5eeee;font-size:.8rem;}
+  .pd-alerta-fila:last-child{border-bottom:none;}
+  .pd-badge-alerta{background:#fee2e2;color:#991b1b;font-size:.68rem;font-weight:700;padding:2px 8px;border-radius:10px;}
+
+  /* Desglose por sucursal (solo en consolidado) */
+  .pd-desglose{background:#fff;border:1px solid var(--pink-border);border-radius:14px;overflow:hidden;}
+  .pd-desglose__titulo{
+    font-size:.78rem;font-weight:700;color:var(--burgundy);
+    padding:12px 14px; border-bottom:1px solid var(--pink-border);
+  }
+  .pd-desglose__fila{
+    display:flex;align-items:center;justify-content:space-between;
+    padding:12px 14px; cursor:pointer; transition:background .12s;
+  }
+  .pd-desglose__fila:not(:last-child){border-bottom:1px solid #f5eeee;}
+  .pd-desglose__fila:active{background:var(--pink-light);}
+  .pd-desglose__nombre{font-size:.85rem;font-weight:600;color:var(--navy);}
+  .pd-desglose__ventas{font-size:.72rem;color:var(--muted);margin-top:1px;}
+  .pd-desglose__dinero{font-family:'Playfair Display',serif;font-weight:700;color:var(--burgundy);font-size:.95rem;}
+
+  .pd-actualizado{
+    text-align:center;font-size:.68rem;color:#bbb;margin-top:16px;
+  }
+
+  .pd-error{
+    background:#fee2e2;border:1px solid #fca5a5;color:#991b1b;
+    border-radius:12px;padding:14px;font-size:.82rem;text-align:center;margin-bottom:14px;
+  }
+</style>
+</head>
+<body>
+
+<div class="pd-shell">
+
+  <!-- Top bar -->
+  <div class="pd-top">
+    <div class="pd-top__row">
+      <div class="pd-top__brand">SmartVenta<span>Panel de la Dueña</span></div>
+      <button class="pd-logout" onclick="cerrarSesion()">Salir</button>
+    </div>
+    <div class="pd-fecha">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+      <input type="date" id="pd-fecha-input">
+    </div>
+  </div>
+
+  <!-- Toggle de sucursales -->
+  <div class="pd-toggle" id="pd-toggle"></div>
+
+  <!-- Accesos a pantallas completas -->
+  <div style="display:flex;gap:8px;padding:14px 18px 0;">
+    <a id="pd-link-ventas" href="#" style="flex:1;text-align:center;background:#fff;border:1.5px solid var(--pink-border);border-radius:10px;padding:10px;font-size:.78rem;font-weight:600;color:var(--burgundy);text-decoration:none;">
+      Ventas del día
+    </a>
+    <a id="pd-link-faltantes" href="#" style="flex:1;text-align:center;background:#fff;border:1.5px solid var(--pink-border);border-radius:10px;padding:10px;font-size:.78rem;font-weight:600;color:var(--burgundy);text-decoration:none;">
+      Productos faltantes
+    </a>
+  </div>
+
+  <!-- Contenido -->
+  <div class="pd-body" id="pd-body">
+
+    <div id="pd-error-wrap"></div>
+
+    <div class="pd-efectivo" id="pd-card-efectivo">
+      <div class="pd-efectivo__label"><span class="pd-pulso"></span> Efectivo en caja ahora</div>
+      <div class="pd-efectivo__valor" id="pd-efectivo-valor">$—</div>
+      <div class="pd-efectivo__sub" id="pd-efectivo-sub">Calculando…</div>
+    </div>
+
+    <div class="pd-grid">
+      <div class="pd-stat">
+        <div class="pd-stat__icono">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 2L3 6v14a2 2 0 002 2h14a2 2 0 002-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 01-8 0"/></svg>
+        </div>
+        <div class="pd-stat__label">Ventas</div>
+        <div class="pd-stat__valor" id="pd-ventas-valor">$—</div>
+        <div class="pd-stat__extra" id="pd-ventas-extra">— tickets</div>
+      </div>
+
+      <div class="pd-stat">
+        <div class="pd-stat__icono">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18M3 12h18M3 18h18"/></svg>
+        </div>
+        <div class="pd-stat__label">Devoluciones</div>
+        <div class="pd-stat__valor" id="pd-dev-valor">$—</div>
+        <div class="pd-stat__extra" id="pd-dev-extra">— tickets</div>
+      </div>
+
+      <div class="pd-stat pd-stat--entrada">
+        <div class="pd-stat__icono">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="19" x2="12" y2="5"/><polyline points="5 12 12 5 19 12"/></svg>
+        </div>
+        <div class="pd-stat__label">Entradas</div>
+        <div class="pd-stat__valor" id="pd-entradas-valor">$—</div>
+      </div>
+
+      <div class="pd-stat pd-stat--salida">
+        <div class="pd-stat__icono">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><polyline points="19 12 12 19 5 12"/></svg>
+        </div>
+        <div class="pd-stat__label">Salidas</div>
+        <div class="pd-stat__valor" id="pd-salidas-valor">$—</div>
+      </div>
+    </div>
+
+    <div class="pd-fila-2">
+      <div class="pd-mini">
+        <div class="pd-mini__label">Ticket promedio</div>
+        <div class="pd-mini__valor" id="pd-ticket-prom">$—</div>
+      </div>
+      <div class="pd-mini">
+        <div class="pd-mini__label">Margen</div>
+        <div class="pd-mini__valor pd-mini__valor--verde" id="pd-margen">—%</div>
+      </div>
+      <div class="pd-mini">
+        <div class="pd-mini__label">Canceladas</div>
+        <div class="pd-mini__valor pd-mini__valor--rojo" id="pd-canceladas">—</div>
+      </div>
+      <div class="pd-mini">
+        <div class="pd-mini__label">vs. semana pasada</div>
+        <div class="pd-mini__valor" id="pd-comparativo">—</div>
+      </div>
+    </div>
+
+    <div class="pd-seccion" id="pd-metodos-wrap" style="display:none;">
+      <div class="pd-seccion__titulo">Métodos de pago</div>
+      <div id="pd-metodos-filas"></div>
+    </div>
+
+    <div class="pd-seccion" id="pd-alertas-wrap" style="display:none;">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
+        <div class="pd-seccion__titulo" style="margin-bottom:0;">Alertas de inventario</div>
+        <a id="pd-link-ver-todas" href="#" style="font-size:.72rem;color:var(--burgundy);font-weight:600;">Ver todas</a>
+      </div>
+      <div id="pd-alertas-filas"></div>
+    </div>
+
+    <div class="pd-seccion" id="pd-top-wrap" style="display:none;">
+      <div class="pd-seccion__titulo">Top productos vendidos hoy</div>
+      <div id="pd-top-filas"></div>
+    </div>
+
+    <div class="pd-desglose" id="pd-desglose-wrap" style="display:none;">
+      <div class="pd-desglose__titulo">Por sucursal</div>
+      <div id="pd-desglose-filas"></div>
+    </div>
+
+    <div class="pd-actualizado" id="pd-actualizado">Actualizando…</div>
+
+  </div>
+</div>
+
+<script>
+  const fmt = n => '$' + Number(n || 0).toLocaleString('es-MX', { minimumFractionDigits: 2 });
+  const inputFecha = document.getElementById('pd-fecha-input');
+  const hoyLocal = new Date();
+  const fechaLocalStr = hoyLocal.getFullYear() + '-' +
+    String(hoyLocal.getMonth() + 1).padStart(2, '0') + '-' +
+    String(hoyLocal.getDate()).padStart(2, '0');
+  inputFecha.value = fechaLocalStr;
+
+  let resumenActual = null;
+  let sucursalSeleccionada = null; // null = consolidado
+  let intervalo = null;
+
+  async function cargar() {
+    const fecha = inputFecha.value;
+    try {
+      const resp = await fetch(`/dashboard-dueno/resumen?fecha=${fecha}`);
+      if (!resp.ok) throw new Error(resp.status === 403 ? 'Sin permiso para ver este panel.' : 'Error al cargar datos.');
+      resumenActual = await resp.json();
+      document.getElementById('pd-error-wrap').innerHTML = '';
+      renderToggle();
+      renderDatos();
+      document.getElementById('pd-actualizado').textContent =
+        'Actualizado ' + new Date().toLocaleTimeString('es-MX', { hour: '2-digit', minute: '2-digit', timeZone: 'America/Mexico_City' });
+    } catch (err) {
+      document.getElementById('pd-error-wrap').innerHTML =
+        `<div class="pd-error">${err.message}</div>`;
+    }
+  }
+
+  function renderToggle() {
+    const wrap = document.getElementById('pd-toggle');
+    const botones = [
+      { id: null, nombre: 'Todas' },
+      ...resumenActual.sucursales.map(s => ({ id: s.sucursal_id, nombre: s.sucursal_nombre })),
+    ];
+    wrap.innerHTML = botones.map(b => `
+      <button class="pd-toggle-btn ${sucursalSeleccionada === b.id ? 'activo' : ''}"
+        onclick="seleccionarSucursal(${b.id ? `'${b.id}'` : 'null'})">${b.nombre}</button>
+    `).join('');
+  }
+
+  function seleccionarSucursal(id) {
+    sucursalSeleccionada = id;
+    renderToggle();
+    renderDatos();
+  }
+
+  function renderDatos() {
+    if (!resumenActual) return;
+    const datos = sucursalSeleccionada
+      ? resumenActual.sucursales.find(s => s.sucursal_id === sucursalSeleccionada)
+      : resumenActual.consolidado;
+
+    document.getElementById('pd-efectivo-valor').textContent = fmt(datos.dinero_actual);
+    document.getElementById('pd-efectivo-sub').textContent =
+      sucursalSeleccionada ? datos.sucursal_nombre : `Suma de ${resumenActual.sucursales.length} sucursales`;
+
+    document.getElementById('pd-ventas-valor').textContent = fmt(datos.ventas_neto);
+    document.getElementById('pd-ventas-extra').textContent = `${datos.ventas_cantidad} ticket${datos.ventas_cantidad === 1 ? '' : 's'}`;
+
+    document.getElementById('pd-dev-valor').textContent = fmt(datos.devoluciones_total);
+    document.getElementById('pd-dev-extra').textContent = `${datos.devoluciones_cantidad} ticket${datos.devoluciones_cantidad === 1 ? '' : 's'}`;
+
+    document.getElementById('pd-entradas-valor').textContent = fmt(datos.entradas);
+    document.getElementById('pd-salidas-valor').textContent = fmt(datos.salidas);
+
+    document.getElementById('pd-ticket-prom').textContent = fmt(datos.ticket_promedio);
+    document.getElementById('pd-margen').textContent = datos.margen_porcentaje.toFixed(1) + '%';
+    document.getElementById('pd-canceladas').textContent = datos.canceladas_cantidad;
+
+    const diferencia = datos.ventas_neto - datos.venta_semana_pasada;
+    const cmp = document.getElementById('pd-comparativo');
+    cmp.textContent = (diferencia >= 0 ? '+' : '') + fmt(diferencia);
+    cmp.className = 'pd-mini__valor ' + (diferencia >= 0 ? 'pd-mini__valor--verde' : 'pd-mini__valor--rojo');
+
+    const metodosWrap = document.getElementById('pd-metodos-wrap');
+    if (datos.metodos_pago.length) {
+      metodosWrap.style.display = 'block';
+      const maxMetodo = Math.max(...datos.metodos_pago.map(m => m.total), 1);
+      document.getElementById('pd-metodos-filas').innerHTML = datos.metodos_pago.map(m => `
+        <div class="pd-barra-fila">
+          <span class="pd-barra-nombre">${m.metodo}</span>
+          <div class="pd-barra-track"><div class="pd-barra-fill" style="width:${(m.total/maxMetodo*100)}%"></div></div>
+          <span class="pd-barra-valor">${fmt(m.total)}</span>
+        </div>`).join('');
+    } else { metodosWrap.style.display = 'none'; }
+
+    const alertasWrap = document.getElementById('pd-alertas-wrap');
+    if (datos.alertas_inventario.length) {
+      alertasWrap.style.display = 'block';
+      document.getElementById('pd-alertas-filas').innerHTML = datos.alertas_inventario.map(a => `
+        <div class="pd-alerta-fila">
+          <span>${a.nombre}</span>
+          <span class="pd-badge-alerta">${a.cantidad_actual} / mín. ${a.inventario_minimo}</span>
+        </div>`).join('');
+    } else { alertasWrap.style.display = 'none'; }
+
+    const topWrap = document.getElementById('pd-top-wrap');
+    if (datos.top_productos.length) {
+      topWrap.style.display = 'block';
+      const maxCant = Math.max(...datos.top_productos.map(p => p.cantidad_vendida), 1);
+      document.getElementById('pd-top-filas').innerHTML = datos.top_productos.map(p => `
+        <div class="pd-barra-fila">
+          <span class="pd-barra-nombre">${p.nombre}</span>
+          <div class="pd-barra-track"><div class="pd-barra-fill" style="width:${(p.cantidad_vendida/maxCant*100)}%"></div></div>
+          <span class="pd-barra-valor">${p.cantidad_vendida} pz</span>
+        </div>`).join('');
+    } else { topWrap.style.display = 'none'; }
+
+    const desgloseWrap = document.getElementById('pd-desglose-wrap');
+    if (!sucursalSeleccionada) {
+      desgloseWrap.style.display = 'block';
+      document.getElementById('pd-desglose-filas').innerHTML = resumenActual.sucursales.map(s => `
+        <div class="pd-desglose__fila" onclick="seleccionarSucursal('${s.sucursal_id}')">
+          <div>
+            <div class="pd-desglose__nombre">${s.sucursal_nombre}</div>
+            <div class="pd-desglose__ventas">${s.ventas_cantidad} ventas hoy</div>
+          </div>
+          <div class="pd-desglose__dinero">${fmt(s.dinero_actual)}</div>
+        </div>
+      `).join('');
+    } else {
+      desgloseWrap.style.display = 'none';
+    }
+
+    const paramsNav = new URLSearchParams({ fecha: inputFecha.value });
+    if (sucursalSeleccionada) paramsNav.append('sucursal_id', sucursalSeleccionada);
+    document.getElementById('pd-link-ventas').href = `/dashboard-dueno/ventas-dia?${paramsNav}`;
+    document.getElementById('pd-link-faltantes').href = `/dashboard-dueno/productos-faltantes?${sucursalSeleccionada ? 'sucursal_id=' + sucursalSeleccionada : ''}`;
+    document.getElementById('pd-link-ver-todas').href = `/dashboard-dueno/productos-faltantes?${sucursalSeleccionada ? 'sucursal_id=' + sucursalSeleccionada : ''}`;
+  }
+
+  function cerrarSesion() {
+    if (confirm('¿Cerrar sesión?')) window.location.href = '/auth/logout';
+  }
+
+  inputFecha.addEventListener('change', cargar);
+
+  cargar();
+  intervalo = setInterval(cargar, 30000); // refresco en vivo cada 30s
+  document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState === 'visible') cargar();
+  });
+</script>
+
+</body>
+</html>

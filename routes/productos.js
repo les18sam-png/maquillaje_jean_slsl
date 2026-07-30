@@ -347,6 +347,7 @@ router.post('/departamentos/eliminar/:id', async (req, res) => {
 });
 
 // ─── PROMOCIONES ──────────────────────────────────────────────────────────────
+// ─── PROMOCIONES ──────────────────────────────────────────────────────────────
 router.get('/promociones', async (req, res) => {
   try {
     const promociones = await obtenerPromociones(req.session.token);
@@ -371,13 +372,26 @@ router.get('/promociones/editar/:id', async (req, res) => {
 });
 
 router.post('/promociones/nuevo', async (req, res) => {
-  const { nombre, producto_id, cantidad_minima, tipo_beneficio, valor_beneficio, fecha_inicio } = req.body;
+  const { nombre, producto_id, producto_descripcion, cantidad_minima, tipo_beneficio, valor_beneficio, fecha_inicio } = req.body;
 
   if (!nombre || !producto_id || !cantidad_minima || !valor_beneficio || !tipo_beneficio || !fecha_inicio) {
     const promociones = await obtenerPromociones(req.session.token);
+    // Repoblamos el formulario con lo que el usuario ya escribió, en vez de
+    // borrarlo todo. editando.id queda null para que la vista siga
+    // tratándolo como "Nueva Promoción" (no como edición).
     return res.render('productos/promociones', {
       promociones,
-      editando: null,
+      editando: {
+        id: null,
+        nombre: nombre || '',
+        producto_id: producto_id || '',
+        producto_descripcion: producto_descripcion || '',
+        cantidad_minima: cantidad_minima || '',
+        tipo_beneficio: tipo_beneficio || 'precio_especial',
+        valor_beneficio: valor_beneficio || '',
+        fecha_inicio: fecha_inicio || '',
+        activa: true,
+      },
       error: 'Faltan campos obligatorios.',
     });
   }
@@ -400,16 +414,45 @@ router.post('/promociones/nuevo', async (req, res) => {
     const promociones = await obtenerPromociones(req.session.token);
     res.render('productos/promociones', {
       promociones,
-      editando: null,
+      editando: {
+        id: null,
+        nombre: nombre || '',
+        producto_id: producto_id || '',
+        producto_descripcion: producto_descripcion || '',
+        cantidad_minima: cantidad_minima || '',
+        tipo_beneficio: tipo_beneficio || 'precio_especial',
+        valor_beneficio: valor_beneficio || '',
+        fecha_inicio: fecha_inicio || '',
+        activa: true,
+      },
       error: err.message || 'Error al crear la promoción.',
     });
   }
 });
 
 router.post('/promociones/editar/:id', async (req, res) => {
-  const { nombre, cantidad_minima, tipo_beneficio, valor_beneficio, fecha_inicio, activa } = req.body;
-  if (!nombre || !cantidad_minima || !valor_beneficio || !tipo_beneficio)
-    return res.redirect('/productos/promociones/editar/' + req.params.id);
+  const { nombre, producto_descripcion, cantidad_minima, tipo_beneficio, valor_beneficio, fecha_inicio, activa } = req.body;
+
+  if (!nombre || !cantidad_minima || !valor_beneficio || !tipo_beneficio) {
+    // Repoblar también en edición, conservando el id para que la vista
+    // siga en modo "Editar Promoción" y apunte al endpoint correcto.
+    const promociones = await obtenerPromociones(req.session.token);
+    return res.render('productos/promociones', {
+      promociones,
+      editando: {
+        id: req.params.id,
+        nombre: nombre || '',
+        producto_id: req.body.producto_id || '',
+        producto_descripcion: producto_descripcion || '',
+        cantidad_minima: cantidad_minima || '',
+        tipo_beneficio: tipo_beneficio || 'precio_especial',
+        valor_beneficio: valor_beneficio || '',
+        fecha_inicio: fecha_inicio || '',
+        activa: activa !== 'false',
+      },
+      error: 'Faltan campos obligatorios.',
+    });
+  }
 
   try {
     await api(`/promociones/${req.params.id}`, {

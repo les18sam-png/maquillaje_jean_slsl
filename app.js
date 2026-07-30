@@ -10,6 +10,15 @@ const PORT = 3000;
 app.set('view engine', 'ejs');
 app.set('views', path.join(__dirname, 'views'));
 
+
+// Normaliza timestamps de Supabase (sin zona horaria, guardados en UTC)
+// para que las vistas EJS los muestren en la hora correcta de México.
+// Disponible en todas las vistas sin necesidad de declararla en cada .ejs.
+app.locals.normalizarFecha = function(valor) {
+  if (!valor) return new Date();
+  const tieneZona = /Z$|[+-]\d{2}:\d{2}$/.test(valor);
+  return new Date(tieneZona ? valor : `${valor}Z`);
+};
 // ── Pasar currentPath a todas las vistas ───
 const fs = require('fs');
 const logoDirPath = path.join(__dirname, 'public/uploads/logo');
@@ -60,10 +69,14 @@ app.use('/auth', auth);
 const { requireAuth, requireTurno } = require('./middleware/auth');
 app.use(requireAuth);
 
+const methodOverride = require('method-override');
+app.use(methodOverride('_method'));
+
 // ── Ruta principal ─────────────────────────
 app.get('/', (req, res) => {
   res.redirect('/venta');
 });
+
 
 // ── Rutas ──────────────────────────────────
 
@@ -102,6 +115,8 @@ app.use('/reportes', reportes);
 app.use('/impresion', require('./routes/impresion'));
 
 app.use('/auditoria', require('./routes/auditoria'));
+
+app.use('/dashboard-dueno', require('./routes/dashboard-dueno'));
 
 // ── Levantar servidor ──────────────────────
 const server = app.listen(PORT, () => {
