@@ -22,6 +22,10 @@
     </a>
   </div>
 
+  <% if (typeof error !== 'undefined' && error) { %>
+    <div class="alert alert--error" style="margin-bottom:1.5rem;"><%= error %></div>
+  <% } %>
+
   <!-- BUSCADOR DE PRODUCTO -->
   <div class="card">
     <div class="card-titulo">Seleccionar Producto</div>
@@ -233,6 +237,7 @@
   .kardex-filtros { display: flex; flex-wrap: wrap; gap: 1rem; align-items: flex-end; }
   .kardex-filtros .form-group { min-width: 150px; }
   .kardex-filtros-btns { display: flex; flex-direction: row; gap: .5rem; align-items: flex-end; }
+  .alert--error { background: #fee2e2; color: #991b1b; border: 1px solid #fca5a5; }
 </style>
 
 <script>

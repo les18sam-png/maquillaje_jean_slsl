@@ -30,10 +30,12 @@
     </div>
   <% } %>
   <% if (error) { %>
-    <div class="alert alert--error">
-      <%= error === 'fallo_envio' ? 'No se pudo enviar el reporte. Revisa la configuración de correo.' : 'Ocurrió un error. Intenta de nuevo.' %>
-    </div>
-  <% } %>
+  <div class="alert alert--error">
+    <%= { fallo_envio: 'No se pudo enviar el reporte. Revisa la configuración de correo.', sin_permiso: 'No tienes permiso para realizar esta acción.' }[error] || 'Ocurrió un error. Intenta de nuevo.' %>
+  </div>
+<% } %>
+    
+
 
   <!-- Aviso -->
   <div class="alert alert--warning" style="max-width:700px;margin-bottom:16px;">

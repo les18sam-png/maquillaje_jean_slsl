@@ -9,6 +9,13 @@ const path    = require('path');
 const fs      = require('fs');
 const { api, API_URL } = require('../db/api');
 
+// ─── HELPER: mensaje de error legible según el status ─────────────────────────
+function mensajeError(err, accionDefault = 'realizar esta acción') {
+  if (err.status === 403) return `No tienes permiso para ${accionDefault}.`;
+  if (err.status === 404) return 'El recurso solicitado no existe o fue eliminado.';
+  return err.message || 'Ocurrió un error inesperado. Intenta de nuevo.';
+}
+
 // ─── MULTER ───────────────────────────────────────────────────────────────────
 const uploadsDir = path.join(__dirname, '../public/uploads/productos');
 if (!fs.existsSync(uploadsDir)) fs.mkdirSync(uploadsDir, { recursive: true });
@@ -78,12 +85,17 @@ router.get('/', async (req, res) => {
       q,
       categoria_id,
       hayFiltros: !!hayFiltros,
+      error: null,
     });
   } catch (err) {
     if (err.status === 401) return res.redirect('/auth/login?error=sesion');
-    res.render('productos/index', { productos: [], categorias: [], q, categoria_id, hayFiltros: false });
+    res.render('productos/index', {
+      productos: [], categorias: [], q, categoria_id, hayFiltros: false,
+      error: mensajeError(err, 'consultar el catálogo de productos'),
+    });
   }
 });
+
 // ─── FORMULARIO NUEVO ─────────────────────────────────────────────────────────
 router.get('/nuevo', async (req, res) => {
   try {
@@ -96,7 +108,10 @@ router.get('/nuevo', async (req, res) => {
     });
   } catch (err) {
     if (err.status === 401) return res.redirect('/auth/login?error=sesion');
-    res.render('productos/form', { producto: null, categorias: [], error: null });
+    res.render('productos/form', {
+      producto: null, categorias: [],
+      error: mensajeError(err, 'acceder a este formulario'),
+    });
   }
 });
 
@@ -141,9 +156,11 @@ await api('/productos/', {
     if (err.status === 401) return res.redirect('/auth/login?error=sesion');
 
     const categorias = await obtenerCategorias(req.session.token);
-    const mensaje = err.message?.includes('unique') || err.message?.includes('duplicado')
-      ? 'Ya existe un producto con ese código de barras.'
-      : 'Error al guardar el producto.';
+    const mensaje = err.status === 403
+      ? mensajeError(err, 'registrar productos')
+      : (err.message?.includes('unique') || err.message?.includes('duplicado')
+          ? 'Ya existe un producto con ese código de barras.'
+          : 'Error al guardar el producto.');
 
     res.render('productos/form', { producto: null, categorias, error: mensaje });
   }
@@ -164,6 +181,7 @@ router.get('/editar/:id', async (req, res) => {
     });
   } catch (err) {
     if (err.status === 401) return res.redirect('/auth/login?error=sesion');
+    if (err.status === 403) return res.redirect(`/productos?toast=sin_permiso`);
     res.redirect('/productos');
   }
 });
@@ -225,7 +243,9 @@ router.post('/editar/:id', upload.single('imagen'), async (req, res) => {
     res.render('productos/form', {
       producto,
       categorias,
-      error: 'Error al actualizar el producto.',
+      error: err.status === 403
+        ? mensajeError(err, 'editar este producto')
+        : 'Error al actualizar el producto.',
     });
   }
 });
@@ -242,7 +262,13 @@ router.post('/toggle/:id', async (req, res) => {
 
     res.json({ ok: true, estado: nuevoEstado ? 'activo' : 'inactivo' });
   } catch (err) {
-    res.json({ ok: false, mensaje: err.message });
+    // Este endpoint responde JSON (lo consume fetch() desde el frontend),
+    // así que el mensaje va en el campo "mensaje" para que el JS lo muestre
+    // con showToast — antes ya devolvía err.message, pero ese mensaje
+    // genérico de api.js para 403 ("No tienes permisos...") sí viajaba
+    // correctamente; el bug real estaba en las rutas que SILENCIABAN el
+    // error con .catch(() => null) antes de llegar aquí, no en esta ruta.
+    res.json({ ok: false, mensaje: mensajeError(err, 'activar/desactivar este producto') });
   }
 });
 
@@ -265,8 +291,11 @@ router.get('/api/buscar', async (req, res) => {
       imagen:    p.ruta_imagen,
       categoria: p.categoria_nombre,
     })));
-  } catch {
-    res.json([]);
+  } catch (err) {
+    // Endpoint de autocompletado — no hay dónde mostrar un mensaje visible
+    // en este contexto, pero al menos se distingue el status para quien
+    // consuma esta API directamente o inspeccione la respuesta.
+    res.status(err.status || 500).json({ error: mensajeError(err, 'buscar productos') });
   }
 });
 
@@ -278,7 +307,10 @@ router.get('/departamentos', async (req, res) => {
     res.render('productos/departamentos', { categorias, editando: null, error: null });
   } catch (err) {
     if (err.status === 401) return res.redirect('/auth/login?error=sesion');
-    res.render('productos/departamentos', { categorias: [], editando: null, error: null });
+    res.render('productos/departamentos', {
+      categorias: [], editando: null,
+      error: mensajeError(err, 'consultar los departamentos'),
+    });
   }
 });
 
@@ -291,6 +323,7 @@ router.get('/departamentos/editar/:id', async (req, res) => {
     res.render('productos/departamentos', { categorias, editando, error: null });
   } catch (err) {
     if (err.status === 401) return res.redirect('/auth/login?error=sesion');
+    if (err.status === 403) return res.redirect('/productos/departamentos?toast=sin_permiso');
     res.redirect('/productos/departamentos');
   }
 });
@@ -315,7 +348,9 @@ router.post('/departamentos/nuevo', async (req, res) => {
     res.render('productos/departamentos', {
       categorias,
       editando: null,
-      error: 'Error al crear el departamento.',
+      error: err.status === 403
+        ? mensajeError(err, 'crear departamentos')
+        : 'Error al crear el departamento.',
     });
   }
 });
@@ -332,6 +367,7 @@ router.post('/departamentos/editar/:id', async (req, res) => {
     res.redirect('/productos/departamentos?toast=editado');
   } catch (err) {
     if (err.status === 401) return res.redirect('/auth/login?error=sesion');
+    if (err.status === 403) return res.redirect('/productos/departamentos?toast=sin_permiso');
     res.redirect('/productos/departamentos');
   }
 });
@@ -342,11 +378,11 @@ router.post('/departamentos/eliminar/:id', async (req, res) => {
     res.redirect('/productos/departamentos?toast=eliminado');
   } catch (err) {
     if (err.status === 401) return res.redirect('/auth/login?error=sesion');
+    if (err.status === 403) return res.redirect('/productos/departamentos?toast=sin_permiso');
     res.redirect('/productos/departamentos?toast=error');
   }
 });
 
-// ─── PROMOCIONES ──────────────────────────────────────────────────────────────
 // ─── PROMOCIONES ──────────────────────────────────────────────────────────────
 router.get('/promociones', async (req, res) => {
   try {
@@ -354,7 +390,10 @@ router.get('/promociones', async (req, res) => {
     res.render('productos/promociones', { promociones, editando: null, error: null });
   } catch (err) {
     if (err.status === 401) return res.redirect('/auth/login?error=sesion');
-    res.render('productos/promociones', { promociones: [], editando: null, error: null });
+    res.render('productos/promociones', {
+      promociones: [], editando: null,
+      error: mensajeError(err, 'consultar las promociones'),
+    });
   }
 });
 
@@ -367,6 +406,7 @@ router.get('/promociones/editar/:id', async (req, res) => {
     res.render('productos/promociones', { promociones, editando, error: null });
   } catch (err) {
     if (err.status === 401) return res.redirect('/auth/login?error=sesion');
+    if (err.status === 403) return res.redirect('/productos/promociones?toast=sin_permiso');
     res.redirect('/productos/promociones');
   }
 });
@@ -425,7 +465,9 @@ router.post('/promociones/nuevo', async (req, res) => {
         fecha_inicio: fecha_inicio || '',
         activa: true,
       },
-      error: err.message || 'Error al crear la promoción.',
+      error: err.status === 403
+        ? mensajeError(err, 'crear promociones')
+        : (err.message || 'Error al crear la promoción.'),
     });
   }
 });
@@ -469,6 +511,7 @@ router.post('/promociones/editar/:id', async (req, res) => {
     res.redirect('/productos/promociones?toast=editado');
   } catch (err) {
     if (err.status === 401) return res.redirect('/auth/login?error=sesion');
+    if (err.status === 403) return res.redirect('/productos/promociones?toast=sin_permiso');
     res.redirect('/productos/promociones');
   }
 });
@@ -479,9 +522,11 @@ router.post('/promociones/eliminar/:id', async (req, res) => {
     res.redirect('/productos/promociones?toast=eliminado');
   } catch (err) {
     if (err.status === 401) return res.redirect('/auth/login?error=sesion');
+    if (err.status === 403) return res.redirect('/productos/promociones?toast=sin_permiso');
     res.redirect('/productos/promociones');
   }
 });
+
 // ─── MULTER PARA EXCEL/CSV ────────────────────────────────────────────────────
 const storageExcel = multer.memoryStorage(); // buffer en memoria, no disco
 const uploadExcel  = multer({
@@ -512,6 +557,9 @@ router.get('/exportar', async (req, res) => {
       `${API_URL}${url}`,
       { headers: { Authorization: `Bearer ${req.session.token}` } }
     );
+
+    if (respuesta.status === 401) return res.redirect('/auth/login?error=sesion');
+    if (respuesta.status === 403) return res.redirect('/productos?toast=sin_permiso');
 
     if (!respuesta.ok) {
       const err = await respuesta.json().catch(() => ({}));
@@ -544,7 +592,7 @@ router.post('/importar', uploadExcel.single('archivo'), async (req, res) => {
   console.log('req.file:', req.file);
   console.log('req.body:', req.body);
   console.log('Content-Type:', req.headers['content-type']);
-  
+
   if (!req.file) {
     return res.render('productos/importar', {
       error: 'Debes seleccionar un archivo .xlsx o .csv',
@@ -564,12 +612,17 @@ router.post('/importar', uploadExcel.single('archivo'), async (req, res) => {
       body:    form,
     });
 
+    if (respuesta.status === 401) return res.redirect('/auth/login?error=sesion');
+
     const data = await respuesta.json().catch(() => ({}));
 
     if (!respuesta.ok) {
       console.log('[IMPORTAR] Error de FastAPI:', respuesta.status, data);
+      const mensaje = respuesta.status === 403
+        ? 'No tienes permiso para importar productos.'
+        : (data.detail || `Error al importar (status ${respuesta.status})`);
       return res.render('productos/importar', {
-        error: data.detail || `Error al importar (status ${respuesta.status})`,
+        error: mensaje,
         resultado: null,
       });
     }
@@ -586,4 +639,5 @@ router.post('/importar', uploadExcel.single('archivo'), async (req, res) => {
     });
   }
 });
+
 module.exports = router;

@@ -2,6 +2,13 @@
 
 <div class="page-wrapper">
 
+  <!-- Breadcrumb -->
+  <nav class="breadcrumb">
+    <a href="/admin" class="breadcrumb__link">Administración</a>
+    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg>
+    <span class="breadcrumb__current">Cajas</span>
+  </nav>
+
   <!-- Encabezado -->
   <div class="page-header">
     <div class="page-header__left">
@@ -39,6 +46,18 @@
     <div class="alert alert--error">
       <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
       La caja no existe.
+    </div>
+  <% } %>
+  <% if (error === 'sin_permiso') { %>
+    <div class="alert alert--error">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+      No tienes permiso para realizar esta acción.
+    </div>
+  <% } %>
+  <% if (error === 'limite') { %>
+    <div class="alert alert--error">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+      Se alcanzó el límite de cajas permitido para esta sucursal (RF-04.3: máximo 5 cajas + verificador).
     </div>
   <% } %>
 

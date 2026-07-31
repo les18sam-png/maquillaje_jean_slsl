@@ -170,6 +170,7 @@
     if (toast === 'creado')    showToast('Departamento agregado', 'success');
     if (toast === 'editado')   showToast('Departamento actualizado', 'success');
     if (toast === 'eliminado') showToast('Departamento eliminado', 'info');
+    if (toast === 'sin_permiso') window.showToast && showToast('No tienes permiso para realizar esta acción', 'error');
   });
 })();
 </script>

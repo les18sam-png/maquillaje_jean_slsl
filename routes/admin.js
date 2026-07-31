@@ -10,6 +10,23 @@ const fs      = require('fs');
 const { api, API_URL } = require('../db/api');
 const { leerConfigTicket, guardarConfigTicket } = require('../utils/config-ticket');
 const SUCURSAL_ID = process.env.SUCURSAL_ID;
+
+const PERMISOS = [
+  'perm_inventario_entrada', 'perm_inventario_ajuste', 'perm_kardex',
+  'perm_corte_caja', 'perm_modificar_precios', 'perm_cancelar_tickets',
+  'perm_clientes', 'perm_descuentos', 'perm_reportes', 'perm_exportar',
+  'perm_promociones', 'perm_administrar', 'perm_movimientos_caja',
+  'perm_devoluciones', 'perm_auditoria', 'perm_dueno',
+];
+
+
+// ─── HELPER: mensaje de error legible según el status ─────────────────────────
+function mensajeError(err, accionDefault = 'realizar esta acción') {
+  if (err.status === 403) return `No tienes permiso para ${accionDefault}.`;
+  if (err.status === 404) return 'El recurso solicitado no existe o fue eliminado.';
+  return err.message || 'Ocurrió un error inesperado. Intenta de nuevo.';
+}
+
 // ─── MULTER para el logo del sistema ──────────────────────────────────────────
 const logoDir = path.join(__dirname, '../public/uploads/logo');
 if (!fs.existsSync(logoDir)) fs.mkdirSync(logoDir, { recursive: true });
@@ -34,6 +51,7 @@ const uploadLogo = multer({
   fileFilter: logoFilter,
   limits: { fileSize: 2 * 1024 * 1024 }
 });
+
 /* ─────────────────────────────────────────
    GET /admin → panel principal
 ───────────────────────────────────────── */
@@ -42,19 +60,11 @@ router.get('/', (req, res) => {
 });
 
 /* ─────────────────────────────────────────
-   72 — GET /admin/usuarios — MIGRADO
+   GET /admin/usuarios — MIGRADO
 ───────────────────────────────────────── */
 router.get('/usuarios', async (req, res) => {
   try {
     const data = await api('/usuarios/', {}, req.session.token);
-
-    const PERMISOS = [
-      'perm_inventario_entrada', 'perm_inventario_ajuste', 'perm_kardex',
-      'perm_corte_caja', 'perm_modificar_precios', 'perm_cancelar_tickets',
-      'perm_clientes', 'perm_descuentos', 'perm_reportes', 'perm_exportar',
-      'perm_promociones', 'perm_administrar', 'perm_movimientos_caja',
-      'perm_devoluciones', 'perm_auditoria',
-    ];
 
     const usuarios = (data.items || []).map(u => {
       const permisos = {};
@@ -68,9 +78,16 @@ router.get('/usuarios', async (req, res) => {
     res.render('admin/usuarios', {
       title:    'Usuarios',
       usuarios,
+      error:    null,
     });
   } catch (err) {
     if (err.status === 401) return res.redirect('/auth/login?error=sesion');
+    if (err.status === 403) {
+      return res.render('admin/usuarios', {
+        title: 'Usuarios', usuarios: [],
+        error: mensajeError(err, 'consultar la lista de usuarios'),
+      });
+    }
     console.error('Error en GET /admin/usuarios:', err.message);
     res.status(500).send('Error al cargar usuarios: ' + err.message);
   }
@@ -78,29 +95,29 @@ router.get('/usuarios', async (req, res) => {
 
 /* ─────────────────────────────────────────
    GET /admin/usuarios/nuevo — MIGRADO
+   Ya no carga roles: el formulario pide permisos directos, y el backend
+   crea un rol exclusivo para el nuevo usuario (nombrado igual a su
+   nombre_usuario) con esos permisos.
 ───────────────────────────────────────── */
-router.get('/usuarios/nuevo', async (req, res) => {
-  try {
-    const rolesData = await api('/roles/', {}, req.session.token);
-
-    res.render('admin/form-usuario', {
-      title:       'Nuevo Usuario',
-      usuario:     null,
-      roles:       rolesData.items || [],
-      modoEdicion: false,
-    });
-  } catch (err) {
-    console.error('Error en GET /admin/usuarios/nuevo:', err.message);
-    res.status(500).send('Error: ' + err.message);
-  }
+router.get('/usuarios/nuevo', (req, res) => {
+  res.render('admin/form-usuario', {
+    title:       'Nuevo Usuario',
+    usuario:     null,
+    modoEdicion: false,
+    error:       null,
+  });
 });
 
 /* ─────────────────────────────────────────
    POST /admin/usuarios/nuevo — MIGRADO
+   Ya no envía rol_id: manda los perm_* marcados en el formulario.
 ───────────────────────────────────────── */
 router.post('/usuarios/nuevo', async (req, res) => {
   try {
-    const { nombre_completo, nombre_usuario, contrasena, rol_id } = req.body;
+    const { nombre_completo, nombre_usuario, contrasena } = req.body;
+
+    const permisos = {};
+    PERMISOS.forEach(p => { permisos[p] = req.body[p] === 'on'; });
 
     await api('/usuarios/', {
       method: 'POST',
@@ -108,13 +125,14 @@ router.post('/usuarios/nuevo', async (req, res) => {
         nombre_completo: nombre_completo?.trim(),
         nombre_usuario:  nombre_usuario?.trim(),
         contrasena,
-        rol_id,
+        ...permisos,
       }),
     }, req.session.token);
 
     res.redirect('/admin/usuarios?toast=creado');
   } catch (err) {
     if (err.status === 401) return res.redirect('/auth/login?error=sesion');
+    if (err.status === 403) return res.redirect('/admin/usuarios?error=sin_permiso');
     console.error('Error creando usuario:', err.message);
     res.redirect('/admin/usuarios/nuevo?error=fallo');
   }
@@ -122,22 +140,23 @@ router.post('/usuarios/nuevo', async (req, res) => {
 
 /* ─────────────────────────────────────────
    GET /admin/usuarios/:id/editar — MIGRADO
+   Ya no carga roles: solo trae al usuario, que ya viene con sus
+   permisos aplanados desde el rol que tiene asignado.
 ───────────────────────────────────────── */
 router.get('/usuarios/:id/editar', async (req, res) => {
   try {
     const usuario = await api(`/usuarios/${req.params.id}`, {}, req.session.token);
 
-    const rolesData = await api('/roles/', {}, req.session.token);
-
     res.render('admin/form-usuario', {
       title:       `Editar — ${usuario.nombre_completo}`,
       usuario,
-      roles:       rolesData.items || [],
       modoEdicion: true,
+      error:       null,
     });
   } catch (err) {
     if (err.status === 401) return res.redirect('/auth/login?error=sesion');
     if (err.status === 404) return res.status(404).send('Usuario no encontrado.');
+    if (err.status === 403) return res.redirect('/admin/usuarios?error=sin_permiso');
     console.error('Error en GET /admin/usuarios/:id/editar:', err.message);
     res.status(500).send('Error: ' + err.message);
   }
@@ -145,18 +164,12 @@ router.get('/usuarios/:id/editar', async (req, res) => {
 
 /* ─────────────────────────────────────────
    POST /admin/usuarios/:id/editar — MIGRADO
+   Ya no envía rol_id: si el body trae algún perm_*, el backend crea
+   un rol NUEVO con esos permisos y reasigna rol_id automáticamente.
 ───────────────────────────────────────── */
-const PERMISOS = [
-  'perm_inventario_entrada', 'perm_inventario_ajuste', 'perm_kardex',
-  'perm_corte_caja', 'perm_modificar_precios', 'perm_cancelar_tickets',
-  'perm_clientes', 'perm_descuentos', 'perm_reportes', 'perm_exportar',
-  'perm_promociones', 'perm_administrar', 'perm_movimientos_caja',
-  'perm_devoluciones', 'perm_auditoria',
-];
-
 router.post('/usuarios/:id/editar', async (req, res) => {
   try {
-    const { nombre_completo, nombre_usuario, rol_id } = req.body;
+    const { nombre_completo, nombre_usuario } = req.body;
 
     const permisos = {};
     PERMISOS.forEach(p => {
@@ -165,12 +178,13 @@ router.post('/usuarios/:id/editar', async (req, res) => {
 
     await api(`/usuarios/${req.params.id}`, {
       method: 'PUT',
-      body: JSON.stringify({ nombre_completo, nombre_usuario, rol_id, ...permisos }),
+      body: JSON.stringify({ nombre_completo, nombre_usuario, ...permisos }),
     }, req.session.token);
 
     res.redirect('/admin/usuarios?toast=actualizado');
   } catch (err) {
     if (err.status === 401) return res.redirect('/auth/login?error=sesion');
+    if (err.status === 403) return res.redirect(`/admin/usuarios/${req.params.id}/editar?error=sin_permiso`);
     console.error('Error actualizando usuario:', err.message);
     res.redirect(`/admin/usuarios/${req.params.id}/editar?error=fallo`);
   }
@@ -191,13 +205,16 @@ router.post('/usuarios/:id/toggle', async (req, res) => {
     res.redirect('/admin/usuarios?toast=actualizado');
   } catch (err) {
     if (err.status === 401) return res.redirect('/auth/login?error=sesion');
+    if (err.status === 403) return res.redirect('/admin/usuarios?error=sin_permiso');
     console.error('Error toggling usuario:', err.message);
-    res.redirect('/admin/usuarios');
+    res.redirect('/admin/usuarios?error=fallo');
   }
 });
 
 /* ─────────────────────────────────────────
-   GET /admin/roles — sigue con Supabase
+   GET /admin/roles — solo consulta/auditoría (no está enlazada en
+   ningún menú, pero se deja accesible por si se necesita revisar
+   qué roles quedaron huérfanos tras ediciones de usuarios).
 ───────────────────────────────────────── */
 router.get('/roles', async (req, res) => {
   try {
@@ -206,9 +223,16 @@ router.get('/roles', async (req, res) => {
     res.render('admin/roles', {
       title: 'Roles y Permisos',
       roles: rolesData.items || [],
+      error: null,
     });
   } catch (err) {
     if (err.status === 401) return res.redirect('/auth/login?error=sesion');
+    if (err.status === 403) {
+      return res.render('admin/roles', {
+        title: 'Roles y Permisos', roles: [],
+        error: mensajeError(err, 'consultar los roles'),
+      });
+    }
     console.error('Error en GET /admin/roles:', err.message);
     res.status(500).send('Error al cargar roles: ' + err.message);
   }
@@ -245,6 +269,13 @@ router.get('/configuracion', async (req, res) => {
     });
   } catch (err) {
     if (err.status === 401) return res.redirect('/auth/login?error=sesion');
+    if (err.status === 403) {
+      return res.render('admin/configuracion', {
+        title: 'Configuración', sucursal: {}, cajas: [],
+        configTicket: leerConfigTicket(), logoActual: null,
+        toast: null, error: mensajeError(err, 'consultar la configuración'),
+      });
+    }
     console.error('Error en GET /admin/configuracion:', err.message);
     res.status(500).send('Error al cargar configuración: ' + err.message);
   }
@@ -289,6 +320,12 @@ router.get('/cajas', async (req, res) => {
     });
   } catch (err) {
     if (err.status === 401) return res.redirect('/auth/login?error=sesion');
+    if (err.status === 403) {
+      return res.render('admin/cajas', {
+        title: 'Cajas', cajas: [], toast: null,
+        error: mensajeError(err, 'consultar las cajas'),
+      });
+    }
     console.error('Error en GET /admin/cajas:', err.message);
     res.status(500).send('Error al cargar cajas: ' + err.message);
   }
@@ -306,6 +343,7 @@ router.post('/cajas', async (req, res) => {
     res.redirect('/admin/cajas?toast=creada');
   } catch (err) {
     if (err.status === 401) return res.redirect('/auth/login?error=sesion');
+    if (err.status === 403) return res.redirect('/admin/cajas?error=sin_permiso');
     const msg = err.status === 409 ? 'limite' : 'fallo';
     res.redirect(`/admin/cajas?error=${msg}`);
   }
@@ -323,6 +361,7 @@ router.put('/cajas/:id', async (req, res) => {
     res.redirect('/admin/cajas?toast=actualizada');
   } catch (err) {
     if (err.status === 401) return res.redirect('/auth/login?error=sesion');
+    if (err.status === 403) return res.redirect('/admin/cajas?error=sin_permiso');
     if (err.status === 404) return res.redirect('/admin/cajas?error=no_encontrada');
     const msg = err.status === 409 ? 'limite' : 'fallo';
     res.redirect(`/admin/cajas?error=${msg}`);
@@ -358,7 +397,6 @@ function construirPayloadCaja(body, esActualizacion = false) {
 
   return payload;
 }
-
 
 /* ─────────────────────────────────────────
    GET /admin/logotipo — pantalla de logo
@@ -412,7 +450,6 @@ router.post('/logotipo/quitar', (req, res) => {
   res.redirect('/admin/logotipo?toast=quitado');
 });
 
-
 /* ─────────────────────────────────────────
    GET /admin/ticket — configuración del ticket
 ───────────────────────────────────────── */
@@ -440,6 +477,12 @@ router.get('/ticket', async (req, res) => {
     });
   } catch (err) {
     if (err.status === 401) return res.redirect('/auth/login?error=sesion');
+    if (err.status === 403) {
+      return res.render('admin/ticket', {
+        title: 'Ticket', sucursal: {}, config: leerConfigTicket(), logoActual: null,
+        toast: null, error: mensajeError(err, 'consultar la configuración del ticket'),
+      });
+    }
     console.error('Error en GET /admin/ticket:', err.message);
     res.status(500).send('Error al cargar configuración del ticket: ' + err.message);
   }
@@ -466,38 +509,31 @@ router.post('/ticket', (req, res) => {
   }
 });
 
-
 /* ─────────────────────────────────────────
    GET /admin/corte — corte de caja (consulta)
 ───────────────────────────────────────── */
 router.get('/corte', async (req, res) => {
   try {
-    const { caja_id = '', fecha = '' } = req.query;
-
-    // Cajas para el selector
-    const cajasData = await api('/cajas/?solo_activas=false', {}, req.session.token).catch(() => ({ items: [] }));
-    const cajas = (cajasData.items || []).filter(c => !c.es_verificador);
+    const { fecha = '' } = req.query;
 
     let corte = null;
     let errorCorte = null;
 
-    // Si ya eligieron caja y fecha, calcula el corte
-    if (caja_id && fecha) {
+    // Corte CONSOLIDADO de toda la sucursal (todas las cajas, todos los
+    // turnos, incluidos los abiertos). Solo requiere fecha, ya no caja_id.
+    if (fecha) {
       try {
-        corte = await api(`/cortes/?caja_id=${caja_id}&fecha=${fecha}`, {}, req.session.token);
+        corte = await api(`/cortes/?fecha=${fecha}`, {}, req.session.token);
       } catch (e) {
-        errorCorte = e.status === 403
-          ? 'No tienes permiso para ver cortes.'
-          : (e.message || 'No se pudo calcular el corte.');
+        errorCorte = mensajeError(e, 'ver el corte de caja');
       }
     }
 
     res.render('admin/corte', {
       title: 'Corte de caja',
-      cajas,
       corte,
       errorCorte,
-      filtros: { caja_id, fecha },
+      filtros: { fecha },
     });
   } catch (err) {
     if (err.status === 401) return res.redirect('/auth/login?error=sesion');
@@ -516,8 +552,6 @@ router.get('/respaldo', (req, res) => {
   });
 });
 
-
-
 /* ─────────────────────────────────────────
    GET /admin/respaldo/json — descargar respaldo JSON
 ───────────────────────────────────────── */
@@ -526,6 +560,8 @@ router.get('/respaldo/json', async (req, res) => {
     const respuesta = await fetch(`${API_URL}/respaldo/json`, {
       headers: { Authorization: `Bearer ${req.session.token}` },
     });
+    if (respuesta.status === 401) return res.redirect('/auth/login?error=sesion');
+    if (respuesta.status === 403) return res.redirect('/admin/respaldo?error=sin_permiso');
     if (!respuesta.ok) throw new Error('Error al generar el respaldo JSON');
 
     const buffer = await respuesta.arrayBuffer();
@@ -548,6 +584,8 @@ router.get('/respaldo/excel', async (req, res) => {
     const respuesta = await fetch(`${API_URL}/respaldo/excel`, {
       headers: { Authorization: `Bearer ${req.session.token}` },
     });
+    if (respuesta.status === 401) return res.redirect('/auth/login?error=sesion');
+    if (respuesta.status === 403) return res.redirect('/admin/respaldo?error=sin_permiso');
     if (!respuesta.ok) throw new Error('Error al generar el respaldo Excel');
 
     const buffer = await respuesta.arrayBuffer();
@@ -576,6 +614,12 @@ router.get('/reportes-correo', async (req, res) => {
     });
   } catch (err) {
     if (err.status === 401) return res.redirect('/auth/login?error=sesion');
+    if (err.status === 403) {
+      return res.render('admin/reportes-correo', {
+        title: 'Reportes por correo', destinatarios: [], toast: null,
+        error: mensajeError(err, 'consultar los destinatarios de reportes'),
+      });
+    }
     console.error('Error en GET /admin/reportes-correo:', err.message);
     res.status(500).send('Error al cargar destinatarios: ' + err.message);
   }
@@ -600,6 +644,7 @@ router.post('/reportes-correo/nuevo', async (req, res) => {
     res.redirect('/admin/reportes-correo?toast=creado');
   } catch (err) {
     if (err.status === 401) return res.redirect('/auth/login?error=sesion');
+    if (err.status === 403) return res.redirect('/admin/reportes-correo?error=sin_permiso');
     console.error('Error creando destinatario:', err.message);
     res.redirect('/admin/reportes-correo?error=fallo');
   }
@@ -618,8 +663,9 @@ router.post('/reportes-correo/:id/toggle', async (req, res) => {
     res.redirect('/admin/reportes-correo?toast=actualizado');
   } catch (err) {
     if (err.status === 401) return res.redirect('/auth/login?error=sesion');
+    if (err.status === 403) return res.redirect('/admin/reportes-correo?error=sin_permiso');
     console.error('Error actualizando destinatario:', err.message);
-    res.redirect('/admin/reportes-correo');
+    res.redirect('/admin/reportes-correo?error=fallo');
   }
 });
 
@@ -632,6 +678,7 @@ router.post('/reportes-correo/:id/eliminar', async (req, res) => {
     res.redirect('/admin/reportes-correo?toast=eliminado');
   } catch (err) {
     if (err.status === 401) return res.redirect('/auth/login?error=sesion');
+    if (err.status === 403) return res.redirect('/admin/reportes-correo?error=sin_permiso');
     console.error('Error eliminando destinatario:', err.message);
     res.redirect('/admin/reportes-correo?error=fallo');
   }
@@ -646,10 +693,12 @@ router.post('/reportes-correo/:id/enviar-ahora', async (req, res) => {
     res.redirect('/admin/reportes-correo?toast=enviado');
   } catch (err) {
     if (err.status === 401) return res.redirect('/auth/login?error=sesion');
+    if (err.status === 403) return res.redirect('/admin/reportes-correo?error=sin_permiso');
     console.error('Error enviando reporte:', err.message);
     res.redirect('/admin/reportes-correo?error=fallo_envio');
   }
 });
+
 /* ─────────────────────────────────────────
    Página temporal para secciones en desarrollo
 ───────────────────────────────────────── */

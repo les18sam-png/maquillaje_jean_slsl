@@ -111,7 +111,10 @@
           </div>
           <div class="form-group" style="margin-bottom:14px;">
             <label class="form-label">Teléfono</label>
-            <input type="text" name="telefono" class="form-control" value="<%= sucursal.telefono || '' %>">
+            <input type="tel" name="telefono" class="form-control" value="<%= sucursal.telefono || '' %>"
+              pattern="[0-9]{10}" maxlength="10" placeholder="10 dígitos"
+              oninput="this.value = this.value.replace(/[^0-9]/g, '')">
+            <span class="form-hint">Solo números, 10 dígitos</span>
           </div>
           <div class="form-group" style="margin-bottom:14px;">
             <label class="form-label">Dirección</label>
@@ -147,7 +150,7 @@
           </div>
           <div class="config-info-item">
             <dt>Umbral mayoreo</dt>
-            <dd>$300.00 MXN</dd>
+            <dd>$350.00 MXN</dd>
           </div>
           <div class="config-info-item">
             <dt>Métodos de pago</dt>

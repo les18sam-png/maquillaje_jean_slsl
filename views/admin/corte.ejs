@@ -11,22 +11,13 @@
   <div class="page-header">
     <div class="page-header__left">
       <h1 class="page-title">Corte de caja</h1>
-      <span class="page-subtitle">Consulta el corte de cualquier caja por día</span>
+      <span class="page-subtitle">Corte consolidado de todas las cajas de la sucursal por día</span>
     </div>
   </div>
 
   <!-- FILTROS -->
   <div class="corte-filtros-card">
     <form method="GET" action="/admin/corte" class="corte-filtros">
-      <div class="form-group">
-        <label class="form-label">Caja</label>
-        <select name="caja_id" class="form-control" required>
-          <option value="">Selecciona una caja</option>
-          <% cajas.forEach(c => { %>
-            <option value="<%= c.id %>" <%= filtros.caja_id === c.id ? 'selected' : '' %>><%= c.nombre %></option>
-          <% }) %>
-        </select>
-      </div>
       <div class="form-group">
         <label class="form-label">Fecha</label>
         <input type="date" name="fecha" class="form-control" value="<%= filtros.fecha %>" required>
@@ -46,17 +37,24 @@
 
   <% if (corte) { %>
 
+    <% if (corte.hay_turno_abierto) { %>
+      <div class="alert alert--warning" style="margin-bottom:14px;">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+        Hay uno o más turnos todavía abiertos. Este corte incluye sus ventas hasta el momento, pero el efectivo esperado puede cambiar hasta que se cierren.
+      </div>
+    <% } %>
+
     <% if (corte.num_tickets === 0) { %>
       <div class="corte-vacio">
         <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#C8215A" stroke-width="1.4" opacity="0.5"><rect x="3" y="4" width="18" height="16" rx="2"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
-        <p>No hay ventas registradas para esta caja en la fecha seleccionada.</p>
+        <p>No hay ventas registradas en ninguna caja para la fecha seleccionada.</p>
       </div>
     <% } else { %>
 
-    <!-- RESUMEN SUPERIOR -->
+    <!-- RESUMEN CONSOLIDADO -->
     <div class="corte-resumen">
       <div class="corte-stat corte-stat--principal">
-        <span class="corte-stat-label">Total vendido</span>
+        <span class="corte-stat-label">Total vendido (todas las cajas)</span>
         <span class="corte-stat-valor">$<%= corte.total_general.toFixed(2) %></span>
       </div>
       <div class="corte-stat">
@@ -73,74 +71,85 @@
       </div>
     </div>
 
-    <div class="corte-grid">
+    <!-- POR MÉTODO DE PAGO CONSOLIDADO -->
+    <div class="corte-card" style="max-width:900px; margin-bottom:18px;">
+      <div class="corte-card-titulo">Por forma de pago (todas las cajas)</div>
+      <table class="corte-tabla">
+        <tbody>
+          <tr><td>Efectivo</td><td class="corte-monto">$<%= corte.totales_metodo.efectivo.toFixed(2) %></td></tr>
+          <tr><td>Tarjeta</td><td class="corte-monto">$<%= corte.totales_metodo.tarjeta.toFixed(2) %></td></tr>
+          <tr><td>Transferencia</td><td class="corte-monto">$<%= corte.totales_metodo.transferencia.toFixed(2) %></td></tr>
+          <tr><td>Cheque</td><td class="corte-monto">$<%= corte.totales_metodo.cheque.toFixed(2) %></td></tr>
+          <tr><td>Mixto / otros</td><td class="corte-monto">$<%= corte.totales_metodo.mixto.toFixed(2) %></td></tr>
+          <tr class="corte-tabla-total">
+            <td>Efectivo esperado total</td>
+            <td class="corte-monto">$<%= corte.efectivo_esperado_total.toFixed(2) %></td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
 
-      <!-- POR MÉTODO DE PAGO -->
-      <div class="corte-card">
-        <div class="corte-card-titulo">Por forma de pago</div>
-        <table class="corte-tabla">
-          <tbody>
-            <tr>
-              <td>Efectivo</td>
-              <td class="corte-monto">$<%= corte.totales_metodo.efectivo.toFixed(2) %></td>
-            </tr>
-            <tr>
-              <td>Tarjeta</td>
-              <td class="corte-monto">$<%= corte.totales_metodo.tarjeta.toFixed(2) %></td>
-            </tr>
-            <tr>
-              <td>Transferencia</td>
-              <td class="corte-monto">$<%= corte.totales_metodo.transferencia.toFixed(2) %></td>
-            </tr>
-            <tr>
-              <td>Cheque</td>
-              <td class="corte-monto">$<%= corte.totales_metodo.cheque.toFixed(2) %></td>
-            </tr>
-            <tr>
-              <td>Mixto / otros</td>
-              <td class="corte-monto">$<%= corte.totales_metodo.mixto.toFixed(2) %></td>
-            </tr>
-          </tbody>
-        </table>
-      </div>
+    <!-- DESGLOSE POR CAJA -->
+    <h2 class="corte-desglose-titulo">Desglose por caja</h2>
+    <div class="corte-cajas-grid">
+      <% corte.cajas.forEach(c => { %>
+        <div class="corte-card corte-card--caja">
+          <div class="corte-card-caja-header">
+            <span class="corte-card-titulo" style="margin:0;"><%= c.caja_nombre %></span>
+            <% if (c.hay_turno_abierto) { %>
+              <span class="badge badge--warning">Turno abierto</span>
+            <% } else if (c.num_turnos > 0) { %>
+              <span class="badge badge--success">Cerrada</span>
+            <% } else { %>
+              <span class="badge badge--neutral">Sin turnos</span>
+            <% } %>
+          </div>
 
-      <!-- DINERO EN CAJA -->
-      <div class="corte-card">
-        <div class="corte-card-titulo">Dinero en caja (efectivo)</div>
-        <table class="corte-tabla">
-          <tbody>
-            <tr>
-              <td>Fondo inicial</td>
-              <td class="corte-monto">$<%= corte.caja.fondo_inicial.toFixed(2) %></td>
-            </tr>
-            <tr>
-              <td>+ Ventas en efectivo</td>
-              <td class="corte-monto">$<%= corte.caja.efectivo_neto.toFixed(2) %></td>
-            </tr>
-            <tr>
-              <td>+ Entradas de efectivo</td>
-              <td class="corte-monto">$<%= corte.caja.entradas.toFixed(2) %></td>
-            </tr>
-            <tr>
-              <td>− Salidas de efectivo</td>
-              <td class="corte-monto">$<%= corte.caja.salidas.toFixed(2) %></td>
-            </tr>
-            <tr class="corte-tabla-total">
-              <td>Efectivo esperado</td>
-              <td class="corte-monto">$<%= corte.caja.efectivo_esperado.toFixed(2) %></td>
-            </tr>
-          </tbody>
-        </table>
-        <p class="corte-nota">Este es el efectivo que debería haber físicamente en el cajón.</p>
-      </div>
+          <% if (c.num_tickets === 0 && c.num_turnos === 0) { %>
+            <p class="corte-nota" style="padding:12px 0;">Sin actividad este día.</p>
+          <% } else { %>
+            <table class="corte-tabla">
+              <tbody>
+                <tr><td>Total vendido</td><td class="corte-monto">$<%= c.total_general.toFixed(2) %></td></tr>
+                <tr><td>Tickets</td><td class="corte-monto"><%= c.num_tickets %></td></tr>
+                <tr><td>Canceladas</td><td class="corte-monto"><%= c.num_canceladas %></td></tr>
+                <tr class="corte-tabla-total">
+                  <td>Efectivo esperado</td>
+                  <td class="corte-monto">$<%= c.caja.efectivo_esperado.toFixed(2) %></td>
+                </tr>
+              </tbody>
+            </table>
 
+            <% if (c.turnos_detalle.length > 0) { %>
+              <div class="corte-turnos-lista">
+                <% c.turnos_detalle.forEach(t => { %>
+                  <div class="corte-turno-item">
+                    <span class="corte-turno-cajero"><%= t.cajero_nombre %></span>
+                    <span class="corte-turno-hora">
+                      <%= new Date(t.inicio).toLocaleTimeString('es-MX', { hour: '2-digit', minute: '2-digit', timeZone: 'America/Mexico_City' }) %>
+                      <% if (t.cierre) { %>
+                        – <%= new Date(t.cierre).toLocaleTimeString('es-MX', { hour: '2-digit', minute: '2-digit', timeZone: 'America/Mexico_City' }) %>
+                      <% } %>
+                    </span>
+                    <% if (t.estado === 'abierto') { %>
+                      <span class="badge badge--warning" style="font-size:.65rem;">Abierto</span>
+                    <% } else { %>
+                      <span class="badge badge--neutral" style="font-size:.65rem;">Cerrado</span>
+                    <% } %>
+                  </div>
+                <% }) %>
+              </div>
+            <% } %>
+          <% } %>
+        </div>
+      <% }) %>
     </div>
 
     <% } %>
   <% } else if (!errorCorte) { %>
     <div class="corte-inicial">
       <svg width="44" height="44" viewBox="0 0 24 24" fill="none" stroke="#C8215A" stroke-width="1.3" opacity="0.5"><rect x="3" y="4" width="18" height="16" rx="2"/><line x1="7" y1="9" x2="17" y2="9"/><line x1="7" y1="13" x2="13" y2="13"/></svg>
-      <p>Selecciona una caja y una fecha para ver el corte.</p>
+      <p>Selecciona una fecha para ver el corte consolidado de la sucursal.</p>
     </div>
   <% } %>
 
@@ -153,14 +162,9 @@
   box-shadow: 0 1px 4px rgba(60,40,50,.07);
   padding: 20px;
   margin-bottom: 18px;
-  max-width: 640px;
+  max-width: 420px;
 }
-.corte-filtros {
-  display: flex;
-  gap: 14px;
-  align-items: flex-end;
-  flex-wrap: wrap;
-}
+.corte-filtros { display: flex; gap: 14px; align-items: flex-end; flex-wrap: wrap; }
 .corte-filtros .form-group { flex: 1; min-width: 150px; margin: 0; }
 .corte-filtros-btn { flex: 0; }
 
@@ -187,19 +191,28 @@
 .corte-stat-label { font-size: .74rem; color: #999; text-transform: uppercase; letter-spacing: .04em; }
 .corte-stat-valor { font-size: 1.5rem; font-weight: 700; color: #6C0820; font-family: 'Playfair Display', serif; }
 
-.corte-grid {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 16px;
-  max-width: 900px;
+.corte-desglose-titulo {
+  font-family: 'Playfair Display', serif;
+  font-size: 1.05rem;
+  color: #3D5D91;
+  margin: 4px 0 12px;
 }
-@media (max-width: 640px) { .corte-grid { grid-template-columns: 1fr; } }
+
+.corte-cajas-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: 16px;
+  max-width: 1100px;
+}
+
 .corte-card {
   background: #fff;
   border-radius: 12px;
   box-shadow: 0 1px 4px rgba(60,40,50,.07);
   padding: 20px;
 }
+.corte-card--caja { display: flex; flex-direction: column; gap: 4px; }
+.corte-card-caja-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; }
 .corte-card-titulo {
   font-family: 'Playfair Display', serif;
   font-weight: 700;
@@ -212,6 +225,11 @@
 .corte-monto { text-align: right; font-weight: 600; color: #3D5D91; font-variant-numeric: tabular-nums; }
 .corte-tabla-total td { border-top: 2px solid #F2DCDB; border-bottom: none; padding-top: 12px; font-weight: 700; color: #6C0820; font-size: .95rem; }
 .corte-nota { font-size: .76rem; color: #aaa; margin: 10px 0 0; }
+
+.corte-turnos-lista { margin-top: 12px; padding-top: 12px; border-top: 1px dashed #F2DCDB; display: flex; flex-direction: column; gap: 6px; }
+.corte-turno-item { display: flex; align-items: center; gap: 8px; font-size: .78rem; color: #666; }
+.corte-turno-cajero { font-weight: 600; color: #3D5D91; flex: 1; }
+.corte-turno-hora { color: #999; }
 
 .corte-inicial, .corte-vacio {
   display: flex;

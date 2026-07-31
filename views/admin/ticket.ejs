@@ -27,6 +27,11 @@
       No se pudo guardar. Intenta de nuevo.
     </div>
   <% } %>
+  <% if (error === 'sin_permiso') { %>
+    <div class="alert alert--error">No tienes permiso para realizar esta acción.</div>
+  <% } else if (error === 'fallo') { %>
+    <div class="alert alert--error">Ocurrió un error. Intenta de nuevo.</div>
+  <% } %>
 
   <div class="ticket-config-grid">
 

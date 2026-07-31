@@ -1,6 +1,12 @@
 <%- include('../partials/header', { title }) %>
 
 <div class="page-wrapper">
+  <!-- Breadcrumb -->
+  <nav class="breadcrumb">
+    <a href="/admin" class="breadcrumb__link">Administración</a>
+    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg>
+    <span class="breadcrumb__current">Respaldo</span>
+  </nav>
 
   <div class="page-header">
     <div class="page-header__left">
@@ -13,6 +19,11 @@
     <div class="alert alert--error" style="margin-bottom:16px;">
       No se pudo generar el respaldo. Intenta de nuevo.
     </div>
+  <% } %>
+  <% if (error === 'sin_permiso') { %>
+    <div class="alert alert--error">No tienes permiso para realizar esta acción.</div>
+  <% } else if (error === 'fallo') { %>
+    <div class="alert alert--error">Ocurrió un error. Intenta de nuevo.</div>
   <% } %>
 
   <div class="card" style="max-width:640px; padding:24px;">

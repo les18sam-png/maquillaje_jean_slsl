@@ -267,6 +267,7 @@
   if (toast === 'ajuste_ok')  window.showToast && showToast('Ajuste aplicado correctamente', 'success');
   if (toast === 'error_entrada') window.showToast && showToast('Error al registrar entrada', 'error');
   if (toast === 'error_ajuste')  window.showToast && showToast('Error al aplicar ajuste', 'error');
+  if (toast === 'sin_permiso')   window.showToast && showToast('No tienes permiso para realizar esta acción', 'error');
 
   window.abrirEntrada = function(id, nombre, stock) {
     document.getElementById('entradaProductoId').value = id;

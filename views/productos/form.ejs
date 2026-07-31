@@ -9,6 +9,14 @@
     </div>
   <% } %>
 
+  <% if (typeof error !== 'undefined' && error) { %>
+    <div class="alert alert--error" style="margin-bottom:1.5rem; display:flex; align-items:center; gap:.6rem; padding:.875rem 1rem; background:#ffeaea; border:1px solid #f5c6cb; border-radius:10px; color:#c0392b; font-size:.9rem;">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+      <%= error %>
+    </div>
+  <% } %>
+
+
   <div class="page-header flex-between">
     <div>
       <h1 class="page-title"><%= producto ? 'Editar Producto' : 'Nuevo Producto' %></h1>

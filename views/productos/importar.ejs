@@ -210,6 +210,7 @@
     const errs  = <%= resultado.errores.length %>;
     if (total > 0 && errs === 0) showToast(`${total} productos importados correctamente`, 'success');
     else if (total > 0)          showToast(`${total} importados, ${errs} con error`, 'info');
+    else if (toast === 'sin_permiso') window.showToast && showToast('No tienes permiso para realizar esta acción', 'error');
     else                         showToast('No se importó ningún producto', 'error');
   <% } %>
 })();

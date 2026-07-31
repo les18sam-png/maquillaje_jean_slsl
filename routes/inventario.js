@@ -4,6 +4,13 @@ const express = require('express');
 const router  = express.Router();
 const { api } = require('../db/api');
 
+// ─── HELPER: mensaje de error legible según el status ─────────────────────────
+function mensajeError(err, accionDefault = 'realizar esta acción') {
+  if (err.status === 403) return `No tienes permiso para ${accionDefault}.`;
+  if (err.status === 404) return 'El recurso solicitado no existe o fue eliminado.';
+  return err.message || 'Ocurrió un error inesperado. Intenta de nuevo.';
+}
+
 // ─── LISTADO / PANTALLA PRINCIPAL ─────────────────────────────────────────────
 router.get('/', async (req, res) => {
   try {
@@ -16,9 +23,24 @@ router.get('/', async (req, res) => {
     params.append('pagina', pagina);
     params.append('por_pagina', '50');
 
-    const data = await api(`/inventario?${params.toString()}`, {}, req.session.token);
+    let data, categoriasData, error = null;
 
-    const categoriasData = await api('/productos/categorias/lista', {}, req.session.token).catch(() => ({ items: [] }));
+    try {
+      data = await api(`/inventario?${params.toString()}`, {}, req.session.token);
+    } catch (err) {
+      if (err.status === 401) return res.redirect('/auth/login?error=sesion');
+      if (err.status === 403) {
+        return res.render('inventario/index', {
+          productos: [], categorias: [], q, categoria_id, alerta,
+          totalProductos: 0, totalBajoStock: 0, paginaActual: 1, totalPaginas: 1,
+          error: mensajeError(err, 'consultar el inventario'),
+        });
+      }
+      throw err; // errores no esperados van al catch general (500)
+    }
+
+    categoriasData = await api('/productos/categorias/lista', {}, req.session.token)
+      .catch(() => ({ items: [] })); // dato secundario para el filtro, no crítico
 
     const lista = (data.items || []).map(p => ({
       ...p,
@@ -35,6 +57,7 @@ router.get('/', async (req, res) => {
       totalBajoStock:  data.resumen?.productos_stock_bajo || 0,
       paginaActual:    data.pagina || 1,
       totalPaginas:    data.total_paginas || 1,
+      error: null,
     });
   } catch (err) {
     if (err.status === 401) return res.redirect('/auth/login?error=sesion');
@@ -103,7 +126,6 @@ router.post('/ajuste', async (req, res) => {
 });
 
 // ─── KARDEX ───────────────────────────────────────────────────────────────────
-// ─── KARDEX ───────────────────────────────────────────────────────────────────
 router.get('/kardex', async (req, res) => {
   try {
     const {
@@ -114,8 +136,11 @@ router.get('/kardex', async (req, res) => {
 
     let movimientos = [];
     let productoSel = null;
+    let error = null;
 
-    // Listas para los dropdowns de filtro (tolerantes a fallo de permisos)
+    // Listas para los dropdowns de filtro — datos secundarios, no críticos:
+    // si fallan (p. ej. sin permiso para ver usuarios), la pantalla sigue
+    // funcionando sin esos filtros, solo con las listas vacías.
     const cajasData = await api('/cajas/?solo_activas=true', {}, req.session.token).catch(() => ({ items: [] }));
     const usuariosData = await api('/usuarios/', {}, req.session.token).catch(() => ({ items: [] }));
     const cajas = cajasData.items || [];
@@ -130,9 +155,11 @@ router.get('/kardex', async (req, res) => {
       if (usuario_id)      params.append('usuario_id', usuario_id);
       const qs = params.toString() ? `?${params.toString()}` : '';
 
-      const kardexData = await api(`/kardex/${producto_id}${qs}`, {}, req.session.token).catch(() => null);
-
-      if (kardexData) {
+      // Esta SÍ es la acción principal que el usuario pidió (ver kardex de
+      // un producto), así que su error debe mostrarse — antes se
+      // silenciaba con .catch(() => null).
+      try {
+        const kardexData = await api(`/kardex/${producto_id}${qs}`, {}, req.session.token);
         const e = kardexData.encabezado;
         productoSel = {
           descripcion:       e.descripcion,
@@ -144,12 +171,15 @@ router.get('/kardex', async (req, res) => {
           ruta_imagen:       e.ruta_imagen,
         };
         movimientos = kardexData.movimientos || [];
+      } catch (err) {
+        if (err.status === 401) return res.redirect('/auth/login?error=sesion');
+        error = mensajeError(err, 'consultar el kardex de este producto');
       }
     }
 
     res.render('inventario/kardex', {
       productoSel, movimientos, producto_id, q,
-      cajas, usuarios,
+      cajas, usuarios, error,
       filtros: { fecha_desde, fecha_hasta, tipo_movimiento, caja_id, usuario_id },
     });
   } catch (err) {
@@ -157,6 +187,7 @@ router.get('/kardex', async (req, res) => {
     res.status(500).send('Error al cargar kardex: ' + err.message);
   }
 });
+
 // ─── API BUSCAR PRODUCTO (para el buscador de kardex) ─────────────────────────
 router.get('/api/buscar', async (req, res) => {
   try {
@@ -171,7 +202,11 @@ router.get('/api/buscar', async (req, res) => {
     })));
   } catch (err) {
     console.error('Error en GET /inventario/api/buscar:', err.message);
-    res.json([]);
+    // Este endpoint alimenta un autocompletado JS — no tiene sentido
+    // redirigir. Devolvemos el error como JSON para que el frontend
+    // pueda mostrarlo si quiere (por ahora, la vista solo revisa
+    // "sin resultados", así que al menos no rompe silenciosamente).
+    res.status(err.status || 500).json({ error: mensajeError(err, 'buscar productos') });
   }
 });
 

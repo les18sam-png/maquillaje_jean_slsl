@@ -152,6 +152,10 @@
                 { key: 'perm_exportar',            label: 'Exportar',             grupo: 'Otros' },
                 { key: 'perm_promociones',         label: 'Promociones',          grupo: 'Productos' },
                 { key: 'perm_administrar',         label: 'Administrar',          grupo: 'Otros' },
+                { key: 'perm_movimientos_caja',    label: 'Movimientos de caja',  grupo: 'Ventas' },
+                { key: 'perm_devoluciones',        label: 'Devoluciones',         grupo: 'Ventas' },
+                { key: 'perm_auditoria',           label: 'Auditoría',            grupo: 'Otros' },
+                { key: 'perm_dueno',               label: 'Panel consolidado (dueño)', grupo: 'Otros' },
               ];
             %>
             <% permisos.forEach(p => { %>
@@ -355,8 +359,10 @@
       { key: 'perm_exportar',           label: 'Exportar' },
       { key: 'perm_promociones',        label: 'Promociones' },
       { key: 'perm_administrar',        label: 'Administrar' },
+      { key: 'perm_movimientos_caja',   label: 'Movimientos de caja' },
+      { key: 'perm_devoluciones',       label: 'Devoluciones' },
+      { key: 'perm_auditoria',          label: 'Auditoría' },
     ];
-
     document.getElementById('permisos-grid').innerHTML = permisos.map(p => `
       <div class="permiso-chip permiso-chip--${u.roles && u.roles[p.key] ? 'on' : 'off'}">
         ${u.roles && u.roles[p.key]
