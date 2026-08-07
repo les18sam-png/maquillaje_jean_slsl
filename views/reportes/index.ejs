@@ -89,6 +89,7 @@
 
   
   <!-- Gráficas -->
+<!-- Gráficas -->
   <div class="reportes-graficas-grid">
 
     <div class="card">
@@ -106,6 +107,15 @@
       </div>
       <div style="padding:16px;">
         <canvas id="chart-metodos" height="220"></canvas>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card__header">
+        <h3 class="card__title">Ventas por cajero</h3>
+      </div>
+      <div style="padding:16px;">
+        <canvas id="chart-cajeros" height="220"></canvas>
       </div>
     </div>
 
@@ -233,7 +243,7 @@
   const porMetodo    = <%- JSON.stringify(porMetodo) %>;
   const ventasPorCaja = <%- JSON.stringify(ventasPorCaja) %>;
   const topProductos  = <%- JSON.stringify(topProductos) %>;
-
+  const cajerosArray  = <%- JSON.stringify(cajerosArray) %>;
   // Gráfica línea — ventas por día
   new Chart(document.getElementById('chart-ventas-dia'), {
     type: 'line',
@@ -278,6 +288,27 @@
       plugins: { legend: { display: false } },
       scales: {
         y: { beginAtZero: true, ticks: { callback: v => '$' + v.toLocaleString() } }
+      }
+    }
+  });
+  // Gráfica barras horizontales — ventas por cajero
+  new Chart(document.getElementById('chart-cajeros'), {
+    type: 'bar',
+    data: {
+      labels: cajerosArray.length ? cajerosArray.map(c => c.nombre) : ['Sin datos'],
+      datasets: [{
+        label: 'Total vendido',
+        data: cajerosArray.length ? cajerosArray.map(c => c.total) : [0],
+        backgroundColor: '#3D5D91',
+        borderRadius: 6,
+      }]
+    },
+    options: {
+      indexAxis: 'y',
+      responsive: true,
+      plugins: { legend: { display: false } },
+      scales: {
+        x: { beginAtZero: true, ticks: { callback: v => '$' + v.toLocaleString() } }
       }
     }
   });

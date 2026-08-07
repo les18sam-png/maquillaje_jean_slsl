@@ -108,8 +108,8 @@
 
   </nav>
 
-  <div class="sidebar-footer">
-    <form method="POST" action="/auth/logout" onsubmit="return confirm('¿Cerrar sesión?')">
+<div class="sidebar-footer">
+    <form method="POST" action="/auth/logout" id="logout-form">
       <button type="submit" class="sidebar-logout">
         <svg viewBox="0 0 24 24"><path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
         <span>Cerrar Sesión</span>
@@ -118,6 +118,62 @@
   </div>
 
 </aside>
+
+<!-- Overlay de respaldo automático al cerrar sesión -->
+<div id="logout-overlay" style="display:none; position:fixed; inset:0; background:rgba(74,5,23,.75); backdrop-filter:blur(3px); z-index:9999; align-items:center; justify-content:center;">
+  <div style="background:#fff; border-radius:16px; padding:32px 36px; text-align:center; box-shadow:0 20px 60px rgba(0,0,0,.35); max-width:320px;">
+    <div style="width:40px; height:40px; margin:0 auto 16px; border:3px solid #F2DCDB; border-top-color:#6C0820; border-radius:50%; animation:logout-spin .7s linear infinite;"></div>
+    <p style="font-family:'Playfair Display',serif; font-size:1.05rem; color:#6C0820; font-weight:700; margin:0 0 4px;">Cerrando sesión…</p>
+    <p style="font-size:.82rem; color:#999; margin:0;">Generando respaldo de seguridad</p>
+  </div>
+</div>
+
+<style>
+@keyframes logout-spin { to { transform: rotate(360deg); } }
+</style>
+
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+  const form    = document.getElementById('logout-form');
+  const overlay = document.getElementById('logout-overlay');
+  if (!form) return;
+
+  form.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    if (!confirm('¿Cerrar sesión?')) return;
+
+    overlay.style.display = 'flex';
+
+    try {
+      const resp = await fetch('/admin/respaldo/json');
+      const esJson = (resp.headers.get('content-type') || '').includes('application/json');
+
+      // Solo se descarga si: la respuesta llegó sin ser redirigida (o sea,
+      // el usuario SÍ tiene perm_administrar) y el contenido es realmente JSON.
+      if (resp.ok && !resp.redirected && esJson) {
+        const blob = await resp.blob();
+        const disposition = resp.headers.get('content-disposition') || '';
+        const match  = disposition.match(/filename="?([^";]+)"?/);
+        const nombre = match ? match[1] : 'respaldo.json';
+
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url; a.download = nombre;
+        document.body.appendChild(a); a.click(); a.remove();
+        window.URL.revokeObjectURL(url);
+
+        // Da un instante al navegador para procesar la descarga antes de navegar
+        await new Promise(r => setTimeout(r, 600));
+      }
+    } catch (err) {
+      console.error('No se pudo generar el respaldo automático:', err);
+      // No bloquea el cierre de sesión aunque falle
+    }
+
+    form.submit();
+  });
+});
+</script>
 
 <header class="header">
   <div class="header-left">

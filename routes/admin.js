@@ -630,7 +630,7 @@ router.get('/reportes-correo', async (req, res) => {
 ───────────────────────────────────────── */
 router.post('/reportes-correo/nuevo', async (req, res) => {
   try {
-    const { correo, nombre, frecuencia } = req.body;
+    const { correo, nombre } = req.body;
     await api('/destinatarios-reportes/', {
       method: 'POST',
       body: JSON.stringify({
@@ -638,7 +638,8 @@ router.post('/reportes-correo/nuevo', async (req, res) => {
         nombre: nombre?.trim() || null,
         recibe_corte: req.body.recibe_corte === 'on',
         recibe_ventas: req.body.recibe_ventas === 'on',
-        frecuencia: frecuencia || 'diario',
+        recibe_diario: req.body.recibe_diario === 'on',
+        recibe_semanal: req.body.recibe_semanal === 'on',
       }),
     }, req.session.token);
     res.redirect('/admin/reportes-correo?toast=creado');
@@ -699,6 +700,17 @@ router.post('/reportes-correo/:id/enviar-ahora', async (req, res) => {
   }
 });
 
+router.post('/reportes-correo/:id/enviar-ahora-semanal', async (req, res) => {
+  try {
+    await api(`/destinatarios-reportes/${req.params.id}/enviar-ahora-semanal`, { method: 'POST' }, req.session.token);
+    res.redirect('/admin/reportes-correo?toast=enviado');
+  } catch (err) {
+    if (err.status === 401) return res.redirect('/auth/login?error=sesion');
+    if (err.status === 403) return res.redirect('/admin/reportes-correo?error=sin_permiso');
+    console.error('Error enviando reporte semanal:', err.message);
+    res.redirect('/admin/reportes-correo?error=fallo_envio');
+  }
+});
 /* ─────────────────────────────────────────
    Página temporal para secciones en desarrollo
 ───────────────────────────────────────── */

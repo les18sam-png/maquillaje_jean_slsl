@@ -30,7 +30,10 @@
 
 /* ── Pestañas ────────────────────────────── */
 .pdv-tabs { display:flex; align-items:center; gap:4px; padding:6px 16px 0; background:#fff; flex-shrink:0; overflow-x:auto; }
+
 .pdv-tab { display:flex; align-items:center; gap:6px; padding:7px 14px; border-radius:8px 8px 0 0; background:#FAF5F5; color:#888; font-size:.8rem; font-weight:600; cursor:pointer; white-space:nowrap; border:1px solid #F2DCDB; border-bottom:none; flex-shrink:0; }
+.pdv-tab__input-nombre { font-size:.8rem; font-weight:600; font-family:'DM Sans',sans-serif; border:1px solid #B5294E; border-radius:4px; padding:2px 6px; width:110px; outline:none; color:#333; }
+
 .pdv-tab--activa { background:#6C0820; color:#fff; border-color:#6C0820; }
 .pdv-tab__close { display:flex; opacity:.6; }
 .pdv-tab__close:hover { opacity:1; }
@@ -139,10 +142,20 @@
 
 .cobro-mixto-grid { display:flex; flex-direction:column; gap:10px; }
 .cobro-mixto-fila { display:grid; grid-template-columns:140px 1fr; align-items:center; gap:12px; }
+.cobro-mixto-fila-grupo { display:flex; flex-direction:column; gap:6px; }
+.cobro-mixto-ref { font-size:.8rem; padding:8px 12px; }
+
+
+
 .cobro-mixto-fila label { font-size:.85rem; font-weight:600; color:#555; }
 .cobro-mixto-restante { display:flex; align-items:center; justify-content:space-between; padding:12px 16px; background:#F7E7CE; border-radius:8px; margin-top:4px; }
 .cobro-mixto-restante span   { font-size:.9rem; font-weight:700; color:#6C0820; }
 .cobro-mixto-restante strong { font-size:1.3rem; font-family:'Playfair Display',serif; color:#6C0820; }
+.cobro-mixto-restante--cambio { background:#d1fae5; }
+.cobro-mixto-restante--cambio span,
+.cobro-mixto-restante--cambio strong { color:#065f46; }
+
+
 
 .cobro-acciones { display:flex; border-top:2px solid #F2DCDB; }
 .cobro-btn { flex:1; display:flex; align-items:center; justify-content:center; gap:10px; padding:18px 12px; border:none; border-right:1px solid #F2DCDB; background:#fff; cursor:pointer; transition:background .15s; font-family:'DM Sans',sans-serif; }
@@ -202,9 +215,11 @@
 
   <!-- Acciones rápidas (atajos de teclado) -->
   <div class="pdv-acciones-bar">
-    <button class="pdv-accion-btn" onclick="vaciarTicketActivo()"><kbd>F4</kbd> Eliminar</button>
-    <button class="pdv-accion-btn" onclick="aparcarTicketActivo()"><kbd>F6</kbd> Pendiente</button>
-    <button class="pdv-accion-btn pdv-accion-btn--mayoreo" id="btn-forzar-mayoreo" onclick="toggleForzarMayoreo()"><kbd>F11</kbd> Mayoreo</button>
+  <button class="pdv-accion-btn" onclick="vaciarTicketActivo()"><kbd>F4</kbd> Eliminar</button>
+<button class="pdv-accion-btn" onclick="aparcarTicketActivo()"><kbd>F6</kbd> Pendiente</button>
+    <button class="pdv-accion-btn" id="btn-excluir-mayoreo" onclick="toggleExcluirMayoreo()"><kbd>F10</kbd> Sin Mayoreo</button>
+<button class="pdv-accion-btn pdv-accion-btn--mayoreo" id="btn-forzar-mayoreo" onclick="toggleForzarMayoreo()"><kbd>F11</kbd> Mayoreo</button>
+
     <button class="pdv-accion-btn" onclick="abrirModalMovimiento('entrada')"><kbd>F7</kbd> Entradas</button>
     <button class="pdv-accion-btn" onclick="abrirModalMovimiento('salida')"><kbd>F8</kbd> Salidas</button>
     <button class="pdv-accion-btn" onclick="abrirVerificador()"><kbd>F9</kbd> Verificador</button>
@@ -326,40 +341,62 @@
 
       <!-- Mixto -->
       <div id="cobro-panel-mixto" style="display:none">
-        <div class="cobro-mixto-grid">
-          <div class="cobro-mixto-fila">
-            <label>Efectivo</label>
-            <div class="cobro-input-wrap cobro-input-wrap--sm">
-              <span>$</span>
-              <input type="number" id="cobro-mix-efectivo" class="cobro-input-monto" placeholder="0.00" min="0" step="0.01" oninput="actualizarRestante()">
-            </div>
-          </div>
-          <div class="cobro-mixto-fila">
-            <label>Tarjeta</label>
-            <div class="cobro-input-wrap cobro-input-wrap--sm">
-              <span>$</span>
-              <input type="number" id="cobro-mix-tarjeta" class="cobro-input-monto" placeholder="0.00" min="0" step="0.01" oninput="actualizarRestante()">
-            </div>
-          </div>
-          <div class="cobro-mixto-fila">
-            <label>Transferencia</label>
-            <div class="cobro-input-wrap cobro-input-wrap--sm">
-              <span>$</span>
-              <input type="number" id="cobro-mix-transferencia" class="cobro-input-monto" placeholder="0.00" min="0" step="0.01" oninput="actualizarRestante()">
-            </div>
-          </div>
-          <div class="cobro-mixto-fila">
-            <label>Cheque</label>
-            <div class="cobro-input-wrap cobro-input-wrap--sm">
-              <span>$</span>
-              <input type="number" id="cobro-mix-cheque" class="cobro-input-monto" placeholder="0.00" min="0" step="0.01" oninput="actualizarRestante()">
-            </div>
-          </div>
-          <div class="cobro-mixto-restante">
-            <span>Restante</span>
-            <strong id="cobro-restante-monto">$0.00</strong>
-          </div>
-        </div>
+        
+      <div class="cobro-mixto-grid">
+  <div class="cobro-mixto-fila">
+    <label>Efectivo</label>
+    <div class="cobro-input-wrap cobro-input-wrap--sm">
+      <span>$</span>
+      <input type="number" id="cobro-mix-efectivo" class="cobro-input-monto" placeholder="0.00" min="0" step="0.01" oninput="actualizarRestante()">
+    </div>
+  </div>
+
+  <div class="cobro-mixto-fila-grupo">
+    <div class="cobro-mixto-fila">
+      <label>Tarjeta</label>
+      <div class="cobro-input-wrap cobro-input-wrap--sm">
+        <span>$</span>
+        <input type="number" id="cobro-mix-tarjeta" class="cobro-input-monto" placeholder="0.00" min="0" step="0.01" oninput="actualizarRestante()">
+      </div>
+    </div>
+    <input type="text" id="cobro-mix-ref-tarjeta" class="cobro-input-ref cobro-mixto-ref" placeholder="Referencia / últimos 4 dígitos (opcional)">
+  </div>
+
+  <div class="cobro-mixto-fila-grupo">
+    <div class="cobro-mixto-fila">
+      <label>Transferencia</label>
+      <div class="cobro-input-wrap cobro-input-wrap--sm">
+        <span>$</span>
+        <input type="number" id="cobro-mix-transferencia" class="cobro-input-monto" placeholder="0.00" min="0" step="0.01" oninput="actualizarRestante()">
+      </div>
+    </div>
+    <input type="text" id="cobro-mix-ref-transferencia" class="cobro-input-ref cobro-mixto-ref" placeholder="Referencia / folio (opcional)">
+  </div>
+
+  <div class="cobro-mixto-fila-grupo">
+    <div class="cobro-mixto-fila">
+      <label>Cheque</label>
+      <div class="cobro-input-wrap cobro-input-wrap--sm">
+        <span>$</span>
+        <input type="number" id="cobro-mix-cheque" class="cobro-input-monto" placeholder="0.00" min="0" step="0.01" oninput="actualizarRestante()">
+      </div>
+    </div>
+    <input type="text" id="cobro-mix-ref-cheque" class="cobro-input-ref cobro-mixto-ref" placeholder="Número de cheque (opcional)">
+  </div>
+
+  <div class="cobro-mixto-restante" id="cobro-mixto-restante-wrap">
+    <span id="cobro-restante-label">Restante</span>
+    <strong id="cobro-restante-monto">$0.00</strong>
+  </div>
+</div>
+        
+        
+        
+     
+     
+     
+     
+     
       </div>
 
     </div>
@@ -479,7 +516,7 @@ function crearTicketVacio() {
   return {
     localId: nuevoLocalId(), ventaId: null,
     clienteId: '', clienteNombre: 'Público general',
-    items: [], notas: '', dirty: false,
+    items: [], notas: '', nombreTicket: '', dirty: false,
     _guardando: false, _reguardar: false,
   };
 }
@@ -488,21 +525,24 @@ function ticketActivo() { return tickets[activeIdx]; }
 
 function inicializarTickets() {
   tickets = PENDIENTES_INICIALES.map(v => ({
-    localId: nuevoLocalId(), ventaId: v.id,
-    clienteId: v.cliente_id || '', clienteNombre: 'Público general',
-    items: (v.venta_articulos || []).map(va => ({
-      id: va.producto_id,
-      nombre:   va.productos?.descripcion  || 'Producto',
-      codigo:   va.productos?.codigo_barras || '',
-      imagen:   va.productos?.ruta_imagen   || null,
-      precio:   Number(va.precio_unitario),
-      mayoreo:  null, promo: null, porcentaje_promo: null, cantidad_minima_promo: null,
-      cantidad: va.cantidad, stock: Infinity,
-      forzado:  va.uso_precio_mayoreo && v.motivo_mayoreo === 'manual',
-      promoGuardada: !!va.uso_promocion,
-    })),
-    notas: v.notas || '', dirty: false, _guardando: false, _reguardar: false,
-  }));
+  localId: nuevoLocalId(), ventaId: v.id,
+  clienteId: v.cliente_id || '', clienteNombre: 'Público general',
+  items: (v.venta_articulos || []).map(va =>  ({
+  id: va.producto_id,
+  nombre:   va.productos?.descripcion  || 'Producto',
+  codigo:   va.productos?.codigo_barras || '',
+  imagen:   va.productos?.ruta_imagen   || null,
+  precio:   Number(va.precio_unitario),
+  mayoreo:  va.productos?.precio_mayoreo != null ? Number(va.productos.precio_mayoreo) : null,
+  promo: null, porcentaje_promo: null, cantidad_minima_promo: null,
+  cantidad: va.cantidad, stock: Infinity,
+  forzado:  va.uso_precio_mayoreo && v.motivo_mayoreo === 'manual',
+  excluido: !!va.excluir_mayoreo,
+  promoGuardada: !!va.uso_promocion,
+})),
+     notas: v.notas || '', nombreTicket: v.nombre_ticket || '',
+  dirty: false, _guardando: false, _reguardar: false,
+}));
   if (tickets.length === 0) tickets.push(crearTicketVacio());
   activeIdx = 0;
   renderTabs();
@@ -521,15 +561,21 @@ function marcarDirty() {
 ════════════════════════════════════════ */
 function renderTabs() {
   document.getElementById('pdv-tabs').innerHTML =
-    tickets.map((t, idx) => `
-      <div class="pdv-tab ${idx === activeIdx ? 'pdv-tab--activa' : ''}" onclick="cambiarTab(${idx})">
-        <span>Ticket ${idx + 1}${t.items.length ? ` (${t.items.length})` : ''}</span>
+    tickets.map((t, idx) => {
+      const etiqueta = t.nombreTicket
+        ? t.nombreTicket
+        : `Ticket ${idx + 1}`;
+      return `
+      <div class="pdv-tab ${idx === activeIdx ? 'pdv-tab--activa' : ''}"
+           onclick="cambiarTab(${idx})" ondblclick="event.stopPropagation(); iniciarEdicionNombreTab(${idx})">
+        <span id="pdv-tab-label-${idx}">${etiqueta}${t.items.length ? ` (${t.items.length})` : ''}</span>
         <span class="pdv-tab__close" onclick="event.stopPropagation(); cerrarTab(${idx})">
           <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
             <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
           </svg>
         </span>
-      </div>`).join('')
+      </div>`;
+    }).join('')
     + `<div class="pdv-tab-nueva" onclick="nuevaTab()" title="Nuevo ticket">
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
           <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
@@ -546,7 +592,35 @@ async function cambiarTab(idx) {
 }
 
 function nuevaTab() { tickets.push(crearTicketVacio()); cambiarTab(tickets.length - 1); }
+function iniciarEdicionNombreTab(idx) {
+  const t = tickets[idx];
+  const span = document.getElementById(`pdv-tab-label-${idx}`);
+  if (!span) return;
 
+  const valorActual = t.nombreTicket || '';
+  const input = document.createElement('input');
+  input.type = 'text';
+  input.value = valorActual;
+  input.maxLength = 60;
+  input.className = 'pdv-tab__input-nombre';
+  input.onclick = e => e.stopPropagation();
+
+  span.replaceWith(input);
+  input.focus();
+  input.select();
+
+  const confirmar = () => {
+    t.nombreTicket = input.value.trim().slice(0, 60);
+    marcarDirty();
+    renderTabs();
+  };
+
+  input.addEventListener('blur', confirmar);
+  input.addEventListener('keydown', e => {
+    if (e.key === 'Enter') { e.preventDefault(); input.blur(); }
+    if (e.key === 'Escape') { e.preventDefault(); input.value = valorActual; input.blur(); }
+  });
+}
 async function cerrarTab(idx) {
   const t = tickets[idx];
   if (t.ventaId) try { await fetch(`/venta/pendiente/${t.ventaId}`, { method: 'DELETE' }); } catch {}
@@ -571,10 +645,11 @@ async function guardarTicketEnServidor(t) {
       return;
     }
     const payload = {
-      cliente_id: t.clienteId || null,
-      notas: t.notas || null,
-      articulos: t.items.map(i => ({ producto_id: i.id, cantidad: i.cantidad, forzar_mayoreo: !!i.forzado })),
-    };
+  cliente_id: t.clienteId || null,
+  notas: t.notas || null,
+  nombre_ticket: t.nombreTicket || null,
+  articulos: t.items.map(i => ({ producto_id: i.id, cantidad: i.cantidad, forzar_mayoreo: !!i.forzado, excluir_mayoreo: !!i.excluido })),
+};
     if (t.ventaId) {
       await fetch(`/venta/pendiente/${t.ventaId}`, {
         method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload),
@@ -816,7 +891,7 @@ function agregarProducto(p) {
       promo:    p.precio_promo             ? parseFloat(p.precio_promo)             : null,
       porcentaje_promo:      p.porcentaje_promo      ? parseFloat(p.porcentaje_promo)      : null,
       cantidad_minima_promo: p.cantidad_minima_promo ? parseInt(p.cantidad_minima_promo)   : null,
-      imagen: p.ruta_imagen, cantidad: 1, stock, forzado: false,
+      imagen: p.ruta_imagen, cantidad: 1, stock, forzado: false, excluido: false,
     });
     selectedRow = t.items.length - 1;
   }
@@ -852,6 +927,15 @@ function toggleForzarMayoreo() {
   t.items[selectedRow].forzado = !t.items[selectedRow].forzado;
   marcarDirty(); renderTicket();
 }
+function toggleExcluirMayoreo() {
+  if (!PERMISOS.perm_descuentos) { mostrarMensaje('No tienes permiso para modificar el mayoreo.'); return; }
+  const t = ticketActivo();
+  if (selectedRow < 0 || !t.items[selectedRow]) { mostrarMensaje('Selecciona un producto del ticket primero.'); return; }
+  if (!t.items[selectedRow].mayoreo) { mostrarMensaje('Este producto no tiene precio de mayoreo configurado.'); return; }
+  t.items[selectedRow].forzado = false; // excluir y forzar son mutuamente excluyentes
+  t.items[selectedRow].excluido = !t.items[selectedRow].excluido;
+  marcarDirty(); renderTicket();
+}
 
 /* ════════════════════════════════════════
    CLIENTE
@@ -873,20 +957,29 @@ function esMayoristaActual() {
   return sel.options[sel.selectedIndex]?.dataset.mayorista === 'true';
 }
 
+function sumaMayoreoTicket() {
+  const t = ticketActivo();
+  return t.items.reduce((s, i) => s + (i.mayoreo ? i.mayoreo * i.cantidad : 0), 0);
+}
+
+function ticketCalificaPorMonto() {
+  return sumaMayoreoTicket() > 350;
+}
+
 function aplicaMayoreoItem(item) {
   if (!item.mayoreo)                return false;
   if (metodoCobro === 'tarjeta')    return false;   // RF-05.3
+  if (item.excluido)                return false;   // exclusión manual por producto
   if (esMayoristaActual())          return true;    // RF-05.2
-  return item.mayoreo * item.cantidad > 350;        // RF-05.1 (por línea)
+  return ticketCalificaPorMonto();                  // RF-05.1 (ahora por TICKET)
 }
 
 function precioAplicado(item) {
-  // Promoción tiene prioridad (RF-09)
   if (item.cantidad_minima_promo != null && item.cantidad >= item.cantidad_minima_promo) {
     if (item.promo != null)     return item.promo;
     if (item.porcentaje_promo)  return item.precio * (1 - item.porcentaje_promo / 100);
   }
-  if (item.forzado) return item.mayoreo != null ? item.mayoreo : item.precio;  // ← fix: fallback si se perdió el dato al recargar
+  if (item.forzado) return item.mayoreo != null ? item.mayoreo : item.precio;
   return aplicaMayoreoItem(item) ? item.mayoreo : item.precio;
 }
 
@@ -895,7 +988,8 @@ function motivoPrecio(item) {
   if (item.cantidad_minima_promo != null && item.cantidad >= item.cantidad_minima_promo) {
     if (item.promo != null || item.porcentaje_promo) return 'promo';
   }
-  if (item.forzado)            return 'forzado';
+  if (item.forzado)  return 'forzado';
+  if (item.excluido && item.mayoreo && ticketCalificaPorMonto() && !esMayoristaActual()) return 'excluido';
   if (aplicaMayoreoItem(item)) return esMayoristaActual() ? 'mayoreo_cliente' : 'mayoreo_monto';
   return 'normal';
 }
@@ -906,6 +1000,7 @@ function etiquetaMotivo(motivo) {
     forzado:         '<span class="tag-forzado">MAYOREO FORZADO</span>',
     mayoreo_cliente: '<span class="tag-mayoreo">MAYOREO CLIENTE</span>',
     mayoreo_monto:   '<span class="tag-mayoreo">MAYOREO</span>',
+    excluido:        '<span class="tag-forzado" style="background:#888;">SIN MAYOREO</span>',
   }[motivo] || '';
 }
 
@@ -918,6 +1013,8 @@ function renderTicket() {
 
   // Actualizar estado del botón F11
   document.getElementById('btn-forzar-mayoreo').classList.toggle('activo', selectedRow >= 0 && !!t.items[selectedRow]?.forzado);
+document.getElementById('btn-excluir-mayoreo').classList.toggle('activo', selectedRow >= 0 && !!t.items[selectedRow]?.excluido);
+
 
   // Sincronizar selector de cliente con el ticket activo
   const selCliente = document.getElementById('pdv-cliente');
@@ -997,8 +1094,9 @@ function abrirModalCobro() {
   // Limpiar campos del modal
   document.getElementById('cobro-pago-con').value   = total.toFixed(2);
   document.getElementById('cobro-referencia').value = '';
-  ['cobro-mix-efectivo', 'cobro-mix-tarjeta', 'cobro-mix-transferencia', 'cobro-mix-cheque']
-    .forEach(id => { document.getElementById(id).value = ''; });
+  ['cobro-mix-efectivo', 'cobro-mix-tarjeta', 'cobro-mix-transferencia', 'cobro-mix-cheque',
+ 'cobro-mix-ref-tarjeta', 'cobro-mix-ref-transferencia', 'cobro-mix-ref-cheque']
+  .forEach(id => { document.getElementById(id).value = ''; });
   document.getElementById('cobro-restante-monto').textContent =
     `$${total.toLocaleString('es-MX', { minimumFractionDigits: 2 })}`;
 
@@ -1049,14 +1147,38 @@ function actualizarCambioModal() {
 }
 
 function actualizarRestante() {
-  const total    = getTotal();
-  const ef       = parseFloat(document.getElementById('cobro-mix-efectivo').value)      || 0;
-  const tar      = parseFloat(document.getElementById('cobro-mix-tarjeta').value)       || 0;
-  const tra      = parseFloat(document.getElementById('cobro-mix-transferencia').value) || 0;
-  const che      = parseFloat(document.getElementById('cobro-mix-cheque').value)        || 0;
-  const restante = total - ef - tar - tra - che;
-  document.getElementById('cobro-restante-monto').textContent =
-    `$${Math.max(0, restante).toLocaleString('es-MX', { minimumFractionDigits: 2 })}`;
+  const total = getTotal();
+  const ef    = parseFloat(document.getElementById('cobro-mix-efectivo').value)      || 0;
+  const tar   = parseFloat(document.getElementById('cobro-mix-tarjeta').value)       || 0;
+  const tra   = parseFloat(document.getElementById('cobro-mix-transferencia').value) || 0;
+  const che   = parseFloat(document.getElementById('cobro-mix-cheque').value)        || 0;
+
+  const wrap  = document.getElementById('cobro-mixto-restante-wrap');
+  const label = document.getElementById('cobro-restante-label');
+  const monto = document.getElementById('cobro-restante-monto');
+
+  const sumaOtros = tar + tra + che;
+
+  // Tarjeta/transferencia/cheque no dan cambio — si ya exceden el total, es un error de captura
+  if (sumaOtros > total + 0.009) {
+    wrap.classList.remove('cobro-mixto-restante--cambio');
+    label.textContent = 'Excede el total (tarjeta/transf./cheque)';
+    monto.textContent = `$${(sumaOtros - total).toLocaleString('es-MX', { minimumFractionDigits: 2 })}`;
+    return;
+  }
+
+  const efectivoNecesario = Math.max(total - sumaOtros, 0);
+  const diferencia        = ef - efectivoNecesario;
+
+  if (diferencia < 0) {
+    wrap.classList.remove('cobro-mixto-restante--cambio');
+    label.textContent = 'Restante';
+    monto.textContent = `$${Math.abs(diferencia).toLocaleString('es-MX', { minimumFractionDigits: 2 })}`;
+  } else {
+    wrap.classList.toggle('cobro-mixto-restante--cambio', diferencia > 0);
+    label.textContent = diferencia > 0 ? 'Cambio' : 'Restante';
+    monto.textContent = `$${diferencia.toLocaleString('es-MX', { minimumFractionDigits: 2 })}`;
+  }
 }
 
 function cerrarModal() {
@@ -1072,12 +1194,23 @@ function construirPagos(total) {
     const tar = parseFloat(document.getElementById('cobro-mix-tarjeta').value)       || 0;
     const tra = parseFloat(document.getElementById('cobro-mix-transferencia').value) || 0;
     const che = parseFloat(document.getElementById('cobro-mix-cheque').value)        || 0;
-    if (ef)  pagos.push({ metodo: 'efectivo',      monto: ef,  recibido: ef });
-    if (tar) pagos.push({ metodo: 'tarjeta',       monto: tar });
-    if (tra) pagos.push({ metodo: 'transferencia', monto: tra });
-    if (che) pagos.push({ metodo: 'cheque',        monto: che });
+
+    const refTar = document.getElementById('cobro-mix-ref-tarjeta').value.trim()       || null;
+    const refTra = document.getElementById('cobro-mix-ref-transferencia').value.trim() || null;
+    const refChe = document.getElementById('cobro-mix-ref-cheque').value.trim()        || null;
+
+    const sumaOtros        = tar + tra + che;
+    const efectivoAplicado = Math.max(total - sumaOtros, 0);
+
+    if (tar) pagos.push({ metodo: 'tarjeta',       monto: tar, referencia: refTar });
+    if (tra) pagos.push({ metodo: 'transferencia', monto: tra, referencia: refTra });
+    if (che) pagos.push({ metodo: 'cheque',        monto: che, referencia: refChe });
+    if (efectivoAplicado > 0) {
+      pagos.push({ metodo: 'efectivo', monto: efectivoAplicado, recibido: ef });
+    }
     return pagos;
   }
+
   const escrito = parseFloat(document.getElementById('cobro-pago-con').value) || total;
   const pago    = { metodo: metodoCobro, monto: total };
   if (metodoCobro === 'efectivo') pago.recibido = escrito;
@@ -1095,11 +1228,22 @@ async function procesarCobro(imprimir = false) {
 
   // Validaciones
   if (metodoCobro === 'mixto') {
-    const suma = pagos.reduce((s, p) => s + p.monto, 0);
-    if (Math.abs(suma - total) > 0.01) {
-      mostrarMensaje(`Faltan $${(total - suma).toFixed(2)} por cubrir.`); return;
-    }
-  } else if (metodoCobro === 'efectivo') {
+  const ef  = parseFloat(document.getElementById('cobro-mix-efectivo').value)      || 0;
+  const tar = parseFloat(document.getElementById('cobro-mix-tarjeta').value)       || 0;
+  const tra = parseFloat(document.getElementById('cobro-mix-transferencia').value) || 0;
+  const che = parseFloat(document.getElementById('cobro-mix-cheque').value)        || 0;
+  const sumaOtros = tar + tra + che;
+
+  if (sumaOtros > total + 0.01) {
+    mostrarMensaje('Tarjeta, transferencia y cheque no pueden exceder el total (no dan cambio).');
+    return;
+  }
+  const efectivoNecesario = Math.max(total - sumaOtros, 0);
+  if (ef < efectivoNecesario - 0.01) {
+    mostrarMensaje(`Faltan $${(efectivoNecesario - ef).toFixed(2)} por cubrir.`);
+    return;
+  }
+} else if (metodoCobro === 'efectivo') {
     const recibido = parseFloat(document.getElementById('cobro-pago-con').value) || 0;
     if (recibido < total) { mostrarMensaje('El monto recibido es menor al total.'); return; }
   }
@@ -1247,7 +1391,11 @@ document.addEventListener('keydown', e => {
   else if (e.key === 'F7')  { e.preventDefault(); abrirModalMovimiento('entrada'); }
   else if (e.key === 'F8')  { e.preventDefault(); abrirModalMovimiento('salida');  }
   else if (e.key === 'F9') { e.preventDefault(); abrirVerificador(); }
-  else if (e.key === 'F11') { e.preventDefault(); toggleForzarMayoreo(); }
+  
+  else if (e.key === 'F10') { e.preventDefault(); toggleExcluirMayoreo(); }
+else if (e.key === 'F11') { e.preventDefault(); toggleForzarMayoreo(); }
+
+  
   else if (e.key === 'F12') { e.preventDefault(); if (!document.getElementById('btn-cobrar').disabled) abrirModalCobro(); }
   else if (t.items.length === 0) return;
   else if (e.key === 'ArrowDown') { e.preventDefault(); selectedRow = Math.min((selectedRow < 0 ? -1 : selectedRow) + 1, t.items.length - 1); renderTicket(); }

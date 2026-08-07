@@ -33,12 +33,12 @@
       vendidos y pagos. No incluye usuarios, roles ni auditoría.
     </p>
 
-    <div style="display:flex; gap:12px; flex-wrap:wrap;">
-      <a href="/admin/respaldo/json" class="btn btn-primary">
+<div style="display:flex; gap:12px; flex-wrap:wrap;">
+      <a href="/admin/respaldo/json" class="btn btn-primary" id="btn-respaldo-json" onclick="return descargarRespaldo(event, this, 'respaldo.json')">
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
         Descargar JSON
       </a>
-      <a href="/admin/respaldo/excel" class="btn btn-secondary">
+      <a href="/admin/respaldo/excel" class="btn btn-secondary" id="btn-respaldo-excel" onclick="return descargarRespaldo(event, this, 'respaldo.xlsx')">
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
         Descargar Excel
       </a>
@@ -46,5 +46,49 @@
   </div>
 
 </div>
+
+<!-- Overlay de generación de respaldo -->
+<div id="respaldo-overlay" style="display:none; position:fixed; inset:0; background:rgba(74,5,23,.75); backdrop-filter:blur(3px); z-index:9999; align-items:center; justify-content:center;">
+  <div style="background:#fff; border-radius:16px; padding:32px 36px; text-align:center; box-shadow:0 20px 60px rgba(0,0,0,.35); max-width:320px;">
+    <div style="width:40px; height:40px; margin:0 auto 16px; border:3px solid #F2DCDB; border-top-color:#6C0820; border-radius:50%; animation:respaldo-spin .7s linear infinite;"></div>
+    <p style="font-family:'Playfair Display',serif; font-size:1.05rem; color:#6C0820; font-weight:700; margin:0 0 4px;">Generando respaldo…</p>
+    <p style="font-size:.82rem; color:#999; margin:0;" id="respaldo-overlay-sub">Esto puede tardar unos segundos</p>
+  </div>
+</div>
+
+<style>
+@keyframes respaldo-spin { to { transform: rotate(360deg); } }
+</style>
+
+<script>
+async function descargarRespaldo(event, link, nombrePorDefecto) {
+  event.preventDefault();
+  const overlay = document.getElementById('respaldo-overlay');
+  overlay.style.display = 'flex';
+
+  try {
+    const resp = await fetch(link.getAttribute('href'));
+    if (!resp.ok) throw new Error('No se pudo generar el respaldo.');
+
+    const blob = await resp.blob();
+    const disposition = resp.headers.get('content-disposition') || '';
+    const match  = disposition.match(/filename="?([^";]+)"?/);
+    const nombre = match ? match[1] : nombrePorDefecto;
+
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url; a.download = nombre;
+    document.body.appendChild(a); a.click(); a.remove();
+    window.URL.revokeObjectURL(url);
+  } catch (err) {
+    console.error(err);
+    alert('No se pudo generar el respaldo. Intenta de nuevo.');
+  } finally {
+    overlay.style.display = 'none';
+  }
+
+  return false;
+}
+</script>
 
 <%- include('../partials/footer') %>
