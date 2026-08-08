@@ -36,7 +36,7 @@ router.get('/', async (req, res) => {
       ).catch(() => []);
     }
 
-    res.render('venta/index', {
+   res.render('venta/index', {
       title: 'Punto de Venta',
       categorias, clientes,
       pendientes: pendientes || [],
@@ -45,6 +45,10 @@ router.get('/', async (req, res) => {
       cajas,
       cajeroNombre: req.session.usuario?.nombre_completo || '',
       sucursal_id: req.session.sucursal_id,
+      // El header (views/partials/header.ejs) lee la variable "caja" —
+      // antes no se pasaba, así que siempre mostraba el default de la
+      // vista ('Caja 1') sin importar la caja real del turno abierto.
+      caja: req.session.caja_nombre || null,
     });
   } catch (err) {
     if (err.status === 401) return res.redirect('/auth/login?error=sesion');

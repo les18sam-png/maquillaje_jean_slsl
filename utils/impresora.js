@@ -185,6 +185,15 @@ async function imprimirTicket(config, venta) {
       if (art.uso_promocion) printer.println('  ** PROMOCIÓN **');
     });
 
+    if (venta.notas) {
+      printer.drawLine();
+      printer.alignLeft();
+      printer.bold(true);
+      printer.println('Notas:');
+      printer.bold(false);
+      printer.println(venta.notas);
+    }
+
     printer.drawLine();
 
     // Total

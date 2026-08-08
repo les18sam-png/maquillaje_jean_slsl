@@ -79,6 +79,7 @@ router.get('/usuarios', async (req, res) => {
       title:    'Usuarios',
       usuarios,
       error:    null,
+      query:    req.query,
     });
   } catch (err) {
     if (err.status === 401) return res.redirect('/auth/login?error=sesion');
@@ -162,6 +163,44 @@ router.get('/usuarios/:id/editar', async (req, res) => {
   }
 });
 
+/* ─────────────────────────────────────────
+   POST /admin/usuarios/:id/editar — MIGRADO
+   Ya no envía rol_id: si el body trae algún perm_*, el backend
+   actualiza directamente el rol exclusivo que ya tiene asignado.
+───────────────────────────────────────── */
+router.post('/usuarios/:id/editar', async (req, res) => {
+  try {
+    const { nombre_completo, nombre_usuario } = req.body;
+
+    const permisos = {};
+    PERMISOS.forEach(p => {
+      permisos[p] = req.body[p] === 'on';
+    });
+
+    const resultado = await api(`/usuarios/${req.params.id}`, {
+      method: 'PUT',
+      body: JSON.stringify({ nombre_completo, nombre_usuario, ...permisos }),
+    }, req.session.token);
+
+    // Si el backend devolvió un token nuevo, es porque el usuario se editó
+    // a sí mismo — refrescamos la sesión sin pedirle que vuelva a entrar.
+    if (resultado?.nuevo_token) {
+      req.session.token = resultado.nuevo_token;
+      req.session.permisos = {};
+      PERMISOS.forEach(p => { req.session.permisos[p] = resultado[p]; });
+      return res.redirect('/admin/usuarios?toast=actualizado_propio');
+    }
+
+    // Si editó a OTRO usuario, avisamos que necesita volver a iniciar
+    // sesión para ver los permisos nuevos.
+    res.redirect('/admin/usuarios?toast=actualizado_otro');
+  } catch (err) {
+    if (err.status === 401) return res.redirect('/auth/login?error=sesion');
+    if (err.status === 403) return res.redirect(`/admin/usuarios/${req.params.id}/editar?error=sin_permiso`);
+    console.error('Error actualizando usuario:', err.message);
+    res.redirect(`/admin/usuarios/${req.params.id}/editar?error=fallo`);
+  }
+});
 /* ─────────────────────────────────────────
    POST /admin/usuarios/:id/editar — MIGRADO
    Ya no envía rol_id: si el body trae algún perm_*, el backend crea

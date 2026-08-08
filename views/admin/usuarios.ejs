@@ -25,10 +25,16 @@
 
   <!-- Toast -->
   <% const toast = (typeof query !== 'undefined' ? query?.toast : null) || ''; %>
-  <% if (toast) { %>
-    <div class="alert alert--success" id="toast">
-      <%= toast === 'creado' ? 'Usuario creado correctamente.' : 'Usuario actualizado.' %>
+  <% if (toast === 'creado') { %>
+    <div class="alert alert--success" id="toast">Usuario creado correctamente.</div>
+  <% } else if (toast === 'actualizado_propio') { %>
+    <div class="alert alert--success" id="toast">Tus permisos se actualizaron y ya están activos.</div>
+  <% } else if (toast === 'actualizado_otro') { %>
+    <div class="alert alert--warning" id="toast">
+      Permisos actualizados. El usuario debe cerrar sesión y volver a entrar para verlos reflejados.
     </div>
+  <% } else if (toast) { %>
+    <div class="alert alert--success" id="toast">Usuario actualizado.</div>
   <% } %>
 
   <!-- Layout dos columnas -->

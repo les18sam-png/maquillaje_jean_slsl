@@ -48,8 +48,20 @@ router.post('/apertura', async (req, res) => {
       }),
     }, req.session.token);
 
-    req.session.turno_id = turno.id;
-    req.session.caja_id  = caja_id;
+    // Antes solo se guardaba caja_id — el header (views/partials/header.ejs)
+    // usa la variable "caja" con el NOMBRE, no el id, así que sin esto se
+    // quedaba mostrando el valor viejo de la caja anterior al cambiar.
+    let cajaNombre = 'Caja';
+    try {
+      const cajaData = await api(`/cajas/${caja_id}`, {}, req.session.token);
+      cajaNombre = cajaData?.nombre || cajaNombre;
+    } catch (err) {
+      console.error('[Turnos] No se pudo obtener el nombre de la caja:', err.message);
+    }
+
+    req.session.turno_id    = turno.id;
+    req.session.caja_id     = caja_id;
+    req.session.caja_nombre = cajaNombre;
     res.redirect('/venta');
   } catch (err) {
     console.error('[Turnos] Error abriendo turno:', err.message);
@@ -157,6 +169,7 @@ router.post('/cierre', async (req, res) => {
     await api(`/turnos/${turno_id}/cerrar`, { method: 'POST' }, req.session.token);
     delete req.session.turno_id;
     delete req.session.caja_id;
+    delete req.session.caja_nombre;
     res.redirect('/venta?toast=cerrado');
   } catch (err) {
     console.error('[Turnos] Error cerrando turno:', err.message);

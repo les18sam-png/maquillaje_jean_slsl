@@ -126,9 +126,9 @@
                   <div class="corte-turno-item">
                     <span class="corte-turno-cajero"><%= t.cajero_nombre %></span>
                     <span class="corte-turno-hora">
-                      <%= new Date(t.inicio).toLocaleTimeString('es-MX', { hour: '2-digit', minute: '2-digit', timeZone: 'America/Mexico_City' }) %>
+                      <%= normalizarFecha(t.inicio).toLocaleTimeString('es-MX', { hour: '2-digit', minute: '2-digit', timeZone: 'America/Mexico_City' }) %>
                       <% if (t.cierre) { %>
-                        – <%= new Date(t.cierre).toLocaleTimeString('es-MX', { hour: '2-digit', minute: '2-digit', timeZone: 'America/Mexico_City' }) %>
+                        – <%= normalizarFecha(t.cierre).toLocaleTimeString('es-MX', { hour: '2-digit', minute: '2-digit', timeZone: 'America/Mexico_City' }) %>
                       <% } %>
                     </span>
                     <% if (t.estado === 'abierto') { %>
@@ -144,6 +144,56 @@
         </div>
       <% }) %>
     </div>
+
+    <!-- DESGLOSE POR TURNO -->
+    <h2 class="corte-desglose-titulo" style="margin-top:24px;">Desglose por turno</h2>
+    <% if (corte.turnos.length === 0) { %>
+      <p class="corte-nota">Sin turnos registrados este día.</p>
+    <% } else { %>
+      <div class="corte-card" style="max-width:1100px;">
+        <div class="table-wrapper">
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th>Caja</th>
+                <th>Cajero</th>
+                <th>Horario</th>
+                <th>Estado</th>
+                <th class="text-right">Tickets</th>
+                <th class="text-right">Total vendido</th>
+                <th class="text-right">Efectivo esperado</th>
+              </tr>
+            </thead>
+            <tbody>
+              <% corte.turnos.forEach(t => { %>
+                <tr>
+                  <td class="fw-medium"><%= t.caja_nombre %></td>
+                  <td><%= t.cajero_nombre %></td>
+                  <td class="text-sm">
+                    <%= normalizarFecha(t.inicio).toLocaleTimeString('es-MX', { hour: '2-digit', minute: '2-digit', timeZone: 'America/Mexico_City' }) %>
+                    <% if (t.cierre) { %>
+                      – <%= normalizarFecha(t.cierre).toLocaleTimeString('es-MX', { hour: '2-digit', minute: '2-digit', timeZone: 'America/Mexico_City' }) %>
+                    <% } %>
+                  </td>
+                  <td>
+                    <% if (t.estado === 'abierto') { %>
+                      <span class="badge badge--warning">Abierto</span>
+                    <% } else { %>
+                      <span class="badge badge--neutral">Cerrado</span>
+                    <% } %>
+                  </td>
+                  <td class="text-right"><%= t.num_tickets %></td>
+                  <td class="text-right fw-medium">$<%= t.total_general.toFixed(2) %></td>
+                  <td class="text-right">$<%= t.efectivo_esperado.toFixed(2) %></td>
+                </tr>
+              <% }) %>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    <% } %>
+
+
 
     <% } %>
   <% } else if (!errorCorte) { %>

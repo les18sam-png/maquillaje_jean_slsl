@@ -173,7 +173,7 @@
             ['tarjeta',      'Tarjeta',       'tarjeta'],
             ['transferencia','Transferencia', 'transferencia'],
             ['cheque',       'Cheque',        'cheque'],
-            ['mixto',        'Mixto',         'mixto'],
+            
           ].forEach(([key, label, badge]) => { %>
           <tr>
             <td><span class="metodo-badge metodo-badge--<%= badge %>"><%= label %></span></td>
@@ -280,11 +280,7 @@
           <span>Total del turno</span>
           <strong>$<%= Number(resumen.totalVentas).toLocaleString('es-MX',{minimumFractionDigits:2}) %></strong>
         </div>
-        <div class="form-group form-group--full" style="margin-top:16px;">
-          <label class="form-label" for="notas">Notas del turno <span class="form-section__optional">(opcional)</span></label>
-          <textarea id="notas" name="notas" class="form-control" rows="3"
-            placeholder="Observaciones, incidencias, notas para el siguiente turno…" maxlength="500"></textarea>
-        </div>
+        
       </div>
       <div class="form-footer">
         <a href="/venta" class="btn btn-ghost">Seguir vendiendo</a>
