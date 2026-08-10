@@ -329,9 +329,20 @@ document.addEventListener('DOMContentLoaded', () => {
   const overlay = document.getElementById('cierre-overlay');
   if (!form) return;
 
+  // Si el usuario no tiene perm_administrar, ni siquiera se intenta pedir
+  // el respaldo — antes se hacía la petición igual y el backend la
+  // rechazaba con 403, lo cual funcionaba pero era una llamada de más
+  // sin ningún propósito para quien nunca va a poder generarlo.
+  const puedeRespaldar = <%- JSON.stringify(!!permisos.perm_administrar) %>;
+
   form.addEventListener('submit', async (e) => {
     e.preventDefault();
     if (!confirm('¿Cerrar el turno?\nNo podrás registrar más ventas hasta abrir uno nuevo.')) return;
+
+    if (!puedeRespaldar) {
+      form.submit();
+      return;
+    }
 
     overlay.style.display = 'flex';
 
@@ -339,8 +350,6 @@ document.addEventListener('DOMContentLoaded', () => {
       const resp = await fetch('/admin/respaldo/json');
       const esJson = (resp.headers.get('content-type') || '').includes('application/json');
 
-      // Solo se descarga si el usuario tiene perm_administrar (si no, el
-      // backend regresa 403 y no es JSON de respaldo real).
       if (resp.ok && !resp.redirected && esJson) {
         const blob = await resp.blob();
         const disposition = resp.headers.get('content-disposition') || '';
@@ -357,7 +366,6 @@ document.addEventListener('DOMContentLoaded', () => {
       }
     } catch (err) {
       console.error('No se pudo generar el respaldo automático:', err);
-      // No bloquea el cierre de turno aunque falle
     }
 
     form.submit();
