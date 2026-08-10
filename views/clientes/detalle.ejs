@@ -15,6 +15,11 @@
       No se puede eliminar este cliente porque tiene ventas registradas.
     </div>
   <% } %>
+  <% if (typeof query !== 'undefined' && query?.error === 'sin_permiso') { %>
+    <div class="alert alert--error" style="margin-bottom:16px;">
+      No tienes permiso para realizar esa acción.
+    </div>
+  <% } %>
   <!-- Layout dos columnas -->
   <div class="detalle-layout">
 

@@ -4,6 +4,13 @@ const { api } = require('../db/api');
 
 const POR_PAGINA = 20;
 
+// ─── HELPER: mensaje de error legible según el status ─────────────────────────
+function mensajeError(err, accionDefault = 'realizar esta acción') {
+  if (err.status === 403) return `No tienes permiso para ${accionDefault}.`;
+  if (err.status === 404) return 'El recurso solicitado no existe o fue eliminado.';
+  return err.message || 'Ocurrió un error inesperado. Intenta de nuevo.';
+}
+
 // ─────────────────────────────────────────
 // GET /clientes
 // ─────────────────────────────────────────
@@ -34,6 +41,15 @@ router.get('/', async (req, res) => {
     });
   } catch (err) {
     if (err.status === 401) return res.redirect('/auth/login?error=sesion');
+    if (err.status === 403) {
+      return res.render('clientes/index', {
+        title: 'Clientes',
+        clientes: [], totalClientes: 0, totalPaginas: 0,
+        busqueda: '', tipo: '', orden: 'nombre_asc', pagina: 1,
+        toast: null,
+        error: mensajeError(err, 'consultar la lista de clientes'),
+      });
+    }
     console.error('Error en GET /clientes:', err.message);
     res.status(500).send('No se pudo cargar la lista de clientes.');
   }
@@ -77,7 +93,9 @@ router.post('/nuevo', async (req, res) => {
       title: 'Nuevo Cliente',
       cliente: req.body,
       modoEdicion: false,
-      error: 'No se pudo guardar el cliente.',
+      error: err.status === 403
+        ? mensajeError(err, 'crear clientes')
+        : 'No se pudo guardar el cliente.',
     });
   }
 });
@@ -97,6 +115,7 @@ router.get('/:id/editar', async (req, res) => {
   } catch (err) {
     if (err.status === 401) return res.redirect('/auth/login?error=sesion');
     if (err.status === 404) return res.status(404).send('Cliente no encontrado.');
+    if (err.status === 403) return res.redirect('/clientes?error=sin_permiso');
     console.error('Error en GET /clientes/:id/editar:', err.message);
     res.status(500).send('Error al cargar el formulario.');
   }
@@ -123,6 +142,7 @@ router.post('/:id/editar', async (req, res) => {
     res.redirect(`/clientes/${req.params.id}?toast=actualizado`);
   } catch (err) {
     if (err.status === 401) return res.redirect('/auth/login?error=sesion');
+    if (err.status === 403) return res.redirect(`/clientes/${req.params.id}/editar?error=sin_permiso`);
     console.error('Error actualizando cliente:', err.message);
     res.redirect(`/clientes/${req.params.id}/editar?error=fallo`);
   }
@@ -154,6 +174,7 @@ router.get('/:id', async (req, res) => {
   } catch (err) {
     if (err.status === 401) return res.redirect('/auth/login?error=sesion');
     if (err.status === 404) return res.status(404).send('Cliente no encontrado.');
+    if (err.status === 403) return res.redirect('/clientes?error=sin_permiso');
     console.error('Error en GET /clientes/:id:', err.message);
     res.status(500).send('Error al cargar el cliente.');
   }
@@ -169,6 +190,7 @@ router.post('/:id/eliminar', async (req, res) => {
   } catch (err) {
     if (err.status === 401) return res.redirect('/auth/login?error=sesion');
     if (err.status === 409) return res.redirect(`/clientes/${req.params.id}?error=tiene-ventas`);
+    if (err.status === 403) return res.redirect(`/clientes/${req.params.id}?error=sin_permiso`);
     console.error('Error eliminando cliente:', err.message);
     res.redirect(`/clientes/${req.params.id}?error=no-se-pudo-eliminar`);
   }

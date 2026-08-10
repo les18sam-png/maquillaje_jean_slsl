@@ -1577,6 +1577,12 @@ if (cajaGuardada) {
   .then(data => {
     if (data.ok) {
       window.location.reload();
+    } else if (data.ocupada_por_otro) {
+      // La caja guardada en este navegador ya no es "tuya": otro cajero
+      // tiene un turno abierto ahí. Olvidamos la caja guardada y
+      // mostramos el formulario para que elija otra.
+      localStorage.removeItem(STORAGE_KEY);
+      mostrarFormulario();
     } else {
       mostrarFormulario();
     }

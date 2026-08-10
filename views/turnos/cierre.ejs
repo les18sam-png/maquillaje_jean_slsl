@@ -16,28 +16,34 @@
     <div class="form-group" style="margin:0;flex:1;min-width:140px;">
       <label class="form-label">Fecha</label>
       <input type="date" id="filtro-fecha" class="form-control"
-        value="<%= fechaFiltro %>"
-        max="<%= new Date().toISOString().split('T')[0] %>"
-        onchange="cargarTurnos(this.value)">
+  value="<%= fechaFiltro %>"
+  max="<%= new Date().toLocaleDateString('en-CA', { timeZone: 'America/Mexico_City' }) %>"
+  onchange="cargarTurnos(this.value)">
+
+
     </div>
 
     <!-- Paso 2: elegir turno (se llena dinámicamente) -->
     <div class="form-group" style="margin:0;flex:2;min-width:200px;">
       <label class="form-label">Turno</label>
-      <select id="filtro-turno" class="form-control" onchange="verTurno()">
-        <% if (turnosDelDia.length === 0) { %>
-          <option value="">Sin turnos en esta fecha</option>
-        <% } else { %>
-          <% turnosDelDia.forEach(t => {
-            const hora = new Date(t.inicio.includes('Z') ? t.inicio : t.inicio + 'Z')
-              .toLocaleTimeString('es-MX', {hour:'2-digit', minute:'2-digit'});
-          %>
-            <option value="<%= t.id %>" <%= t.id === turnoSeleccionado ? 'selected' : '' %>>
-              <%= hora %> — <%= t.estado === 'abierto' ? '🟢 Abierto' : '⚫ Cerrado' %>
-            </option>
-          <% }) %>
-        <% } %>
-      </select>
+      
+
+    <select id="filtro-turno" class="form-control" onchange="verTurno()">
+  <% if (turnosDelDia.length === 0) { %>
+    <option value="">Sin turnos en esta fecha</option>
+  <% } else { %>
+    <% turnosDelDia.forEach(t => {
+      const hora = new Date(t.inicio.includes('Z') ? t.inicio : t.inicio + 'Z')
+        .toLocaleTimeString('es-MX', {hour:'2-digit', minute:'2-digit'});
+    %>
+      <option value="<%= t.id %>" data-inicio="<%= t.inicio %>" <%= t.id === turnoSeleccionado ? 'selected' : '' %>>
+        <%= hora %> — <%= t.estado === 'abierto' ? '🟢 Abierto' : '⚫ Cerrado' %>
+      </option>
+    <% }) %>
+  <% } %>
+</select>
+
+
     </div>
 
     <a href="/turnos/cierre" class="btn btn-ghost" style="flex-shrink:0;">Turno actual</a>
@@ -58,11 +64,11 @@
       }
 
       sel.innerHTML = turnos.map(t => {
-        const hora = new Date(t.inicio.includes('Z') ? t.inicio : t.inicio + 'Z')
-          .toLocaleTimeString('es-MX', {hour:'2-digit', minute:'2-digit'});
-        const estado = t.estado === 'abierto' ? '🟢 Abierto' : '⚫ Cerrado';
-        return `<option value="${t.id}">${hora} — ${estado}</option>`;
-      }).join('');
+  const hora = new Date(t.inicio.includes('Z') ? t.inicio : t.inicio + 'Z')
+    .toLocaleTimeString('es-MX', {hour:'2-digit', minute:'2-digit'});
+  const estado = t.estado === 'abierto' ? '🟢 Abierto' : '⚫ Cerrado';
+  return `<option value="${t.id}" data-inicio="${t.inicio}">${hora} — ${estado}</option>`;
+}).join('');
 
       verTurno();
     } catch (err) {
@@ -71,12 +77,23 @@
   }
 
   function verTurno() {
-    const turno_id = document.getElementById('filtro-turno').value;
-    const fecha    = document.getElementById('filtro-fecha').value;
-    if (turno_id) {
-      window.location.href = `/turnos/cierre?turno_id=${turno_id}&fecha=${fecha}`;
-    }
+  const select   = document.getElementById('filtro-turno');
+  const turno_id = select.value;
+  if (!turno_id) return;
+
+  // La fecha del filtro debe coincidir con la fecha REAL del turno
+  // elegido (no con lo que quedó puesto en el campo Fecha) — si no,
+  // el backend filtra por un día distinto al del turno seleccionado
+  // y la lista "se rompe".
+  const inicioRaw = select.options[select.selectedIndex]?.dataset.inicio;
+  let fecha = document.getElementById('filtro-fecha').value;
+  if (inicioRaw) {
+    const inicioIso = inicioRaw.includes('Z') ? inicioRaw : inicioRaw + 'Z';
+    fecha = new Date(inicioIso).toLocaleDateString('en-CA', { timeZone: 'America/Mexico_City' });
   }
+
+  window.location.href = `/turnos/cierre?turno_id=${turno_id}&fecha=${fecha}`;
+}
 </script>
   <!-- Encabezado -->
   <div class="page-header">
@@ -270,9 +287,9 @@
     </div>
   </div>
 
-  <!-- Confirmar cierre -->
+<!-- Confirmar cierre -->
   <div class="turno-form-wrap">
-    <form method="POST" action="/turnos/cierre" class="form-card" onsubmit="return confirmarCierre()">
+    <form method="POST" action="/turnos/cierre" class="form-card" id="form-cierre-turno">
       <input type="hidden" name="turno_id" value="<%= turno.id %>">
       <div class="form-section">
         <h2 class="form-section__title">Confirmar cierre</h2>
@@ -280,7 +297,6 @@
           <span>Total del turno</span>
           <strong>$<%= Number(resumen.totalVentas).toLocaleString('es-MX',{minimumFractionDigits:2}) %></strong>
         </div>
-        
       </div>
       <div class="form-footer">
         <a href="/venta" class="btn btn-ghost">Seguir vendiendo</a>
@@ -294,10 +310,59 @@
 
 </div>
 
+<!-- Overlay de respaldo automático al cerrar turno -->
+<div id="cierre-overlay" style="display:none; position:fixed; inset:0; background:rgba(74,5,23,.75); backdrop-filter:blur(3px); z-index:9999; align-items:center; justify-content:center;">
+  <div style="background:#fff; border-radius:16px; padding:32px 36px; text-align:center; box-shadow:0 20px 60px rgba(0,0,0,.35); max-width:320px;">
+    <div style="width:40px; height:40px; margin:0 auto 16px; border:3px solid #F2DCDB; border-top-color:#6C0820; border-radius:50%; animation:cierre-spin .7s linear infinite;"></div>
+    <p style="font-family:'Playfair Display',serif; font-size:1.05rem; color:#6C0820; font-weight:700; margin:0 0 4px;">Cerrando turno…</p>
+    <p style="font-size:.82rem; color:#999; margin:0;">Generando respaldo de seguridad</p>
+  </div>
+</div>
+
+<style>
+@keyframes cierre-spin { to { transform: rotate(360deg); } }
+</style>
+
 <script>
-  function confirmarCierre() {
-    return confirm('¿Cerrar el turno?\nNo podrás registrar más ventas hasta abrir uno nuevo.');
-  }
+document.addEventListener('DOMContentLoaded', () => {
+  const form    = document.getElementById('form-cierre-turno');
+  const overlay = document.getElementById('cierre-overlay');
+  if (!form) return;
+
+  form.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    if (!confirm('¿Cerrar el turno?\nNo podrás registrar más ventas hasta abrir uno nuevo.')) return;
+
+    overlay.style.display = 'flex';
+
+    try {
+      const resp = await fetch('/admin/respaldo/json');
+      const esJson = (resp.headers.get('content-type') || '').includes('application/json');
+
+      // Solo se descarga si el usuario tiene perm_administrar (si no, el
+      // backend regresa 403 y no es JSON de respaldo real).
+      if (resp.ok && !resp.redirected && esJson) {
+        const blob = await resp.blob();
+        const disposition = resp.headers.get('content-disposition') || '';
+        const match  = disposition.match(/filename="?([^";]+)"?/);
+        const nombre = match ? match[1] : 'respaldo.json';
+
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url; a.download = nombre;
+        document.body.appendChild(a); a.click(); a.remove();
+        window.URL.revokeObjectURL(url);
+
+        await new Promise(r => setTimeout(r, 600));
+      }
+    } catch (err) {
+      console.error('No se pudo generar el respaldo automático:', err);
+      // No bloquea el cierre de turno aunque falle
+    }
+
+    form.submit();
+  });
+});
 </script>
 
 <%- include('../partials/footer') %>

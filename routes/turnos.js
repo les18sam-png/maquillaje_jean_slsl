@@ -95,6 +95,10 @@ router.get('/cierre', async (req, res) => {
       }),
     ]);
 
+    // El nombre del cajero dueño ya viene resuelto desde el backend
+    // (cajero_nombre), sin depender de /usuarios/ ni de permisos extra.
+    const nombreCajero = data.turno.cajero_nombre || '—';
+
     const totales   = data.totales_por_metodo || {};
     const inicioRaw = data.turno.inicio;
     const inicio    = new Date(inicioRaw.includes('Z') ? inicioRaw : inicioRaw + 'Z');
@@ -111,7 +115,7 @@ router.get('/cierre', async (req, res) => {
       turno: {
         ...data.turno,
         cajas:    { nombre: caja?.nombre || '—' },
-        usuarios: { nombre_completo: req.session.usuario?.nombre_completo || '—' },
+        usuarios: { nombre_completo: nombreCajero },
       },
       inicio: inicio.toLocaleString('es-MX', {
         day: '2-digit', month: 'long', year: 'numeric',
@@ -134,7 +138,8 @@ router.get('/cierre', async (req, res) => {
       },
       turnosDelDia:      turnosRaw?.items || turnosRaw || [],
       turnoSeleccionado: turnoFiltro,
-      fechaFiltro:       fechaFiltro || new Date().toISOString().split('T')[0],
+      fechaFiltro:       fechaFiltro || new Date().toLocaleDateString('en-CA', { timeZone: 'America/Mexico_City' }),
+
       query:             req.query,
     });
   } catch (err) {

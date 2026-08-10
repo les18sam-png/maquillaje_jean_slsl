@@ -90,14 +90,16 @@ router.post('/abrir-turno', async (req, res) => {
     res.json({ ok: true, turno, sucursal_id: req.session.sucursal_id });
 
   } catch (err) {
-    // 409 = ya existe turno en esa caja → reconectar en vez de error
+    // 409 = ya existe turno en esa caja → solo reconectar si el turno
+    // abierto es del MISMO usuario que lo está intentando abrir; si es
+    // de otro cajero, se informa el conflicto en vez de adoptarlo.
     if (err.status === 409) {
       try {
         const turnoActivo = await api(
           `/turnos/activo?caja_id=${caja_id}`,
           {}, req.session.token
         );
-        if (turnoActivo) {
+        if (turnoActivo && turnoActivo.usuario_id === req.session.usuario?.id) {
           req.session.turno_id = turnoActivo.id;
           req.session.caja_id  = caja_id;
 
@@ -114,7 +116,9 @@ router.post('/abrir-turno', async (req, res) => {
     }
     res.status(err.status || 500).json({
       ok: false,
-      error: err.message || 'No se pudo abrir el turno.',
+      error: err.status === 409
+        ? 'Esa caja ya tiene un turno abierto por otro cajero. Elige otra caja o pide que la cierren.'
+        : (err.message || 'No se pudo abrir el turno.'),
     });
   }
 });
@@ -132,6 +136,13 @@ router.post('/reconectar-turno', async (req, res) => {
     // Si no hay turno activo → responder sin_turno para mostrar formulario
     if (!turno || !turno.id) {
       return res.json({ ok: false, sin_turno: true });
+    }
+
+    // El turno abierto en esa caja pertenece a OTRO usuario — no lo
+    // adoptamos como propio. Antes esto reconectaba silenciosamente a
+    // quien fuera, mostrando datos de un turno ajeno como si fuera suyo.
+    if (turno.usuario_id !== req.session.usuario?.id) {
+      return res.json({ ok: false, ocupada_por_otro: true });
     }
 
     req.session.turno_id = turno.id;

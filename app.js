@@ -69,6 +69,14 @@ app.use('/auth', auth);
 const { requireAuth, requireTurno } = require('./middleware/auth');
 app.use(requireAuth);
 
+// Permisos disponibles en TODAS las vistas sin declararlos en cada
+// res.render() — se usan para ocultar del sidebar lo que el usuario
+// no puede usar (header.ejs).
+app.use((req, res, next) => {
+  res.locals.permisos = req.session.permisos || {};
+  next();
+});
+
 const methodOverride = require('method-override');
 app.use(methodOverride('_method'));
 
