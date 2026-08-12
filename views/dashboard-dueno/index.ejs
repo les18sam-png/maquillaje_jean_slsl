@@ -178,6 +178,11 @@
       Productos faltantes
     </a>
   </div>
+  <div style="padding:8px 18px 0;">
+    <a id="pd-link-turnos" href="#" style="display:none;text-align:center;background:#fff;border:1.5px solid var(--pink-border);border-radius:10px;padding:10px;font-size:.78rem;font-weight:600;color:var(--burgundy);text-decoration:none;">
+      Cajas y turnos
+    </a>
+  </div>
 
   <!-- Contenido -->
   <div class="pd-body" id="pd-body">
@@ -399,11 +404,22 @@
       desgloseWrap.style.display = 'none';
     }
 
+   
+
+
     const paramsNav = new URLSearchParams({ fecha: inputFecha.value });
     if (sucursalSeleccionada) paramsNav.append('sucursal_id', sucursalSeleccionada);
     document.getElementById('pd-link-ventas').href = `/dashboard-dueno/ventas-dia?${paramsNav}`;
     document.getElementById('pd-link-faltantes').href = `/dashboard-dueno/productos-faltantes?${sucursalSeleccionada ? 'sucursal_id=' + sucursalSeleccionada : ''}`;
     document.getElementById('pd-link-ver-todas').href = `/dashboard-dueno/productos-faltantes?${sucursalSeleccionada ? 'sucursal_id=' + sucursalSeleccionada : ''}`;
+
+    const linkTurnos = document.getElementById('pd-link-turnos');
+    if (sucursalSeleccionada) {
+      linkTurnos.style.display = 'block';
+      linkTurnos.href = `/dashboard-dueno/turnos-dia?${paramsNav}`;
+    } else {
+      linkTurnos.style.display = 'none';
+    }
   }
 
   function cerrarSesion() {

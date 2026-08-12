@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>Cajas y turnos — SmartVenta</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Playfair+Display:wght@600;700&display=swap" rel="stylesheet">
+<style>
+  *,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+  :root{
+    --burgundy:#6C0820; --burgundy-dark:#4A0517;
+    --pink-light:#FCE4EE; --pink-border:#F2DCDB;
+    --navy:#3D5D91; --text:#1a1a2e; --muted:#888; --bg:#FAF5F5;
+    --verde:#065f46; --rojo:#c0392b;
+  }
+  html,body{background:var(--bg);font-family:'DM Sans',sans-serif;color:var(--text);}
+  .ct-shell{max-width:480px;margin:0 auto;min-height:100vh;}
+  .ct-top{
+    background:linear-gradient(160deg,var(--burgundy),var(--burgundy-dark));
+    padding:calc(env(safe-area-inset-top) + 16px) 18px 16px;color:#fff;
+    display:flex;align-items:center;gap:10px;
+  }
+  .ct-back{background:rgba(255,255,255,.14);border:1px solid rgba(255,255,255,.25);color:#fff;border-radius:8px;padding:7px 9px;cursor:pointer;display:flex;}
+  .ct-titulo{font-family:'Playfair Display',serif;font-size:1.05rem;font-weight:700;}
+  .ct-sub{font-size:.68rem;color:rgba(255,255,255,.6);}
+  .ct-body{padding:16px 18px 32px;}
+
+  .ct-fila{
+    background:#fff;border:1px solid var(--pink-border);border-radius:14px;
+    padding:14px;margin-bottom:10px;
+  }
+  .ct-fila__header{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:10px;}
+  .ct-fila__caja{font-size:.9rem;font-weight:700;color:var(--navy);}
+  .ct-fila__meta{font-size:.72rem;color:var(--muted);margin-top:2px;}
+  .ct-badge{font-size:.65rem;font-weight:700;padding:3px 9px;border-radius:10px;white-space:nowrap;flex-shrink:0;}
+  .ct-badge--abierto{background:#dcfce7;color:var(--verde);}
+  .ct-badge--cerrado{background:#f1f1f1;color:var(--muted);}
+
+  .ct-fila__efectivo{
+    display:flex;justify-content:space-between;align-items:baseline;
+    padding:10px 0;border-top:1px solid #f5eeee;border-bottom:1px solid #f5eeee;margin-bottom:10px;
+  }
+  .ct-fila__efectivo-label{font-size:.7rem;color:var(--muted);text-transform:uppercase;letter-spacing:.04em;}
+  .ct-fila__efectivo-valor{font-family:'Playfair Display',serif;font-weight:700;font-size:1.3rem;color:var(--burgundy);}
+
+  .ct-grid-mini{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;}
+  .ct-mini{text-align:center;}
+  .ct-mini__label{font-size:.62rem;color:var(--muted);text-transform:uppercase;}
+  .ct-mini__valor{font-size:.82rem;font-weight:700;margin-top:2px;}
+  .ct-mini__valor--verde{color:var(--verde);}
+  .ct-mini__valor--rojo{color:var(--rojo);}
+
+  .ct-vacio{text-align:center;color:#bbb;font-size:.85rem;padding:40px 10px;}
+  .ct-error{
+    background:#fee2e2;border:1px solid #fca5a5;color:#991b1b;
+    border-radius:12px;padding:14px;font-size:.82rem;text-align:center;
+  }
+</style>
+</head>
+<body>
+
+<div class="ct-shell">
+  <div class="ct-top">
+    <button class="ct-back" onclick="history.back()">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2"><polyline points="15 18 9 12 15 6"/></svg>
+    </button>
+    <div>
+      <div class="ct-titulo">Cajas y turnos</div>
+      <div class="ct-sub" id="ct-fecha-label">Cargando…</div>
+    </div>
+  </div>
+
+  <div class="ct-body">
+    <div id="ct-lista"><div class="ct-vacio">Cargando turnos…</div></div>
+  </div>
+</div>
+
+<script>
+  const fmt = n => '$' + Number(n || 0).toLocaleString('es-MX', { minimumFractionDigits: 2 });
+  const params = new URLSearchParams(window.location.search);
+  const fecha = params.get('fecha') || new Date().toISOString().slice(0,10);
+  const sucursalId = params.get('sucursal_id') || '';
+
+  function fmtHora(iso) {
+    if (!iso) return '—';
+    return new Date(iso + 'Z').toLocaleTimeString('es-MX', { hour: '2-digit', minute: '2-digit', timeZone: 'America/Mexico_City' });
+  }
+
+  async function cargar() {
+    document.getElementById('ct-fecha-label').textContent =
+      new Date(fecha + 'T12:00:00').toLocaleDateString('es-MX', { weekday: 'long', day: 'numeric', month: 'long' });
+
+    if (!sucursalId) {
+      document.getElementById('ct-lista').innerHTML =
+        '<div class="ct-error">Selecciona una sucursal específica en el panel principal para ver sus cajas y turnos.</div>';
+      return;
+    }
+
+    const qp = new URLSearchParams({ fecha, sucursal_id: sucursalId });
+
+    try {
+      const resp = await fetch(`/dashboard-dueno/data/turnos-dia?${qp}`);
+      if (!resp.ok) throw new Error();
+      const data = await resp.json();
+      render(data.items);
+    } catch {
+      document.getElementById('ct-lista').innerHTML = '<div class="ct-error">Error al cargar los turnos.</div>';
+    }
+  }
+
+  function render(turnos) {
+    const wrap = document.getElementById('ct-lista');
+    if (!turnos.length) {
+      wrap.innerHTML = '<div class="ct-vacio">No hubo turnos este día.</div>';
+      return;
+    }
+    wrap.innerHTML = turnos.map(t => `
+      <div class="ct-fila">
+        <div class="ct-fila__header">
+          <div>
+            <div class="ct-fila__caja">${t.caja_nombre}</div>
+            <div class="ct-fila__meta">${t.usuario_nombre} · ${fmtHora(t.inicio)}${t.cierre ? ' – ' + fmtHora(t.cierre) : ''}</div>
+          </div>
+          <span class="ct-badge ${t.estado === 'abierto' ? 'ct-badge--abierto' : 'ct-badge--cerrado'}">
+            ${t.estado === 'abierto' ? 'Abierto' : 'Cerrado'}
+          </span>
+        </div>
+
+        <div class="ct-fila__efectivo">
+          <span class="ct-fila__efectivo-label">Efectivo esperado</span>
+          <span class="ct-fila__efectivo-valor">${fmt(t.efectivo_turno)}</span>
+        </div>
+
+        <div class="ct-grid-mini">
+          <div class="ct-mini">
+            <div class="ct-mini__label">Ventas</div>
+            <div class="ct-mini__valor">${fmt(t.ventas_total)}</div>
+          </div>
+          <div class="ct-mini">
+            <div class="ct-mini__label">Tickets</div>
+            <div class="ct-mini__valor">${t.ventas_cantidad}</div>
+          </div>
+          <div class="ct-mini">
+            <div class="ct-mini__label">Entradas</div>
+            <div class="ct-mini__valor ct-mini__valor--verde">${fmt(t.entradas)}</div>
+          </div>
+          <div class="ct-mini">
+            <div class="ct-mini__label">Salidas</div>
+            <div class="ct-mini__valor ct-mini__valor--rojo">${fmt(t.salidas)}</div>
+          </div>
+        </div>
+      </div>
+    `).join('');
+  }
+
+  cargar();
+</script>
+
+</body>
+</html>
