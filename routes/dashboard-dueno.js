@@ -66,4 +66,21 @@ router.get('/data/productos-faltantes', requiereDueno, async (req, res) => {
   }
 });
 
+router.get('/turnos-dia', requiereDueno, (req, res) => {
+  res.render('dashboard-dueno/cajas-turnos', { title: 'Cajas y turnos' });
+});
+
+router.get('/data/turnos-dia', requiereDueno, async (req, res) => {
+  try {
+    const { fecha, sucursal_id } = req.query;
+    const params = new URLSearchParams();
+    if (fecha) params.append('fecha', fecha);
+    if (sucursal_id) params.append('sucursal_id', sucursal_id);
+    const datos = await api(`/dashboard-dueno/turnos-dia?${params}`, {}, req.session.token);
+    res.json(datos);
+  } catch (err) {
+    res.status(err.status || 500).json({ error: err.message || 'Error al cargar los turnos.' });
+  }
+});
+
 module.exports = router;
