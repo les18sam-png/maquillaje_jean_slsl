@@ -4,7 +4,7 @@ const session = require('express-session');
 const path = require('path');
 
 const app = express();
-const PORT = 3000;
+const PORT = process.env.PORT || 3000;
 
 // ── Motor de vistas ────────────────────────
 app.set('view engine', 'ejs');
@@ -48,6 +48,13 @@ app.use('/uploads', express.static(path.join(__dirname, 'public/uploads')));
 app.use(express.urlencoded({ extended: true }));
 app.use(express.json());
 
+// Render (y la mayoría de hostings) ponen tu app detrás de un proxy —
+// sin esto, Express no detecta bien que la conexión real es HTTPS, y
+// rompe las cookies con `secure: true`.
+app.set('trust proxy', 1);
+
+
+
 // ── Sesiones ───────────────────────────────
 app.use(session({
   secret: process.env.SESSION_SECRET || 'cambiar_en_produccion',
@@ -56,7 +63,7 @@ app.use(session({
   cookie: {
     httpOnly: true,
     sameSite: 'lax',
-    secure: false,  // poner true en producción con HTTPS
+    secure: process.env.NODE_ENV === 'production',
     maxAge: 1000 * 60 * 60 * 8,  // 8 horas, igual que el JWT
   }
 }));
