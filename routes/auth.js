@@ -50,6 +50,10 @@ router.post('/login', async (req, res) => {
     });
 
     if (!response.ok) {
+      // Log temporal para diagnosticar el fallo real en producción —
+      // quitar una vez resuelto el problema del login.
+      const detalle = await response.text().catch(() => '(sin cuerpo)');
+      console.error(`[Login] Backend respondió ${response.status}: ${detalle}`);
       return res.redirect('/auth/login?error=credenciales');
     }
 
