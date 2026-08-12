@@ -34,6 +34,7 @@
 
       <div class="form-col-main">
 
+        <% if (permisos.perm_administrar) { %>
         <div class="card">
           <div class="card-titulo">Datos Generales</div>
           <div class="form-grid">
@@ -82,7 +83,9 @@
 
           </div>
         </div>
+        <% } %>
 
+        <% if (permisos.perm_modificar_precios || permisos.perm_administrar) { %>
         <div class="card">
           <div class="card-titulo">Precios</div>
           <div class="form-grid">
@@ -128,7 +131,9 @@
 
           </div>
         </div>
+        <% } %>
 
+        <% if (permisos.perm_administrar) { %>
         <div class="card">
           <div class="card-titulo">Inventario</div>
           <div class="form-grid">
@@ -152,8 +157,10 @@
 
           </div>
         </div>
+        <% } %>
       </div>
 
+      <% if (permisos.perm_administrar) { %>
       <div class="form-col-side">
         <div class="card card-imagen">
           <div class="card-titulo">Imagen</div>
@@ -186,6 +193,7 @@
           <span class="field-error" id="err-imagen"></span>
         </div>
       </div>
+      <% } %>
 
     </div>
 
@@ -238,57 +246,65 @@
 <script>
 (function() {
 
-  const dropzone    = document.getElementById('dropzone');
-  const fileInput   = document.getElementById('imagenInput');
-  const previewImg  = document.getElementById('imagenPreviewImg');
-  const placeholder = document.getElementById('imagenPlaceholder');
-  const actions     = document.getElementById('imagenActions');
+  // La tarjeta de Imagen no existe en el DOM si el usuario no tiene
+  // perm_administrar (se oculta condicionalmente en el HTML) — sin este
+  // guard, el script truena aquí y nunca llega a calcGanancia() más abajo.
+  const dropzone = document.getElementById('dropzone');
+  if (dropzone) {
+    const fileInput   = document.getElementById('imagenInput');
+    const previewImg  = document.getElementById('imagenPreviewImg');
+    const placeholder = document.getElementById('imagenPlaceholder');
+    const actions     = document.getElementById('imagenActions');
 
-  function mostrarImagen(src) {
-    previewImg.src = src;
-    previewImg.style.display = 'block';
-    placeholder.style.display = 'none';
-    actions.style.display = 'flex';
+    const mostrarImagen = (src) => {
+      previewImg.src = src;
+      previewImg.style.display = 'block';
+      placeholder.style.display = 'none';
+      actions.style.display = 'flex';
+    };
+
+    const quitarImagen = () => {
+      previewImg.src = '';
+      previewImg.style.display = 'none';
+      placeholder.style.display = 'flex';
+      actions.style.display = 'none';
+      fileInput.value = '';
+    };
+
+    const procesarArchivo = (file) => {
+      const errEl = document.getElementById('err-imagen');
+      const tipos = ['image/jpeg', 'image/png', 'image/webp'];
+      if (!tipos.includes(file.type)) { errEl.textContent = 'Solo JPG, PNG o WebP.'; return; }
+      if (file.size > 2 * 1024 * 1024) { errEl.textContent = 'Máximo 2 MB.'; return; }
+      errEl.textContent = '';
+      const dt = new DataTransfer();
+      dt.items.add(file);
+      fileInput.files = dt.files;
+      const reader = new FileReader();
+      reader.onload = e => mostrarImagen(e.target.result);
+      reader.readAsDataURL(file);
+    };
+
+    dropzone.addEventListener('click', () => fileInput.click());
+    dropzone.addEventListener('dragover', e => { e.preventDefault(); dropzone.classList.add('drag-over'); });
+    dropzone.addEventListener('dragleave', () => dropzone.classList.remove('drag-over'));
+    dropzone.addEventListener('drop', e => {
+      e.preventDefault();
+      dropzone.classList.remove('drag-over');
+      const file = e.dataTransfer.files[0];
+      if (file) procesarArchivo(file);
+    });
+
+    fileInput.addEventListener('change', function() {
+      if (this.files[0]) procesarArchivo(this.files[0]);
+    });
+
+    document.getElementById('btnCambiarImg').addEventListener('click', () => fileInput.click());
+    document.getElementById('btnQuitarImg').addEventListener('click', quitarImagen);
   }
 
-  function quitarImagen() {
-    previewImg.src = '';
-    previewImg.style.display = 'none';
-    placeholder.style.display = 'flex';
-    actions.style.display = 'none';
-    fileInput.value = '';
-  }
 
-  dropzone.addEventListener('click', () => fileInput.click());
-  dropzone.addEventListener('dragover', e => { e.preventDefault(); dropzone.classList.add('drag-over'); });
-  dropzone.addEventListener('dragleave', () => dropzone.classList.remove('drag-over'));
-  dropzone.addEventListener('drop', e => {
-    e.preventDefault();
-    dropzone.classList.remove('drag-over');
-    const file = e.dataTransfer.files[0];
-    if (file) procesarArchivo(file);
-  });
 
-  fileInput.addEventListener('change', function() {
-    if (this.files[0]) procesarArchivo(this.files[0]);
-  });
-
-  document.getElementById('btnCambiarImg').addEventListener('click', () => fileInput.click());
-  document.getElementById('btnQuitarImg').addEventListener('click', quitarImagen);
-
-  function procesarArchivo(file) {
-    const errEl = document.getElementById('err-imagen');
-    const tipos = ['image/jpeg', 'image/png', 'image/webp'];
-    if (!tipos.includes(file.type)) { errEl.textContent = 'Solo JPG, PNG o WebP.'; return; }
-    if (file.size > 2 * 1024 * 1024) { errEl.textContent = 'Máximo 2 MB.'; return; }
-    errEl.textContent = '';
-    const dt = new DataTransfer();
-    dt.items.add(file);
-    fileInput.files = dt.files;
-    const reader = new FileReader();
-    reader.onload = e => mostrarImagen(e.target.result);
-    reader.readAsDataURL(file);
-  }
 
   const costoEl = document.getElementById('costo');
   const ventaEl = document.getElementById('precio_venta');

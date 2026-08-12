@@ -129,13 +129,13 @@
           <div class="panel-info-item">
             <span class="panel-info-label">Último login</span>
             <span class="panel-info-value" id="panel-login">
-              <%= u.ultimo_login ? new Date(u.ultimo_login).toLocaleString('es-MX', { day:'2-digit', month:'short', year:'numeric', hour:'2-digit', minute:'2-digit' }) : 'Nunca' %>
+              <%= u.ultimo_login ? normalizarFecha(u.ultimo_login).toLocaleString('es-MX', { day:'2-digit', month:'short', year:'numeric', hour:'2-digit', minute:'2-digit' }) : 'Nunca' %>
             </span>
           </div>
           <div class="panel-info-item">
             <span class="panel-info-label">Registrado</span>
             <span class="panel-info-value" id="panel-creado">
-              <%= new Date(u.creado_en).toLocaleDateString('es-MX', { day:'2-digit', month:'short', year:'numeric' }) %>
+              <%= normalizarFecha(u.creado_en).toLocaleDateString('es-MX', { day:'2-digit', month:'short', year:'numeric' }) %>
             </span>
           </div>
         </div>
@@ -312,6 +312,15 @@
   // Datos de usuarios para el panel
   const usuariosData = <%- JSON.stringify(usuarios) %>;
 
+  // Igual que app.locals.normalizarFecha en el servidor, pero del lado
+  // del cliente: Supabase regresa timestamps sin sufijo de zona horaria
+  // (guardados en UTC), y sin esto el navegador los interpreta como hora
+  // local, adelantando el reloj 6 horas (México = UTC-6).
+  function normalizarFechaCliente(valor) {
+    if (!valor) return new Date();
+    const tieneZona = /Z$|[+-]\d{2}:\d{2}$/.test(valor);
+    return new Date(tieneZona ? valor : `${valor}Z`);
+  }
   function filtrarUsuarios() {
     const q = document.getElementById('buscar-usuario').value.toLowerCase();
     document.querySelectorAll('.admin-lista__item').forEach(item => {
@@ -335,9 +344,9 @@
     document.getElementById('panel-rol').textContent      = u.roles?.nombre || '—';
     document.getElementById('panel-avatar').textContent   = u.nombre_completo.charAt(0).toUpperCase();
     document.getElementById('panel-login').textContent    = u.ultimo_login
-      ? new Date(u.ultimo_login).toLocaleString('es-MX', { day:'2-digit', month:'short', year:'numeric', hour:'2-digit', minute:'2-digit' })
+      ? normalizarFechaCliente(u.ultimo_login).toLocaleString('es-MX', { day:'2-digit', month:'short', year:'numeric', hour:'2-digit', minute:'2-digit' })
       : 'Nunca';
-    document.getElementById('panel-creado').textContent   = new Date(u.creado_en).toLocaleDateString('es-MX', { day:'2-digit', month:'short', year:'numeric' });
+    document.getElementById('panel-creado').textContent   = normalizarFechaCliente(u.creado_en).toLocaleDateString('es-MX', { day:'2-digit', month:'short', year:'numeric' });
     document.getElementById('panel-estado').innerHTML     = u.activo
       ? '<span class="badge badge--success">Activo</span>'
       : '<span class="badge badge--danger">Inactivo</span>';
