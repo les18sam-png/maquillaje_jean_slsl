@@ -120,6 +120,7 @@ router.get('/cierre', async (req, res) => {
       inicio: inicio.toLocaleString('es-MX', {
         day: '2-digit', month: 'long', year: 'numeric',
         hour: '2-digit', minute: '2-digit',
+        timeZone: 'America/Mexico_City',
       }),
       duracion,
       resumen: {

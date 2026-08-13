@@ -34,7 +34,7 @@
   <% } else { %>
     <% turnosDelDia.forEach(t => {
       const hora = new Date(t.inicio.includes('Z') ? t.inicio : t.inicio + 'Z')
-        .toLocaleTimeString('es-MX', {hour:'2-digit', minute:'2-digit'});
+        .toLocaleTimeString('es-MX', {hour:'2-digit', minute:'2-digit', timeZone: 'America/Mexico_City'});
     %>
       <option value="<%= t.id %>" data-inicio="<%= t.inicio %>" <%= t.id === turnoSeleccionado ? 'selected' : '' %>>
         <%= hora %> — <%= t.estado === 'abierto' ? '🟢 Abierto' : '⚫ Cerrado' %>
@@ -63,9 +63,9 @@
         return;
       }
 
-      sel.innerHTML = turnos.map(t => {
+     sel.innerHTML = turnos.map(t => {
   const hora = new Date(t.inicio.includes('Z') ? t.inicio : t.inicio + 'Z')
-    .toLocaleTimeString('es-MX', {hour:'2-digit', minute:'2-digit'});
+    .toLocaleTimeString('es-MX', {hour:'2-digit', minute:'2-digit', timeZone: 'America/Mexico_City'});
   const estado = t.estado === 'abierto' ? '🟢 Abierto' : '⚫ Cerrado';
   return `<option value="${t.id}" data-inicio="${t.inicio}">${hora} — ${estado}</option>`;
 }).join('');
@@ -225,8 +225,8 @@
           <tr><td colspan="4" style="text-align:center;color:#aaa;padding:16px;">Sin movimientos registrados</td></tr>
         <% } else { %>
           <% resumen.detalleMovimientos.forEach((m, i) => {
-            const hora = new Date(m.registrado_en.includes('Z') ? m.registrado_en : m.registrado_en + 'Z')
-              .toLocaleTimeString('es-MX', {hour:'2-digit', minute:'2-digit'});
+           const hora = new Date(m.registrado_en.includes('Z') ? m.registrado_en : m.registrado_en + 'Z')
+  .toLocaleTimeString('es-MX', {hour:'2-digit', minute:'2-digit', timeZone: 'America/Mexico_City'});
             const esFondo = i === 0 && m.tipo_movimiento === 'entrada';
           %>
           <tr>
